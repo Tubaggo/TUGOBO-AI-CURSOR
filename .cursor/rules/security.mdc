@@ -1,0 +1,29 @@
+---
+description: Security rules. These are non-negotiable.
+alwaysApply: true
+---
+
+# Security Rules
+
+## PII
+- Phone numbers are PII. NEVER log them, include them in error messages, or store them in non-DB locations.
+- Message bodies are PII. Same rules apply.
+- Use the `logger` from `@tugobo/shared/logger` - it auto-redacts known PII keys.
+
+## Webhook Validation
+- EVERY webhook handler MUST validate the provider signature before processing.
+- Twilio: use `twilio.validateRequest()` with the raw form body.
+- Meta: use HMAC-SHA256 with `META_WHATSAPP_TOKEN`.
+- Return HTTP 403 (not 401) on invalid signatures.
+- Signature validation is SKIPPED only in `NODE_ENV=development` (never in production).
+
+## Secrets
+- All secrets in `.env.local` (gitignored). Never `.env` in production.
+- NEXT_PUBLIC_ prefix ONLY for values that are intentionally public.
+- `SUPABASE_SERVICE_ROLE_KEY` is NEVER exposed to the browser. Server-only.
+- Twilio `authToken` is NEVER logged or returned in API responses.
+
+## Auth
+- Dashboard routes protected by Supabase Auth middleware (`apps/web/middleware.ts`).
+- RLS enabled on all Supabase tables. Service role key used only for admin operations.
+- Users can only access data for their own `hotel_id`.

@@ -1,0 +1,40 @@
+---
+description: Core stack conventions for Tugobo AI. Always follow these.
+alwaysApply: true
+---
+
+# Tugobo AI - Stack Conventions
+
+## Database
+- ALWAYS use Drizzle ORM. Never write raw SQL in application code.
+- All queries go through `@tugobo/db` package. Never import `postgres` or `@supabase/supabase-js` directly in `apps/web` route handlers for DB work.
+- Every business table MUST have a `hotel_id` column (multi-tenant from day 1).
+- Use `db.insert().returning()` to get back inserted rows.
+
+## Channels
+- NEVER call Twilio or Meta APIs directly from route handlers or agents.
+- ALL channel interactions go through `packages/channels/` adapters.
+- The adapter interface is `ChannelAdapter` in `packages/channels/src/types.ts`.
+
+## Agent Tools
+- ALL side-effects (DB writes, external API calls, sending messages) performed by agents go through typed tool functions in `packages/core/src/tools/`.
+- Tool functions are passed to the AI SDK `tools` parameter. They are never called directly by agent code.
+
+## Workflows
+- ALL durable, multi-step agent work goes through Inngest functions defined in `packages/core/src/graph/`.
+- Never use `setTimeout` or raw `setInterval` for retry logic.
+
+## Prompts
+- ALL system prompts live in `packages/core/src/prompts/index.ts`.
+- Prompts are versioned (e.g. `_v1`, `_v2`). Never edit a live prompt in-place; create a new version.
+
+## Security
+- NEVER log phone numbers. Use `[REDACTED]` via the logger in `packages/shared/src/logger.ts`.
+- NEVER log message bodies.
+- ALWAYS validate Twilio webhook signatures before processing.
+- NEVER commit real keys. Use `.env.local` (git-ignored).
+
+## TypeScript
+- `strict: true` always.
+- No `any`. Use `unknown` and narrow with Zod.
+- Prefer `type` over `interface` for data shapes. Use `interface` only for objects that will be implemented/extended.

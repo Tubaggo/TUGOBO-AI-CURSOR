@@ -1,0 +1,18 @@
+{
+  "name": "tugobo-ai",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm -r lint",
+    "db:generate": "pnpm --filter @tugobo/db db:generate",
+    "db:migrate": "pnpm --filter @tugobo/db db:migrate",
+    "db:push": "pnpm --filter @tugobo/db db:push",
+    "db:studio": "pnpm --filter @tugobo/db db:studio"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
