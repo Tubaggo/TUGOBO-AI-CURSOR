@@ -150,6 +150,69 @@ function isAnimatedMsg(id: string): boolean {
   );
 }
 
+// ─── Demo guest pool ──────────────────────────────────────────────────────────
+
+type DemoGuest = {
+  name: string; initials: string; avatarColor: string; phone: string;
+  language: string; flag: string;
+  inquiry: string; aiGreet: string; aiOffer: string; aiPaymentMsg: string; aiConfirm: string;
+  room: string; checkIn: string; checkOut: string;
+  nights: number; guestCount: number; pricePerNight: number; currency: string;
+};
+
+const DEMO_GUESTS: DemoGuest[] = [
+  {
+    name: "Sophie Martin", initials: "SM", avatarColor: "bg-rose-500", phone: "+33 6 12 34 56 78",
+    language: "FR", flag: "🇫🇷",
+    inquiry: "Bonjour! Je cherche une chambre double pour 2 personnes du 15 au 18 août. Avez-vous de la disponibilité?",
+    aiGreet: "Bonjour Sophie! 😊 Bienvenue au Grand Hotel Demo. Je vérifie les disponibilités du 15 au 18 août pour vous…",
+    aiOffer: "Excellente nouvelle! Pour vos dates, j'ai la disponibilité suivante:\n\n🛏  Chambre Double Deluxe — €220/nuit\n⭐  Suite Junior — €310/nuit\n\nLa Chambre Double Deluxe inclut le petit-déjeuner et une vue sur le jardin.\n3 nuits × €220 = **€660** au total.\n\nSouhaitez-vous réserver la Chambre Double Deluxe?",
+    aiPaymentMsg: "Parfait Sophie! 🎉 J'ai créé votre réservation et envoyé un lien de paiement sécurisé sur votre WhatsApp.\n\nMontant: €660 · Paiement 100% sécurisé.",
+    aiConfirm: "Paiement confirmé ✅ Votre Chambre Double Deluxe est réservée!\n\nUne confirmation a été envoyée sur votre WhatsApp. Nous avons hâte de vous accueillir le 15 août! 🌹",
+    room: "Deluxe Double Room", checkIn: "Aug 15", checkOut: "Aug 18", nights: 3, guestCount: 2, pricePerNight: 220, currency: "€",
+  },
+  {
+    name: "Lorenzo Ricci", initials: "LR", avatarColor: "bg-orange-500", phone: "+39 320 765 1234",
+    language: "IT", flag: "🇮🇹",
+    inquiry: "Buongiorno! Cerco una camera per due persone dal 20 al 25 settembre. Ha disponibilità?",
+    aiGreet: "Buongiorno Lorenzo! 🌟 Benvenuto al Grand Hotel Demo. Verifico subito le disponibilità per il 20-25 settembre…",
+    aiOffer: "Perfetto! Ho trovato le seguenti opzioni per il vostro soggiorno:\n\n🛏  Camera Doppia Superior — €170/notte\n⭐  Suite con Vista Mare — €280/notte\n\nLa Camera Doppia Superior include colazione e accesso alla piscina.\n5 notti × €170 = **€850** totale.\n\nProcedo con la prenotazione?",
+    aiPaymentMsg: "Meraviglioso! 🎉 La prenotazione è pronta. Ho inviato il link di pagamento sicuro al vostro WhatsApp.\n\nImporto: €850 · Pagamento sicuro garantito.",
+    aiConfirm: "Pagamento confermato ✅ La Camera Doppia Superior è prenotata!\n\nUna conferma è stata inviata al tuo WhatsApp. Non vediamo l'ora di accoglierti il 20 settembre! 🌊",
+    room: "Superior Double Room", checkIn: "Sep 20", checkOut: "Sep 25", nights: 5, guestCount: 2, pricePerNight: 170, currency: "€",
+  },
+  {
+    name: "Anna Hoffmann", initials: "AH", avatarColor: "bg-sky-500", phone: "+49 176 543 2100",
+    language: "DE", flag: "🇩🇪",
+    inquiry: "Guten Tag! Wir suchen ein Zimmer für 2 Erwachsene und 1 Kind vom 10. bis 14. Juli. Haben Sie etwas Passendes?",
+    aiGreet: "Guten Tag Anna! 👋 Herzlich willkommen im Grand Hotel Demo. Ich prüfe sofort die Verfügbarkeit für den 10.–14. Juli…",
+    aiOffer: "Tolle Neuigkeiten! Für Ihre Familie habe ich folgende Optionen:\n\n🛏  Familienzimmer (2+1) — €190/Nacht\n⭐  Junior Suite — €260/Nacht\n\nDas Familienzimmer bietet ein Doppelbett + Kinderbett und Frühstück inklusive.\n4 Nächte × €190 = **€760** Gesamt.\n\nSoll ich die Reservierung vorbereiten?",
+    aiPaymentMsg: "Wunderbar! 🎉 Ihre Reservierung ist erstellt. Ich habe den sicheren Zahlungslink an Ihr WhatsApp gesendet.\n\nBetrag: €760 · 100% sichere Zahlung.",
+    aiConfirm: "Zahlung bestätigt ✅ Ihr Familienzimmer ist gebucht!\n\nEine Bestätigung wurde an Ihr WhatsApp gesendet. Wir freuen uns darauf, Sie und Ihre Familie am 10. Juli willkommen zu heißen! 🌟",
+    room: "Family Room", checkIn: "Jul 10", checkOut: "Jul 14", nights: 4, guestCount: 3, pricePerNight: 190, currency: "€",
+  },
+  {
+    name: "David Lim", initials: "DL", avatarColor: "bg-teal-500", phone: "+65 9123 4567",
+    language: "EN", flag: "🇸🇬",
+    inquiry: "Hi! I'd like to book a deluxe room for 2 nights, August 8-10. What are your rates?",
+    aiGreet: "Hi David! 👋 Welcome to Grand Hotel Demo. Let me check availability for August 8–10 right away…",
+    aiOffer: "Great news! I have availability for your dates:\n\n🛏  Deluxe Sea View Room — $260/night\n⭐  Premium Suite — $390/night\n\nThe Deluxe Sea View Room includes breakfast, pool access, and a stunning ocean view.\n2 nights × $260 = **$520** total.\n\nShall I reserve the Deluxe Sea View Room for you?",
+    aiPaymentMsg: "Excellent choice! 🎉 Your reservation is ready. I've sent a secure payment link to your WhatsApp.\n\nAmount: $520 · Secure checkout.",
+    aiConfirm: "Payment confirmed ✅ Your Deluxe Sea View Room is booked!\n\nA confirmation has been sent to your WhatsApp. Looking forward to welcoming you on August 8! 🌴",
+    room: "Deluxe Sea View Room", checkIn: "Aug 8", checkOut: "Aug 10", nights: 2, guestCount: 2, pricePerNight: 260, currency: "$",
+  },
+  {
+    name: "Isabel Ferreira", initials: "IF", avatarColor: "bg-fuchsia-500", phone: "+55 11 9 8765 4321",
+    language: "PT", flag: "🇧🇷",
+    inquiry: "Olá! Gostaria de reservar um quarto duplo para 3 noites a partir de 5 de outubro. Tem disponibilidade?",
+    aiGreet: "Olá Isabel! 🌟 Bem-vinda ao Grand Hotel Demo. Verificando disponibilidade para 5-8 de outubro agora…",
+    aiOffer: "Ótima notícia! Encontrei as seguintes opções para você:\n\n🛏  Quarto Duplo Standard — €140/noite\n⭐  Quarto Duplo Superior — €195/noite\n\nO Quarto Duplo Superior inclui café da manhã, acesso à piscina e vista para o jardim.\n3 noites × €195 = **€585** total.\n\nDeseja reservar o Quarto Duplo Superior?",
+    aiPaymentMsg: "Perfeito! 🎉 Sua reserva está criada. Enviei o link de pagamento seguro para o seu WhatsApp.\n\nValor: €585 · Pagamento 100% seguro.",
+    aiConfirm: "Pagamento confirmado ✅ Seu Quarto Duplo Superior está reservado!\n\nUma confirmação foi enviada ao seu WhatsApp. Mal podemos esperar para recebê-la em 5 de outubro! 🌸",
+    room: "Superior Double Room", checkIn: "Oct 5", checkOut: "Oct 8", nights: 3, guestCount: 2, pricePerNight: 195, currency: "€",
+  },
+];
+
 // ─── Toast type ───────────────────────────────────────────────────────────────
 
 type ToastData = { title: string; sub?: string; type: "success" | "new" };
@@ -161,6 +224,11 @@ export default function ConversationsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string>("c2");
 
+  // Demo mode
+  const [demoMode, setDemoMode] = useState(false);
+  const [demoConversations, setDemoConversations] = useState<Conversation[]>([]);
+  const [demoChatThreads, setDemoChatThreads] = useState<Record<string, ChatThread>>({});
+
   // Per-conversation interactive state
   const [localStatuses, setLocalStatuses] = useState<Record<string, ConversationStatus>>({});
   const [localMessages, setLocalMessages] = useState<Record<string, ChatMsg[]>>({});
@@ -169,6 +237,7 @@ export default function ConversationsPage() {
     Object.fromEntries(CONVERSATIONS.map((c) => [c.id, c.unread]))
   );
   const [localLastMsgs, setLocalLastMsgs] = useState<Record<string, string>>({});
+  const [localReservations, setLocalReservations] = useState<Record<string, ConvReservation>>({});
   const [confirmedReservations, setConfirmedReservations] = useState<Record<string, boolean>>({});
 
   const [sentLink, setSentLink] = useState(false);
@@ -178,6 +247,9 @@ export default function ConversationsPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedRef = useRef(selected);
+  const demoActiveRef = useRef(false);
+  const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const demoRoundRef = useRef(0);
 
   // Keep ref in sync for stale-closure safety in timeouts
   useEffect(() => {
@@ -186,8 +258,10 @@ export default function ConversationsPage() {
 
   // ── Derived values for selected conversation ───────────────────────────────
 
-  const selectedConv = CONVERSATIONS.find((c) => c.id === selected)!;
-  const thread = CHAT_THREADS[selected];
+  // Include demo conversations (newest first) in lookup
+  const allConvs: Conversation[] = [...demoConversations, ...CONVERSATIONS];
+  const selectedConv = allConvs.find((c) => c.id === selected)!;
+  const thread = CHAT_THREADS[selected] ?? demoChatThreads[selected];
 
   const hasLocalStatus = selected in localStatuses;
   const effectiveStatus: ConversationStatus = localStatuses[selected] ?? selectedConv?.status;
@@ -196,13 +270,23 @@ export default function ConversationsPage() {
     ? (localTyping[selected] ?? false)
     : (thread?.aiTyping ?? false);
 
-  // Reservation with optional confirmed override after payment
-  const rawReservation = thread?.reservation;
+  // Reservation: localReservations (demo / manual) takes priority over thread data
+  const rawReservation = localReservations[selected] ?? thread?.reservation;
   const effectiveReservation: ConvReservation | undefined = rawReservation
     ? confirmedReservations[selected]
       ? { ...rawReservation, status: "confirmed" as const }
       : rawReservation
     : undefined;
+
+  // Pre-compute confirmed metrics for MetricsBar (includes demo revenue via localReservations)
+  const confirmedCount = Object.values(confirmedReservations).filter(Boolean).length;
+  const confirmedRevenue = Object.entries(confirmedReservations)
+    .filter(([, v]) => v)
+    .reduce((sum, [id]) => {
+      const staticTotal = CHAT_THREADS[id]?.reservation?.total;
+      const localTotal = localReservations[id]?.total;
+      return sum + (staticTotal ?? localTotal ?? 0);
+    }, 0);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -277,6 +361,152 @@ export default function ConversationsPage() {
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Start / stop demo mode when toggle changes
+  useEffect(() => {
+    demoActiveRef.current = demoMode;
+    if (!demoMode) {
+      clearDemoTimers();
+      return;
+    }
+    // Small delay so the toggle animation settles, then start first run
+    const startTimer = setTimeout(() => {
+      if (demoActiveRef.current) runDemoFlow();
+    }, 1200);
+    return () => {
+      demoActiveRef.current = false;
+      clearTimeout(startTimer);
+      clearDemoTimers();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demoMode]);
+
+  // ── Demo helpers ───────────────────────────────────────────────────────────
+
+  function clearDemoTimers() {
+    demoTimersRef.current.forEach(clearTimeout);
+    demoTimersRef.current = [];
+  }
+
+  function addDemoTimeout(fn: () => void, ms: number) {
+    const t = setTimeout(fn, ms);
+    demoTimersRef.current.push(t);
+    return t;
+  }
+
+  function runDemoFlow() {
+    if (!demoActiveRef.current) return;
+
+    const guest = DEMO_GUESTS[demoRoundRef.current % DEMO_GUESTS.length];
+    demoRoundRef.current += 1;
+
+    const convId = `demo-${Date.now()}`;
+    const ts = () =>
+      new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const t0 = ts();
+
+    // ── 1. New inquiry appears in list ──────────────────────────────────────
+    const newConv: Conversation = {
+      id: convId,
+      contact: { name: guest.name, initials: guest.initials, avatarColor: guest.avatarColor, phone: guest.phone },
+      lastMessage: guest.inquiry,
+      time: "just now",
+      language: guest.language,
+      status: "ai_active",
+      leadStatus: "new",
+      unread: 1,
+      messageCount: 1,
+    };
+    setDemoConversations((prev) => [newConv, ...prev]);
+    setDemoChatThreads((prev) => ({
+      ...prev,
+      [convId]: { messages: [{ id: `${convId}-m0`, dir: "in", body: guest.inquiry, time: t0 }] },
+    }));
+    setLocalUnreads((prev) => ({ ...prev, [convId]: 1 }));
+    setLocalLastMsgs((prev) => ({ ...prev, [convId]: guest.inquiry }));
+    setSelected(convId);
+    showToast(`New inquiry · ${guest.name} ${guest.flag}`, guest.inquiry.slice(0, 52) + "…", "new");
+
+    // ── 2. AI starts typing ─────────────────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalUnreads((prev) => ({ ...prev, [convId]: 0 }));
+      setLocalTyping((prev) => ({ ...prev, [convId]: true }));
+    }, 2200);
+
+    // ── 3. AI greeting ──────────────────────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalTyping((prev) => ({ ...prev, [convId]: false }));
+      addMessages(convId, [{ id: `${convId}-ai1`, dir: "out", by: "ai", body: guest.aiGreet, time: ts() }]);
+    }, 4500);
+
+    // ── 4. AI starts typing for offer ───────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalTyping((prev) => ({ ...prev, [convId]: true }));
+    }, 6200);
+
+    // ── 5. AI sends room offer ──────────────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalTyping((prev) => ({ ...prev, [convId]: false }));
+      addMessages(convId, [{ id: `${convId}-ai2`, dir: "out", by: "ai", body: guest.aiOffer, time: ts() }]);
+    }, 9500);
+
+    // ── 6. Reservation card — quoted ────────────────────────────────────────
+    addDemoTimeout(() => {
+      const total = guest.pricePerNight * guest.nights;
+      const reservation: ConvReservation = {
+        ref: `GH${Math.floor(1000 + Math.random() * 9000)}`,
+        guest: guest.name,
+        room: guest.room,
+        checkIn: guest.checkIn,
+        checkOut: guest.checkOut,
+        nights: guest.nights,
+        guests: guest.guestCount,
+        pricePerNight: guest.pricePerNight,
+        total,
+        currency: guest.currency,
+        status: "quoted",
+      };
+      setLocalReservations((prev) => ({ ...prev, [convId]: reservation }));
+      showToast(`Quote created · ${guest.name}`, `${guest.room} · ${guest.currency}${total.toLocaleString()}`, "success");
+    }, 12500);
+
+    // ── 7. AI typing for payment link ───────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalTyping((prev) => ({ ...prev, [convId]: true }));
+    }, 15000);
+
+    // ── 8. Payment link sent ────────────────────────────────────────────────
+    addDemoTimeout(() => {
+      setLocalTyping((prev) => ({ ...prev, [convId]: false }));
+      setLocalReservations((prev) =>
+        prev[convId] ? { ...prev, [convId]: { ...prev[convId]!, status: "pending_payment" } } : prev
+      );
+      addMessages(convId, [{ id: `${convId}-ai3`, dir: "out", by: "ai", body: guest.aiPaymentMsg, time: ts() }]);
+      const total = guest.pricePerNight * guest.nights;
+      showToast("Payment link sent", `${guest.name} · ${guest.currency}${total.toLocaleString()}`, "success");
+    }, 17500);
+
+    // ── 9. Payment confirmed → reservation confirmed + revenue up ───────────
+    addDemoTimeout(() => {
+      const sysTime = ts();
+      const total = guest.pricePerNight * guest.nights;
+      setLocalReservations((prev) =>
+        prev[convId] ? { ...prev, [convId]: { ...prev[convId]!, status: "confirmed" } } : prev
+      );
+      setConfirmedReservations((prev) => ({ ...prev, [convId]: true }));
+      addMessages(convId, [
+        { id: `${convId}-sys`, dir: "system", body: `Payment received · ${guest.currency}${total.toLocaleString()} · ${sysTime}`, time: sysTime },
+        { id: `${convId}-ai4`, dir: "out", by: "ai", body: guest.aiConfirm, time: sysTime },
+      ]);
+      setLocalStatuses((prev) => ({ ...prev, [convId]: "resolved" }));
+      showToast("Booking confirmed 🎉", `${guest.name} · ${guest.currency}${total.toLocaleString()} received`, "success");
+    }, 22000);
+
+    // ── Schedule next run (28–38 s from now) ───────────────────────────────
+    addDemoTimeout(() => {
+      if (demoActiveRef.current) runDemoFlow();
+    }, 28000 + Math.floor(Math.random() * 10000));
+  }
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -353,8 +583,10 @@ export default function ConversationsPage() {
 
   // ── Filter ─────────────────────────────────────────────────────────────────
 
-  const filtered = CONVERSATIONS.filter((c) => {
-    const matchTab = activeTab === "all" || c.status === activeTab;
+  const filtered = allConvs.filter((c) => {
+    // Use localStatuses override so demo flow status changes are reflected in tabs
+    const effectiveConvStatus = localStatuses[c.id] ?? c.status;
+    const matchTab = activeTab === "all" || effectiveConvStatus === activeTab;
     const matchSearch =
       !search ||
       c.contact.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -369,8 +601,40 @@ export default function ConversationsPage() {
       {/* Toast */}
       <Toast toast={toast} />
 
+      {/* ── Demo Mode toggle bar ─────────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center justify-between px-5 py-2 border-b border-white/[0.04] bg-zinc-950/90">
+        <div className="flex items-center gap-2 text-[11px] text-white/20">
+          <span>Grand Hotel Demo</span>
+          <span className="text-white/10">·</span>
+          <span>Sales Preview</span>
+          {demoMode && (
+            <span className="flex items-center gap-1 text-blue-400/60 ml-1">
+              <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+              Auto-demo running
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setDemoMode((v) => !v)}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all active:scale-[0.97]",
+            demoMode
+              ? "bg-blue-500/15 border-blue-500/25 text-blue-300 hover:bg-blue-500/20"
+              : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:bg-white/[0.06]"
+          )}
+        >
+          <span
+            className={cn(
+              "w-1.5 h-1.5 rounded-full transition-colors",
+              demoMode ? "bg-blue-400 animate-pulse" : "bg-white/20"
+            )}
+          />
+          Demo Mode {demoMode ? "ON" : "OFF"}
+        </button>
+      </div>
+
       {/* ── ROI metrics bar ──────────────────────────────────────────────── */}
-      <MetricsBar confirmedReservations={confirmedReservations} />
+      <MetricsBar confirmedCount={confirmedCount} confirmedRevenue={confirmedRevenue} />
 
       {/* ── Main 3-column area ───────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
@@ -585,29 +849,17 @@ function useCountUp(target: number, duration = 1100): number {
 // ─── MetricsBar ───────────────────────────────────────────────────────────────
 
 function MetricsBar({
-  confirmedReservations,
+  confirmedCount,
+  confirmedRevenue,
 }: {
-  confirmedReservations: Record<string, boolean>;
+  confirmedCount: number;
+  confirmedRevenue: number;
 }) {
-  // Compute live values — update when new reservations are confirmed during demo
-  const bonus = Object.entries(confirmedReservations)
-    .filter(([, v]) => v)
-    .reduce(
-      (acc, [convId]) => {
-        const t = CHAT_THREADS[convId];
-        return {
-          count: acc.count + 1,
-          revenue: acc.revenue + (t?.reservation?.total ?? 0),
-        };
-      },
-      { count: 0, revenue: 0 }
-    );
-
-  const bookings = BASE_METRICS.bookings + bonus.count;
-  const revenue = BASE_METRICS.revenue + bonus.revenue;
+  const bookings = BASE_METRICS.bookings + confirmedCount;
+  const revenue = BASE_METRICS.revenue + confirmedRevenue;
   const otaSaved = Math.round(revenue * 0.15);
 
-  // Animate numbers smoothly on mount and when values change
+  // Animate numbers smoothly on mount and when values change (e.g. after payment confirmation)
   const displayBookings = useCountUp(bookings);
   const displayRevenue = useCountUp(revenue);
   const displayOta = useCountUp(otaSaved);
@@ -615,18 +867,18 @@ function MetricsBar({
   const values: Record<typeof METRIC_DEFS[number]["key"], { display: string; sub: string; trend: string }> = {
     bookings: {
       display: String(displayBookings),
-      sub: `€${(2480 + bonus.revenue).toLocaleString()} revenue`,
-      trend: `+${bonus.count > 0 ? bonus.count + 2 : 2} vs yesterday`,
+      sub: `€${(2480 + confirmedRevenue).toLocaleString()} revenue`,
+      trend: `+${confirmedCount > 0 ? confirmedCount + 2 : 2} vs yesterday`,
     },
     revenue: {
       display: `€${displayRevenue.toLocaleString()}`,
       sub: "direct bookings · this week",
-      trend: `+€${(890 + bonus.revenue).toLocaleString()} vs last week`,
+      trend: `+€${(890 + confirmedRevenue).toLocaleString()} vs last week`,
     },
     ota: {
       display: `€${displayOta.toLocaleString()}`,
       sub: "15% rate on direct only",
-      trend: `+€${Math.round((133 + bonus.revenue * 0.15)).toLocaleString()} this week`,
+      trend: `+€${Math.round((133 + confirmedRevenue * 0.15)).toLocaleString()} this week`,
     },
     response: {
       display: BASE_METRICS.responseTime,
