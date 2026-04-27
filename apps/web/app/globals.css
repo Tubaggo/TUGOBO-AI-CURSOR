@@ -89,3 +89,48 @@
 .animate-toast-slide {
   animation: toast-slide 0.2s ease-out both;
 }
+
+/* ── Typing indicator — smooth iMessage-style dot bob ─────────────────────── */
+
+@keyframes typing-dot {
+  0%, 60%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.5s ease-in-out infinite;
+}
+
+/* ── Unread badge ring-pulse ──────────────────────────────────────────────── */
+
+@keyframes ring-blue {
+  0%   { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55); }
+  65%  { box-shadow: 0 0 0 5px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+@keyframes ring-amber {
+  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  65%  { box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.animate-ring-blue  { animation: ring-blue  2.8s ease-out infinite; }
+.animate-ring-amber { animation: ring-amber 2.8s ease-out infinite; }
+
+/* ── AI-active badge glow ─────────────────────────────────────────────────── */
+
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  50%       { box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.18); }
+}
+
+.animate-ai-glow {
+  animation: ai-glow 3s ease-in-out infinite;
+}

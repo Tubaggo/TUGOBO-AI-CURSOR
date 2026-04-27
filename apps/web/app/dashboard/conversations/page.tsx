@@ -20,6 +20,11 @@ import {
   CreditCard,
   TrendingUp,
   MessageSquare,
+  CalendarCheck,
+  Banknote,
+  ShieldCheck,
+  ArrowUpRight,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -72,6 +77,59 @@ const PAYMENT_CONFIRM_MSGS: Record<string, string> = {
   c2: "Zahlung bestätigt ✅ Ihr Triple Room Premium ist vollständig gebucht!\n\nEine Bestätigung wurde an Ihre WhatsApp gesendet. Wir freuen uns darauf, Sie am 28. Juni begrüßen zu dürfen! 🎉",
   c5: "Pagamento confermato ✅ La Camera Doppia Superior è prenotata!\n\nUna conferma è stata inviata al tuo WhatsApp. Non vediamo l'ora di accoglierti il 10 luglio! 🌊",
 };
+
+// ─── ROI metrics (base values — updated live when reservations confirm) ───────
+
+const BASE_METRICS = {
+  bookings: 3,
+  revenue: 4230,       // € — direct bookings via AI this week
+  responseTime: "38s", // avg, vs. 4h industry average
+  leadsAfterHours: 7,  // leads caught outside business hours
+};
+
+// Static metric definitions (value is computed dynamically in MetricsBar)
+const METRIC_DEFS = [
+  {
+    icon: CalendarCheck,
+    key: "bookings" as const,
+    label: "Bookings today",
+    color: "text-emerald-400",
+    iconBg: "bg-emerald-500/[0.12]",
+    borderColor: "border-emerald-500/[0.10]",
+  },
+  {
+    icon: TrendingUp,
+    key: "revenue" as const,
+    label: "AI-generated revenue",
+    color: "text-blue-400",
+    iconBg: "bg-blue-500/[0.12]",
+    borderColor: "border-blue-500/[0.10]",
+  },
+  {
+    icon: Banknote,
+    key: "ota" as const,
+    label: "OTA commission saved",
+    color: "text-amber-400",
+    iconBg: "bg-amber-500/[0.12]",
+    borderColor: "border-amber-500/[0.10]",
+  },
+  {
+    icon: Zap,
+    key: "response" as const,
+    label: "Avg AI response time",
+    color: "text-violet-400",
+    iconBg: "bg-violet-500/[0.12]",
+    borderColor: "border-violet-500/[0.10]",
+  },
+  {
+    icon: ShieldCheck,
+    key: "leads" as const,
+    label: "Missed bookings prevented",
+    color: "text-cyan-400",
+    iconBg: "bg-cyan-500/[0.12]",
+    borderColor: "border-cyan-500/[0.10]",
+  },
+] as const;
 
 // Simulated follow-up from Ahmet (c1) — triggers 8 seconds after page load
 const INCOMING_MSG: ChatMsg = {
@@ -198,6 +256,28 @@ export default function ConversationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Simulate a follow-up from Elena Petrov (c3, human_takeover) at 22s
+  useEffect(() => {
+    const incomingId = "c3";
+    const timer = setTimeout(() => {
+      const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      const msg: ChatMsg = {
+        id: "incoming-elena-followup",
+        dir: "in",
+        body: "Здравствуйте! Я всё ещё жду ответа. Вы можете подтвердить наличие Делюкс-номера?",
+        time: now,
+      };
+      addMessages(incomingId, [msg]);
+      setLocalLastMsgs((prev) => ({ ...prev, [incomingId]: "Жду ответа по Делюкс-номеру…" }));
+      if (selectedRef.current !== incomingId) {
+        setLocalUnreads((prev) => ({ ...prev, [incomingId]: (prev[incomingId] ?? 0) + 1 }));
+        showToast("New message · Elena Petrov 🇷🇺", "Still waiting for room confirmation", "new");
+      }
+    }, 22000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   function handleSendPaymentLink() {
@@ -285,9 +365,15 @@ export default function ConversationsPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden relative">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {/* Toast */}
       <Toast toast={toast} />
+
+      {/* ── ROI metrics bar ──────────────────────────────────────────────── */}
+      <MetricsBar confirmedReservations={confirmedReservations} />
+
+      {/* ── Main 3-column area ───────────────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
 
       {/* ── Left: conversation list ──────────────────────────────────────── */}
       <ConvList
@@ -423,6 +509,7 @@ export default function ConversationsPage() {
           onHandToAI={handleHandToAI}
         />
       )}
+      </div>{/* end 3-column area */}
     </div>
   );
 }
@@ -465,6 +552,150 @@ function Toast({ toast }: { toast: ToastData | null }) {
   );
 }
 
+// ─── useCountUp ───────────────────────────────────────────────────────────────
+
+function useCountUp(target: number, duration = 1100): number {
+  const [displayed, setDisplayed] = useState(0);
+  const frameRef = useRef<number | null>(null);
+  const runRef = useRef<{ from: number; to: number; startMs: number } | null>(null);
+
+  useEffect(() => {
+    const from = runRef.current?.to ?? 0;
+    runRef.current = { from, to: target, startMs: performance.now() };
+
+    function tick(now: number) {
+      if (!runRef.current) return;
+      const { from, to, startMs } = runRef.current;
+      const t = Math.min((now - startMs) / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayed(Math.round(from + (to - from) * eased));
+      if (t < 1) frameRef.current = requestAnimationFrame(tick);
+    }
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [target, duration]);
+
+  return displayed;
+}
+
+// ─── MetricsBar ───────────────────────────────────────────────────────────────
+
+function MetricsBar({
+  confirmedReservations,
+}: {
+  confirmedReservations: Record<string, boolean>;
+}) {
+  // Compute live values — update when new reservations are confirmed during demo
+  const bonus = Object.entries(confirmedReservations)
+    .filter(([, v]) => v)
+    .reduce(
+      (acc, [convId]) => {
+        const t = CHAT_THREADS[convId];
+        return {
+          count: acc.count + 1,
+          revenue: acc.revenue + (t?.reservation?.total ?? 0),
+        };
+      },
+      { count: 0, revenue: 0 }
+    );
+
+  const bookings = BASE_METRICS.bookings + bonus.count;
+  const revenue = BASE_METRICS.revenue + bonus.revenue;
+  const otaSaved = Math.round(revenue * 0.15);
+
+  // Animate numbers smoothly on mount and when values change
+  const displayBookings = useCountUp(bookings);
+  const displayRevenue = useCountUp(revenue);
+  const displayOta = useCountUp(otaSaved);
+
+  const values: Record<typeof METRIC_DEFS[number]["key"], { display: string; sub: string; trend: string }> = {
+    bookings: {
+      display: String(displayBookings),
+      sub: `€${(2480 + bonus.revenue).toLocaleString()} revenue`,
+      trend: `+${bonus.count > 0 ? bonus.count + 2 : 2} vs yesterday`,
+    },
+    revenue: {
+      display: `€${displayRevenue.toLocaleString()}`,
+      sub: "direct bookings · this week",
+      trend: `+€${(890 + bonus.revenue).toLocaleString()} vs last week`,
+    },
+    ota: {
+      display: `€${displayOta.toLocaleString()}`,
+      sub: "15% rate on direct only",
+      trend: `+€${Math.round((133 + bonus.revenue * 0.15)).toLocaleString()} this week`,
+    },
+    response: {
+      display: BASE_METRICS.responseTime,
+      sub: "vs. 4h industry average",
+      trend: "↓ 12s faster than last wk",
+    },
+    leads: {
+      display: String(BASE_METRICS.leadsAfterHours),
+      sub: "would've gone unanswered",
+      trend: "100% captured",
+    },
+  };
+
+  return (
+    <div className="shrink-0 grid grid-cols-5 border-b border-white/[0.06] bg-zinc-950/60">
+      {METRIC_DEFS.map((m, i) => {
+        const v = values[m.key];
+        return (
+          <div
+            key={m.key}
+            className={cn(
+              "flex items-center gap-3 px-5 py-3.5",
+              i < METRIC_DEFS.length - 1 && "border-r border-white/[0.05]"
+            )}
+          >
+            {/* Icon */}
+            <div
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                m.iconBg
+              )}
+            >
+              <m.icon className={cn("w-3.5 h-3.5", m.color)} />
+            </div>
+
+            {/* Value + labels */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span
+                  className={cn(
+                    "text-[17px] font-bold tabular-nums leading-none transition-all duration-700",
+                    m.color
+                  )}
+                >
+                  {v.display}
+                </span>
+                {/* Revenue metric gets a larger, more prominent week comparison */}
+                <span
+                  className={cn(
+                    "flex items-center gap-0.5 font-medium leading-none",
+                    m.key === "revenue"
+                      ? "text-[11px] text-emerald-400/75"
+                      : "text-[10px] text-emerald-400/50"
+                  )}
+                >
+                  <ArrowUpRight className={cn("shrink-0", m.key === "revenue" ? "w-3 h-3" : "w-2.5 h-2.5")} />
+                  {v.trend}
+                </span>
+              </div>
+              <p className="text-[10px] text-white/40 mt-1 truncate font-medium">{m.label}</p>
+              <p className="text-[9px] text-white/20 mt-0.5 truncate">{v.sub}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── ConvList ─────────────────────────────────────────────────────────────────
 
 function ConvList({
@@ -492,19 +723,30 @@ function ConvList({
     <div className="w-[316px] shrink-0 flex flex-col border-r border-white/[0.05] overflow-hidden bg-zinc-950/60">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-white/[0.05]">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-0.5">
           <div>
             <h1 className="text-[13px] font-semibold text-white tracking-tight">Conversations</h1>
-            <p className="text-[11px] text-white/30 mt-0.5">Grand Hotel Demo</p>
+            <p className="text-[11px] text-white/30 mt-0.5">
+              Grand Hotel Demo
+              <span className="mx-1.5 text-white/10">·</span>
+              <span className="text-blue-400/70">Mia AI active</span>
+            </p>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-semibold text-emerald-400 tracking-wide">LIVE</span>
+          {/* Enhanced live badge: shows AI lead count */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 animate-ai-glow">
+              <Bot className="w-2.5 h-2.5 text-blue-400" />
+              <span className="text-[10px] font-semibold text-blue-400">4 closing</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[9px] text-white/20">live</span>
+            </div>
           </div>
         </div>
 
         {/* KPI stats */}
-        <div className="grid grid-cols-3 gap-1.5 mb-3">
+        <div className="grid grid-cols-3 gap-1.5 mb-2.5 mt-3">
           {[
             { label: "AI Active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.08] border-blue-500/[0.12]" },
             { label: "Pipeline", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.08] border-amber-500/[0.12]" },
@@ -515,6 +757,17 @@ function ConvList({
               <p className="text-[9px] text-white/30 mt-1 font-medium uppercase tracking-wider">{stat.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* OTA dependency risk insight */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/[0.06] border border-amber-500/[0.10] mb-2.5">
+          <AlertTriangle className="w-3 h-3 text-amber-400/60 shrink-0" />
+          <p className="text-[10px] text-white/40 leading-tight flex-1 min-w-0">
+            OTA route costs you{" "}
+            <span className="text-amber-400/80 font-semibold">15–20%</span> per booking
+            <span className="mx-1 text-white/15">·</span>
+            <span className="text-emerald-400/70 font-medium">€634 saved this week</span>
+          </p>
         </div>
 
         {/* Search */}
@@ -563,12 +816,49 @@ function ConvList({
 
       {/* List */}
       <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-white/[0.03]">
+        {/* Waiting guests triage — only visible when staff attention is needed */}
+        {(() => {
+          const waiting = filtered.filter(
+            (c) => c.status === "human_takeover" && (localUnreads[c.id] ?? c.unread) > 0
+          );
+          if (waiting.length === 0) return null;
+          return (
+            <div className="mx-3 mt-2.5 mb-1 px-3 py-2.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/[0.13]">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <span className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wide">
+                  {waiting.length} guest{waiting.length !== 1 ? "s" : ""} waiting for staff
+                </span>
+              </div>
+              {waiting.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelected(c.id)}
+                  className="flex items-center gap-2 text-[10px] w-full hover:opacity-80 transition-opacity mt-1 text-left"
+                >
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full shrink-0",
+                      c.contact.avatarColor
+                    )}
+                  />
+                  <span className="text-white/60 font-medium truncate">{c.contact.name}</span>
+                  <span className="text-white/15 shrink-0">·</span>
+                  <span className="text-amber-400/70 shrink-0 font-medium">{c.time}</span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {filtered.map((conv) => {
           const revenue = CONV_REVENUE[conv.id];
           const isSelected = selected === conv.id;
           const unread = localUnreads[conv.id] ?? conv.unread;
           const lastMsg = localLastMsgs[conv.id] ?? conv.lastMessage;
           const hasUnread = unread > 0;
+          // Show waiting indicator only for human_takeover with unread messages
+          const isWaiting = conv.status === "human_takeover" && hasUnread && !isSelected;
 
           return (
             <button
@@ -578,9 +868,10 @@ function ConvList({
                 "w-full text-left px-4 py-3.5 transition-all border-l-2 group",
                 isSelected
                   ? "bg-white/[0.06] border-amber-400/60"
+                  : isWaiting
+                  ? "border-amber-400/25 hover:bg-amber-500/[0.03] hover:border-amber-400/40 bg-amber-500/[0.02]"
                   : "border-transparent hover:bg-white/[0.025] hover:border-white/10",
-                // Subtle pulse on list item when unread just appeared (not selected)
-                !isSelected && hasUnread && "bg-blue-500/[0.02]"
+                !isSelected && hasUnread && !isWaiting && "bg-blue-500/[0.02]"
               )}
             >
               <div className="flex items-start gap-3">
@@ -608,7 +899,14 @@ function ConvList({
                     </span>
                   )}
                   {hasUnread && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white animate-msg-in">
+                    <span
+                      className={cn(
+                        "absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white animate-msg-in",
+                        isWaiting
+                          ? "bg-amber-500 animate-ring-amber"
+                          : "bg-blue-500 animate-ring-blue"
+                      )}
+                    >
                       {unread}
                     </span>
                   )}
@@ -628,7 +926,15 @@ function ConvList({
                       </span>
                       <LanguageFlag lang={conv.language} />
                     </div>
-                    <span className="text-[10px] text-white/25 shrink-0 ml-1">{conv.time}</span>
+                    {/* Waiting time — amber for staff-needed, normal for AI-handled */}
+                    <span
+                      className={cn(
+                        "text-[10px] shrink-0 ml-1 font-medium",
+                        isWaiting ? "text-amber-400/70" : "text-white/25"
+                      )}
+                    >
+                      {isWaiting ? `Waiting · ${conv.time.replace(" ago", "")}` : conv.time}
+                    </span>
                   </div>
                   <p
                     className={cn(
@@ -831,7 +1137,7 @@ function GuestSidebar({
           {r && (
             <Link
               href="/dashboard/reservations"
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 hover:text-white/65 hover:bg-white/[0.06] text-[12px] font-medium transition-colors"
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 hover:text-white/65 hover:bg-white/[0.06] active:scale-[0.97] text-[12px] font-medium transition-all"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
               View full reservation
@@ -1014,10 +1320,10 @@ function TypingIndicator() {
         <Bot className="w-3.5 h-3.5 text-blue-400" />
       </div>
       <div className="bg-zinc-800/80 border border-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-3">
-        <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:0ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:150ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-bounce [animation-delay:300ms]" />
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:0ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:250ms]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:500ms]" />
         </div>
         <p className="text-[10px] text-white/30 mt-1.5 flex items-center gap-1">
           <Zap className="w-2.5 h-2.5" />
@@ -1133,7 +1439,7 @@ function ReservationCard({
       <div className="flex items-center gap-2 px-5 pb-4">
         <Link
           href="/dashboard/reservations"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.09] text-white/70 hover:text-white hover:bg-white/[0.10] text-xs font-medium transition-colors"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.09] text-white/70 hover:text-white hover:bg-white/[0.10] active:scale-[0.97] text-xs font-medium transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           View reservation
@@ -1142,7 +1448,7 @@ function ReservationCard({
           <button
             onClick={onSendPaymentLink}
             className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all",
+              "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all active:scale-[0.97]",
               sentLink
                 ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400"
                 : "bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15"
