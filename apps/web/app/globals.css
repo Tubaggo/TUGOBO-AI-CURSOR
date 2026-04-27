@@ -57,3 +57,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Demo live-effect animations ─────────────────────────────────────────── */
+
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-msg-in {
+  animation: msg-in 0.18s ease-out both;
+}
+
+@keyframes toast-slide {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-toast-slide {
+  animation: toast-slide 0.2s ease-out both;
+}
