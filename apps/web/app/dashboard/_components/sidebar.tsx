@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   MessageSquare,
   Calendar,
   Settings,
-  Zap,
   ChevronRight,
   Bell,
 } from "lucide-react";
@@ -26,16 +26,17 @@ export function Sidebar() {
   return (
     <aside className="w-[220px] shrink-0 flex flex-col h-full bg-zinc-900 border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="px-5 pt-6 pb-5 border-b border-white/[0.06]">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Zap className="w-4 h-4 text-white fill-white" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white leading-none">Tugobo AI</p>
-            <p className="text-[10px] text-white/40 mt-0.5">Hotel Intelligence</p>
-          </div>
-        </div>
+      <div className="px-5 pt-5 pb-5 border-b border-white/[0.06]">
+        <Link href="/" className="inline-flex items-center">
+          <Image
+            src="/Logo.png"
+            alt="Tugobo AI"
+            width={200}
+            height={42}
+            className="h-[42px] w-auto object-contain"
+            priority
+          />
+        </Link>
       </div>
 
       {/* Hotel selector */}

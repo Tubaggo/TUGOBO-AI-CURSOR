@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MessageSquare, Calendar, BookOpen, Settings, BarChart3 } from "lucide-react";
 
 const navItems = [
@@ -19,11 +20,17 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-slate-200 flex flex-col shrink-0">
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-200">
-          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            T
-          </div>
-          <span className="font-semibold text-slate-900">Tugobo AI</span>
+        <div className="flex items-center px-5 py-4 border-b border-slate-200">
+          <Link href="/" className="inline-flex items-center p-1.5 rounded-lg bg-zinc-900/90">
+            <Image
+              src="/Logo.png"
+              alt="Tugobo AI"
+              width={200}
+              height={30}
+              className="h-[30px] w-auto object-contain"
+              priority
+            />
+          </Link>
         </div>
 
         {/* Nav */}

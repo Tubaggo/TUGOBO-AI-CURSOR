@@ -34,8 +34,17 @@ export default function SettingsPage() {
   const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [hours, setHours] = useState(defaultHours);
 
-  function handleSave() {
+  async function handleSave() {
     setSaved(true);
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hotelName, timezone, persona }),
+      });
+    } catch {
+      // Swallow — UI feedback already shown
+    }
     setTimeout(() => setSaved(false), 2500);
   }
 

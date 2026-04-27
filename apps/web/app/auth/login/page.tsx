@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { createClient, supabaseConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -40,11 +42,17 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white">
-              T
-            </div>
-            <span className="text-xl font-semibold text-slate-900">Tugobo AI</span>
+          <div className="flex items-center justify-center mb-8">
+            <Link href="/" className="inline-flex items-center justify-center p-2 rounded-xl bg-zinc-900/90">
+              <Image
+                src="/Logo.png"
+                alt="Tugobo AI"
+                width={200}
+                height={36}
+                className="h-9 w-auto object-contain"
+                priority
+              />
+            </Link>
           </div>
           <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center">
             <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
@@ -66,11 +74,17 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-white">
-            T
-          </div>
-          <span className="text-xl font-semibold text-slate-900">Tugobo AI</span>
+        <div className="flex items-center justify-center mb-8">
+          <Link href="/" className="inline-flex items-center justify-center p-2 rounded-xl bg-zinc-900/90">
+            <Image
+              src="/Logo.png"
+              alt="Tugobo AI"
+              width={200}
+              height={36}
+              className="h-9 w-auto object-contain"
+              priority
+            />
+          </Link>
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
