@@ -4,13 +4,21 @@ import * as schema from "./schema";
 
 // DATABASE_URL is the Supabase direct connection string (not pooler)
 // for migrations. Use the pooler URL in production API routes.
-const connectionString = process.env.DATABASE_URL;
+function createClient() {
+  const url = process.env.DATABASE_URL;
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required");
+  if (!url) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("[tugobo/db] DATABASE_URL is required in production");
+    }
+    // In development, return null — callers must guard with `if (db)`
+    return null;
+  }
+
+  return drizzle(postgres(url, { prepare: false }), { schema });
 }
 
-const queryClient = postgres(connectionString, { prepare: false });
+export const db = createClient();
 
-export const db = drizzle(queryClient, { schema });
-export type DB = typeof db;
+// Non-nullable type alias for use-sites that have already checked `db != null`
+export type DB = NonNullable<typeof db>;

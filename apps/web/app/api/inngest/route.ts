@@ -1,7 +1,7 @@
 import { serve } from "inngest/next";
-import { inngest, processInboundMessage } from "@tugobo/core";
+import { inngest, notifyNewLead, processInboundMessage } from "@tugobo/core";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [processInboundMessage],
+  functions: [processInboundMessage, notifyNewLead],
 });

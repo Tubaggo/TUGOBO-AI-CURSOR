@@ -1,34 +1,67 @@
 import { NextResponse } from "next/server";
+import { inngest } from "@tugobo/core";
+import { db, leads } from "@tugobo/db";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as {
+    const body = (await req.json()) as {
       name?: string;
       hotel?: string;
       phone?: string;
-      email?: string;
-      type?: string;
       rooms?: string;
     };
 
-    // Log sanitized lead data (NEVER log phone/email — PII)
-    console.log("[DEMO_LEAD]", {
-      hotel: body.hotel ?? "unknown",
-      type: body.type ?? "unknown",
-      rooms: body.rooms ?? "unknown",
-      hasPhone: Boolean(body.phone),
-      hasEmail: Boolean(body.email),
-      timestamp: new Date().toISOString(),
-    });
+    const name = (body.name ?? "").trim() || "Unknown";
+    const hotelName = (body.hotel ?? "").trim() || "Unknown";
+    const phone = (body.phone ?? "").trim();
+    const rooms = body.rooms ?? null;
 
-    // TODO: In production, choose one or more:
-    //   1. Insert into a `leads` DB table via @tugobo/db
-    //   2. Send a notification via Inngest event: inngest.send({ name: "demo/lead.created", data: {...} })
-    //   3. Trigger a Slack/email webhook with sanitized data
+    // ── 1. Persist to database ─────────────────────────────────────────────
+    // `db` is null when DATABASE_URL is not configured (dev without Supabase).
+    // In production this will always be non-null.
+    let leadId: string | null = null;
 
-    return NextResponse.json({ ok: true });
+    if (db) {
+      try {
+        const [row] = await db
+          .insert(leads)
+          .values({ name, hotelName, phone, rooms: rooms ?? undefined })
+          .returning({ id: leads.id });
+        leadId = row?.id ?? null;
+      } catch (dbErr) {
+        // Log without PII
+        console.error("[DEMO_LEAD] DB insert failed:", {
+          error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+          hotelName,
+          rooms,
+        });
+      }
+    } else {
+      console.warn("[DEMO_LEAD] DB not configured — skipping insert (set DATABASE_URL)");
+    }
+
+    // ── 2. Fire Inngest event (async email notification) ───────────────────
+    // Non-blocking — failure here must never affect the UX response.
+    try {
+      await inngest.send({
+        name: "demo/lead.created",
+        data: {
+          leadId,
+          hotelName,
+          rooms,
+          hasPhone: Boolean(phone),
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (inngestErr) {
+      console.warn("[DEMO_LEAD] Inngest event failed (ok in dev without Inngest running):", {
+        error: inngestErr instanceof Error ? inngestErr.message : String(inngestErr),
+      });
+    }
+
+    return NextResponse.json({ ok: true, leadId });
   } catch {
-    // Always return ok — UX must not fail on backend errors
+    // Always succeed — UX must not show an error on backend failures
     return NextResponse.json({ ok: true });
   }
 }

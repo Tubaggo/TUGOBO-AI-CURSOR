@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Menu, X } from "lucide-react";
+import { DemoButton } from "./demo-modal";
 
 const NAV_LINKS = [
   { href: "#platform", label: "Platform" },
@@ -46,27 +47,21 @@ export function Nav() {
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3 shrink-0">
           <Link
-            href="/auth/login"
-            className="text-[13px] text-white/35 hover:text-white/65 transition-colors font-medium"
+            href="/dashboard"
+            className="px-4 py-2 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-[13px] font-medium text-zinc-300 hover:text-white transition-all"
           >
-            Giriş yap
+            Dashboard&apos;u incele
           </Link>
-          <Link
-            href="/demo"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-[13px] font-semibold text-white transition-all active:scale-[0.97] shadow-md shadow-blue-900/30"
-          >
+          <DemoButton className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-[13px] font-semibold text-white transition-all active:scale-[0.97] shadow-md shadow-blue-900/30">
             Demo talep et <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+          </DemoButton>
         </div>
 
         {/* Mobile: compact CTA + hamburger */}
         <div className="flex md:hidden items-center gap-2 shrink-0">
-          <Link
-            href="/demo"
-            className="flex items-center px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[12px] font-semibold text-white transition-colors"
-          >
+          <DemoButton className="flex items-center px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[12px] font-semibold text-white transition-colors">
             Demo
-          </Link>
+          </DemoButton>
           <button
             onClick={() => setOpen(!open)}
             className="p-2 -mr-1 text-white/45 hover:text-white/75 transition-colors"
@@ -93,11 +88,11 @@ export function Nav() {
             ))}
             <div className="pt-3 pb-1">
               <Link
-                href="/auth/login"
+                href="/dashboard"
                 onClick={() => setOpen(false)}
                 className="block py-2 text-[13px] text-white/35 hover:text-white/60 transition-colors"
               >
-                Giriş yap
+                Dashboard&apos;u incele
               </Link>
             </div>
           </div>

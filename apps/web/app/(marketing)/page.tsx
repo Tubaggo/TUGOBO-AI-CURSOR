@@ -20,44 +20,45 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Nav } from "./_components/nav";
+import { DemoButton } from "./_components/demo-modal";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const CAPABILITIES = [
   {
     icon: Bot,
-    title: "AI Reservation Engine",
-    desc: "Her soruyu 38 saniye içinde yanıtlar. Müsaitlik kontrol eder, fiyat verir, rezervasyon oluşturur. Siz uyurken bile.",
+    title: "Akıllı Rezervasyon Motoru",
+    desc: "Misafir sorularını anında yanıtlar, fiyat verir, uygun oda önerir. 38 saniyede, siz yokken bile.",
     accent: "blue",
   },
   {
     icon: TrendingUp,
-    title: "Revenue Optimization",
-    desc: "OTA bağımlılığını kırar. Direkt rezervasyonu artırır. Her dönüşümde komisyon kaybı sıfır.",
+    title: "Gelir Optimizasyonu",
+    desc: "Boş geceleri azaltır, doğru teklifi doğru anda sunar. OTA komisyonunu değil, kendi cekinizi doldurun.",
     accent: "emerald",
   },
   {
     icon: Layers,
-    title: "Omni-Channel Inbox",
-    desc: "WhatsApp, Instagram DM, web sitesi ve e-posta tek panelden. Kanal fark etmez, Mia hepsini yönetir.",
+    title: "Çoklu Kanal Yönetimi",
+    desc: "WhatsApp, Instagram ve web sitesi talepleri tek panelde. Kanal fark etmez, hiçbir mesaj kaybolmaz.",
     accent: "violet",
   },
   {
     icon: Sparkles,
-    title: "Guest Intelligence",
-    desc: "Misafirin dilini, tercihlerini ve bütçesini analiz ederek kişiselleştirilmiş teklifler hazırlar.",
+    title: "Misafir Bilgilendirme",
+    desc: "Konum, check-in saati, kurallar ve özel talepler otomatik karşılanır. Tekrar tekrar aynı soruya yanıt vermek yok.",
     accent: "amber",
   },
   {
     icon: BarChart3,
-    title: "Live Analytics",
-    desc: "Dönüşüm oranı, gelir, yanıt süresi ve kayıp tahminleri. Gerçek zamanlı operasyonel görünürlük.",
+    title: "Canlı Analitik",
+    desc: "Kaç mesaj geldi, kaçı satışa döndü, kaçı kaçtı — gerçek zamanlı görün. Kararlarınızı veriye dayandırın.",
     accent: "blue",
   },
   {
     icon: Shield,
-    title: "Human Escalation",
-    desc: "Karmaşık durumları doğru anda ekibinize devreder. AI ile insan arasında kusursuz geçiş.",
+    title: "İnsan Müdahalesi",
+    desc: "Hassas durumları siz devralırsınız. İstediğiniz anda konuşmaya girin, yapay zeka bekler.",
     accent: "emerald",
   },
 ];
@@ -81,19 +82,19 @@ const STEPS = [
   {
     n: "01", icon: MessageSquare, color: "text-blue-400", bg: "bg-blue-500/[0.08]",
     title: "Misafir yazar",
-    desc: "WhatsApp, Instagram DM veya web sitesinden bir soru gelir. Oda, fiyat, müsaitlik — her talep anlık işleme alınır.",
+    desc: "WhatsApp, Instagram veya web sitenizden talep gelir. Oda, fiyat, müsaitlik — her mesaj anında işleme alınır.",
     tag: "WhatsApp · Instagram · Web",
   },
   {
     n: "02", icon: Bot, color: "text-violet-400", bg: "bg-violet-500/[0.08]",
-    title: "Mia AI devralır",
-    desc: "Müsaitliği kontrol eder, kişiselleştirilmiş teklif hazırlar, güvenli ödeme linki gönderir. 38 saniyede.",
+    title: "Tugobo AI cevaplar",
+    desc: "Fiyat verir, uygunluk kontrol eder, soruları yanıtlar. Güvenli ödeme linki gönderir. Saniyeler içinde.",
     tag: "7/24 · Çok dilli · Sıfır gecikme",
   },
   {
     n: "03", icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/[0.08]",
-    title: "Rezervasyon onaylanır",
-    desc: "Ödeme tamamlanır, rezervasyon sisteme işlenir, misafir ve otel bilgilendirilir. Tüm süreç otomatik.",
+    title: "Rezervasyona dönüşür",
+    desc: "Ödeme linki, teklif veya rezervasyon tamamlanır. Siz uyurken bile satış sisteminiz çalışmaya devam eder.",
     tag: "Komisyon %0 · Direkt gelir",
   },
 ];
@@ -144,43 +145,40 @@ export default function LandingPage() {
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.09] text-[12px] text-white/50 font-medium mb-7 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-            AI-Powered · Digital Hotel Operating System
+            Türkiye&apos;deki oteller için özel kurulum · 30 dakika
           </div>
 
           {/* Headline */}
           <h1 className="text-[52px] md:text-[72px] font-bold leading-[1.03] tracking-[-0.03em] mb-6">
-            Otelinizin çalıştığı
+            Gece gelen mesajları sabaha
             <br />
             <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
-              yapay zeka katmanı.
+              bırakmadan rezervasyona çevirin.
             </span>
           </h1>
 
           {/* Sub */}
           <p className="text-[17px] text-white/45 leading-relaxed mb-9 max-w-2xl mx-auto">
-            WhatsApp&apos;tan Instagram&apos;a, web sitesinden direkt aramaya — Tugobo AI her kanaldan
-            gelen talebi anlık karşılar, nitelendirir, fiyatlar ve rezervasyona dönüştürür.
-            <span className="text-white/65"> 7/24. OTA komisyonu olmadan.</span>
+            WhatsApp, Instagram ve web sitenize gelen talepleri Tugobo AI saniyeler içinde yanıtlar,
+            fiyat sunar ve rezervasyona dönüştürür.
+            <span className="text-white/65"> 7/24 çalışır, komisyonu azaltır, satış fırsatlarını kaçırmazsınız.</span>
           </p>
 
           {/* CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
-            <Link
-              href="/demo"
-              className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-[15px] transition-all active:scale-[0.97] shadow-lg shadow-blue-500/20"
-            >
+            <DemoButton className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-[15px] transition-all active:scale-[0.97] shadow-lg shadow-blue-500/20">
               <Zap className="w-4 h-4" />
-              Demo talep et
-            </Link>
+              Ücretsiz Demo Talep Et
+            </DemoButton>
             <Link
               href="/dashboard"
               className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.18] text-[15px] font-medium transition-all"
             >
-              Dashboard&apos;u incele
+              Canlı Dashboard&apos;u İncele
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <p className="text-[12px] text-white/20">Sözleşme yok · 30 dakika kurulum · Türkçe destek</p>
+          <p className="text-[12px] text-white/20">30 dakikada canlı demo · Taahhüt yok · Türkçe destek</p>
         </div>
 
         {/* ── Dashboard preview (hero image) ────────────────────────────────── */}
@@ -391,11 +389,11 @@ export default function LandingPage() {
         <div className="text-center mb-14">
           <span className="text-[11px] font-semibold text-blue-400/60 uppercase tracking-widest">Platform</span>
           <h2 className="text-[36px] font-bold tracking-tight mt-3 mb-4">
-            Tek platform. Her operasyon.
+            Tek panelden tüm rezervasyon trafiğini yönetin.
           </h2>
           <p className="text-white/40 max-w-xl mx-auto text-[15px] leading-relaxed">
-            Tugobo, bir otomasyon aracı değil — otelinizin ticari katmanını yöneten
-            AI işletim sistemidir.
+            WhatsApp, Instagram DM, web chat ve manuel görüşmeleri tek ekranda yönetin.
+            Hiçbir talep gözden kaçmaz.
           </p>
         </div>
 
@@ -436,11 +434,11 @@ export default function LandingPage() {
             <div>
               <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Kanallar</span>
               <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
-                Her kanalı tek<br />panelden yönet.
+                Her kanalı tek<br />panelden yönetin.
               </h2>
               <p className="text-white/40 text-[15px] leading-relaxed mb-8">
                 Misafirler WhatsApp&apos;ta, Instagram&apos;da ve web sitenizde yazıyor.
-                Tugobo hepsini aynı anda, aynı kalitede karşılar.
+                Tugobo AI hepsini aynı anda, aynı hızda ve kalitede karşılar.
               </p>
 
               <div className="space-y-3">
@@ -512,7 +510,7 @@ export default function LandingPage() {
       <section id="nasil" className="max-w-6xl mx-auto px-6 py-24">
         <div className="text-center mb-14">
           <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Süreç</span>
-          <h2 className="text-[32px] font-bold tracking-tight mt-3">3 adımda nasıl çalışır?</h2>
+          <h2 className="text-[32px] font-bold tracking-tight mt-3">3 adımda satış sisteminizi kurun.</h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5 relative">
@@ -585,7 +583,7 @@ export default function LandingPage() {
           <div className="text-center mb-12">
             <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Referanslar</span>
             <h2 className="text-[28px] font-bold tracking-tight mt-3">
-              Türkiye&apos;den gerçek sonuçlar.
+              Oteller neden Tugobo AI kullanıyor?
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -618,10 +616,10 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Fiyatlar</span>
             <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
-              Basit, şeffaf fiyatlandırma.
+              Personel maliyetinden düşük, getirisi daha yüksek.
             </h2>
             <p className="text-white/40 text-[15px] max-w-md mx-auto">
-              Tüm planlar WhatsApp entegrasyonu, çok dilli Mia AI ve Türkçe destek içerir.
+              İşletmenizin büyüklüğüne göre esnek paketler. Tüm planlarda Türkçe destek dahil.
             </p>
           </div>
 
@@ -648,12 +646,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/demo"
-                className="block text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all"
-              >
+              <DemoButton className="block w-full text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all">
                 Demo talep et
-              </Link>
+              </DemoButton>
             </div>
 
             {/* Growth — highlighted */}
@@ -685,12 +680,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/demo"
-                className="block text-center py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[13px] font-semibold transition-all"
-              >
+              <DemoButton className="block w-full text-center py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[13px] font-semibold transition-all">
                 Demo talep et
-              </Link>
+              </DemoButton>
             </div>
 
             {/* Enterprise */}
@@ -716,12 +708,9 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/demo"
-                className="block text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all"
-              >
+              <DemoButton className="block w-full text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all">
                 Görüşme talep et
-              </Link>
+              </DemoButton>
             </div>
           </div>
 
@@ -744,22 +733,19 @@ export default function LandingPage() {
           </div>
 
           <h2 className="text-[44px] font-bold leading-[1.1] tracking-[-0.02em] mb-5">
-            Otelinizdeki ilk AI<br />rezervasyonu bu hafta alın.
+            Bu hafta kaç rezervasyon<br />kaçırdığınızı görün.
           </h2>
 
           <p className="text-white/40 text-[16px] leading-relaxed mb-10 max-w-lg mx-auto">
-            30 dakikalık ücretsiz demo&apos;da, otelinize özel WhatsApp akışını canlı gösteriyoruz.
+            30 dakikalık canlı demoda işletmenize özel satış akışını gösterelim.
             Taahhüt yok. Sözleşme yok.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-            <Link
-              href="/demo"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[15px] transition-all active:scale-[0.97] shadow-xl shadow-blue-500/20"
-            >
+            <DemoButton className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[15px] transition-all active:scale-[0.97] shadow-xl shadow-blue-500/20">
               <Zap className="w-4 h-4" />
-              Demo talep et
-            </Link>
+              Ücretsiz Demo Talep Et
+            </DemoButton>
             <a
               href="https://wa.me/905000000000"
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-white/[0.10] text-white/45 hover:text-white/75 hover:border-white/[0.18] text-[15px] font-medium transition-all"
@@ -770,7 +756,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-[12px] text-white/25">
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> Sözleşme yok</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> Taahhüt yok</span>
             <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> 30dk kurulum</span>
             <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> Türkçe destek</span>
             <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> Veri güvenliği</span>
@@ -779,32 +765,103 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.06]">
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+      <footer className="border-t border-white/[0.06] bg-gradient-to-b from-zinc-950 to-[#070709]">
+        <div className="max-w-6xl mx-auto px-6 pt-14 pb-8">
 
-          {/* Brand */}
-          <div className="flex flex-col items-center md:items-start gap-3">
-            <Link href="/" className="inline-flex items-center group">
-              <Image
-                src="/Logo.png"
-                alt="Tugobo AI"
-                width={280}
-                height={60}
-                className="h-[44px] sm:h-[60px] w-auto opacity-[0.95] group-hover:opacity-100 transition-opacity [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.07))]"
-              />
-            </Link>
-            <p className="text-[12px] text-white/[0.30] text-center md:text-left leading-relaxed max-w-[260px]">
-              Türkiye&apos;deki oteller, villalar ve bungalovlar için
-              AI-powered Digital Hotel Operating System.
-            </p>
+          {/* 4-column grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+
+            {/* Col 1 — Brand */}
+            <div>
+              <Link href="/" className="inline-flex items-center group mb-5">
+                <Image
+                  src="/Logo.png"
+                  alt="Tugobo AI"
+                  width={240}
+                  height={52}
+                  className="h-[44px] w-auto opacity-[0.95] group-hover:opacity-100 transition-opacity [filter:drop-shadow(0_0_12px_rgba(255,255,255,0.07))]"
+                />
+              </Link>
+              <p className="text-[13px] text-white/30 leading-relaxed mt-1 max-w-[220px]">
+                Tugobo AI, otellerin rezervasyon süreçlerini otomatikleştirir ve doğrudan gelirini artırır.
+              </p>
+            </div>
+
+            {/* Col 2 — Ürün */}
+            <div>
+              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
+                Ürün
+              </p>
+              <ul className="space-y-3">
+                {[
+                  { label: "Platform",       href: "#platform" },
+                  { label: "Dashboard Demo", href: "/dashboard" },
+                  { label: "Fiyatlar",       href: "#fiyat" },
+                  { label: "Kanallar",       href: "#kanallar" },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <Link
+                      href={href}
+                      className="text-[13px] text-white/38 hover:text-white/65 transition-colors"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 3 — Şirket */}
+            <div>
+              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
+                Şirket
+              </p>
+              <ul className="space-y-3">
+                {[
+                  { label: "Hakkımızda", href: "#" },
+                  { label: "İletişim",   href: "mailto:hello@tugobo.ai" },
+                  { label: "WhatsApp",   href: "https://wa.me/905000000000" },
+                  { label: "E-posta",    href: "mailto:hello@tugobo.ai" },
+                ].map(({ label, href }) => (
+                  <li key={label}>
+                    <Link
+                      href={href}
+                      className="text-[13px] text-white/38 hover:text-white/65 transition-colors"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Col 4 — Neden Tugobo */}
+            <div>
+              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
+                Neden Tugobo
+              </p>
+              <ul className="space-y-3">
+                {[
+                  { icon: Globe,        label: "Türkçe destek"        },
+                  { icon: Zap,          label: "30 dakikada kurulum"  },
+                  { icon: CheckCircle2, label: "Taahhüt yok"          },
+                  { icon: Shield,       label: "Veri güvenliği"       },
+                ].map(({ icon: Icon, label }) => (
+                  <li key={label} className="flex items-center gap-2.5 text-[13px] text-white/38">
+                    <Icon className="w-3.5 h-3.5 text-white/18 shrink-0" />
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
-          {/* Links */}
-          <div className="flex items-center gap-6 text-[12px] text-white/30">
-            <Link href="/auth/login" className="hover:text-white/55 transition-colors">Giriş yap</Link>
-            <Link href="/demo" className="hover:text-white/55 transition-colors">Demo</Link>
-            <Link href="/dashboard" className="hover:text-white/55 transition-colors">Dashboard</Link>
+          {/* Divider + bottom row */}
+          <div className="pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span className="text-[12px] text-white/18">© 2026 Tugobo AI</span>
+            <span className="text-[12px] text-white/18">Türkiye&apos;deki oteller için üretildi 🇹🇷</span>
           </div>
+
         </div>
       </footer>
 
