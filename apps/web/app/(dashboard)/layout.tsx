@@ -20,14 +20,14 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r border-slate-200 flex flex-col shrink-0">
         {/* Logo */}
-        <div className="flex items-center px-5 py-4 border-b border-slate-200">
-          <Link href="/" className="inline-flex items-center p-1.5 rounded-lg bg-zinc-900/90">
+        <div className="flex items-center px-4 py-4 border-b border-slate-200">
+          <Link href="/" className="inline-flex items-center px-3 py-2 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition-colors shadow-md">
             <Image
               src="/Logo.png"
               alt="Tugobo AI"
               width={200}
-              height={30}
-              className="h-[30px] w-auto object-contain"
+              height={34}
+              className="h-[34px] w-auto object-contain"
               priority
             />
           </Link>

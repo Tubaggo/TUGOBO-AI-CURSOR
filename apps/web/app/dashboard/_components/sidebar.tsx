@@ -26,14 +26,17 @@ export function Sidebar() {
   return (
     <aside className="w-[220px] shrink-0 flex flex-col h-full bg-zinc-900 border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="px-5 pt-5 pb-5 border-b border-white/[0.06]">
-        <Link href="/" className="inline-flex items-center">
+      <div className="flex items-center px-4 py-6 border-b border-white/[0.06] min-h-[88px]">
+        <Link
+          href="/"
+          className="flex items-center hover:opacity-90 transition-opacity"
+        >
           <Image
             src="/Logo.png"
             alt="Tugobo AI"
-            width={200}
-            height={42}
-            className="h-[42px] w-auto object-contain"
+            width={240}
+            height={56}
+            className="h-14 w-auto opacity-[0.95] [filter:drop-shadow(0_0_12px_rgba(255,255,255,0.08))]"
             priority
           />
         </Link>

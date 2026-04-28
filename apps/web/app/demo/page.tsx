@@ -121,13 +121,13 @@ export default function DemoPage() {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/[0.05] bg-zinc-950/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center">
+          <Link href="/" className="inline-flex items-center group">
             <Image
               src="/Logo.png"
               alt="Tugobo AI"
               width={200}
-              height={36}
-              className="h-9 w-auto object-contain"
+              height={40}
+              className="h-[34px] sm:h-[40px] w-auto object-contain group-hover:opacity-80 transition-opacity"
               priority
             />
           </Link>

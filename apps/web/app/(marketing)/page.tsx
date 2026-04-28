@@ -779,28 +779,31 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.05]">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <Link href="/" className="inline-flex items-center">
+      <footer className="border-t border-white/[0.06]">
+        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+
+          {/* Brand */}
+          <div className="flex flex-col items-center md:items-start gap-3">
+            <Link href="/" className="inline-flex items-center group">
               <Image
                 src="/Logo.png"
                 alt="Tugobo AI"
-                width={200}
-                height={30}
-                className="h-[30px] w-auto object-contain opacity-70 hover:opacity-90 transition-opacity"
+                width={280}
+                height={60}
+                className="h-[44px] sm:h-[60px] w-auto opacity-[0.95] group-hover:opacity-100 transition-opacity [filter:drop-shadow(0_0_14px_rgba(255,255,255,0.07))]"
               />
             </Link>
-            <span className="text-[11px] text-white/20 border border-white/[0.07] px-1.5 py-0.5 rounded-full">beta</span>
+            <p className="text-[12px] text-white/[0.30] text-center md:text-left leading-relaxed max-w-[260px]">
+              Türkiye&apos;deki oteller, villalar ve bungalovlar için
+              AI-powered Digital Hotel Operating System.
+            </p>
           </div>
-          <p className="text-[12px] text-white/20 text-center">
-            Türkiye&apos;deki butik oteller, villalar, bungalovlar ve acenteler için
-            AI-powered Digital Hotel Operating System.
-          </p>
-          <div className="flex items-center gap-5 text-[12px] text-white/25">
-            <Link href="/auth/login" className="hover:text-white/50 transition-colors">Giriş yap</Link>
-            <Link href="/demo" className="hover:text-white/50 transition-colors">Demo</Link>
-            <Link href="/dashboard" className="hover:text-white/50 transition-colors">Dashboard</Link>
+
+          {/* Links */}
+          <div className="flex items-center gap-6 text-[12px] text-white/30">
+            <Link href="/auth/login" className="hover:text-white/55 transition-colors">Giriş yap</Link>
+            <Link href="/demo" className="hover:text-white/55 transition-colors">Demo</Link>
+            <Link href="/dashboard" className="hover:text-white/55 transition-colors">Dashboard</Link>
           </div>
         </div>
       </footer>

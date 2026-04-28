@@ -43,13 +43,13 @@ export default function LoginPage() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <div className="flex items-center justify-center mb-8">
-            <Link href="/" className="inline-flex items-center justify-center p-2 rounded-xl bg-zinc-900/90">
+            <Link href="/" className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition-colors shadow-lg">
               <Image
                 src="/Logo.png"
                 alt="Tugobo AI"
                 width={200}
-                height={36}
-                className="h-9 w-auto object-contain"
+                height={40}
+                className="h-[40px] w-auto object-contain"
                 priority
               />
             </Link>
@@ -75,13 +75,13 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center p-2 rounded-xl bg-zinc-900/90">
+          <Link href="/" className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition-colors shadow-lg">
             <Image
               src="/Logo.png"
               alt="Tugobo AI"
               width={200}
-              height={36}
-              className="h-9 w-auto object-contain"
+              height={40}
+              className="h-[40px] w-auto object-contain"
               priority
             />
           </Link>
