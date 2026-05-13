@@ -7,6 +7,8 @@ export type ReservationStatus =
   | "new"
   | "lost";
 
+export type ConversationChannel = "whatsapp" | "instagram" | "web";
+
 export interface Conversation {
   id: string;
   contact: { name: string; phone: string; initials: string; avatarColor: string };
@@ -17,6 +19,8 @@ export interface Conversation {
   leadStatus: LeadStatus;
   unread: number;
   messageCount: number;
+  /** Inbox source — UI only in dashboard preview */
+  channel?: ConversationChannel;
 }
 
 export interface Reservation {
@@ -45,6 +49,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "qualified",
     unread: 2,
     messageCount: 7,
+    channel: "whatsapp",
   },
   {
     id: "c2",
@@ -56,6 +61,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "quoted",
     unread: 0,
     messageCount: 12,
+    channel: "whatsapp",
   },
   {
     id: "c3",
@@ -67,6 +73,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "new",
     unread: 1,
     messageCount: 4,
+    channel: "instagram",
   },
   {
     id: "c4",
@@ -78,6 +85,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "confirmed",
     unread: 0,
     messageCount: 19,
+    channel: "web",
   },
   {
     id: "c5",
@@ -89,6 +97,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "quoted",
     unread: 0,
     messageCount: 9,
+    channel: "instagram",
   },
   {
     id: "c6",
@@ -100,6 +109,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "confirmed",
     unread: 0,
     messageCount: 6,
+    channel: "whatsapp",
   },
   {
     id: "c7",
@@ -111,6 +121,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "new",
     unread: 3,
     messageCount: 5,
+    channel: "whatsapp",
   },
   {
     id: "c8",
@@ -122,6 +133,7 @@ export const CONVERSATIONS: Conversation[] = [
     leadStatus: "confirmed",
     unread: 0,
     messageCount: 23,
+    channel: "web",
   },
 ];
 

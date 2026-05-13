@@ -20,7 +20,7 @@ export function StatusBadge({ status }: { status: ConversationStatus }) {
   };
   const s = map[status];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border ${s.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${s.cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${status === "ai_active" ? "animate-pulse" : ""}`} />
       {s.label}
     </span>
@@ -37,7 +37,7 @@ export function LeadBadge({ status }: { status: LeadStatus }) {
   };
   const s = map[status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${s.cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${s.cls}`}>
       {s.label}
     </span>
   );
@@ -53,7 +53,7 @@ export function ResBadge({ status }: { status: ReservationStatus }) {
   };
   const s = map[status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${s.cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${s.cls}`}>
       {s.label}
     </span>
   );

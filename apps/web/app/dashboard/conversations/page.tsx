@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   Search,
   Bot,
@@ -25,11 +25,18 @@ import {
   ShieldCheck,
   ArrowUpRight,
   AlertTriangle,
+  Globe,
+  Instagram,
+  MessageCircle,
+  Sparkles,
+  CheckCheck,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import {
   CONVERSATIONS,
   type Conversation,
+  type ConversationChannel,
   type ConversationStatus,
 } from "../_components/mock-data";
 import {
@@ -39,6 +46,7 @@ import {
   type ChatThread,
 } from "../_components/chat-threads";
 import { StatusBadge, LeadBadge, LanguageFlag } from "../_components/badges";
+import { MessageRow, ChatTypingIndicator } from "@/app/dashboard/_components/chat";
 import { cn } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -86,6 +94,64 @@ const BASE_METRICS = {
   responseTime: "38s", // avg, vs. 4h industry average
   leadsAfterHours: 7,  // leads caught outside business hours
 };
+
+type OpsPhase =
+  | "idle"
+  | "triage"
+  | "checking_availability"
+  | "generating_offer"
+  | "awaiting_payment"
+  | "follow_up_scheduled";
+
+const OPS_PHASES: {
+  phase: OpsPhase;
+  label: string;
+  sub: string;
+  icon: React.ElementType;
+  wrap: string;
+  text: string;
+}[] = [
+  {
+    phase: "triage",
+    label: "Triage",
+    sub: "classifying intent + routing",
+    icon: Sparkles,
+    wrap: "bg-violet-500/10 border-violet-500/18",
+    text: "text-violet-300/80",
+  },
+  {
+    phase: "checking_availability",
+    label: "Availability",
+    sub: "checking room inventory",
+    icon: RefreshCw,
+    wrap: "bg-sky-500/10 border-sky-500/18",
+    text: "text-sky-200/80",
+  },
+  {
+    phase: "generating_offer",
+    label: "Offer",
+    sub: "generating best option",
+    icon: Sparkles,
+    wrap: "bg-blue-500/10 border-blue-500/18",
+    text: "text-blue-200/80",
+  },
+  {
+    phase: "awaiting_payment",
+    label: "Payment",
+    sub: "awaiting secure checkout",
+    icon: CreditCard,
+    wrap: "bg-amber-500/10 border-amber-500/18",
+    text: "text-amber-200/80",
+  },
+  {
+    phase: "follow_up_scheduled",
+    label: "Follow-up",
+    sub: "reminder scheduled",
+    icon: CheckCheck,
+    wrap: "bg-emerald-500/10 border-emerald-500/18",
+    text: "text-emerald-200/80",
+  },
+];
 
 // Static metric definitions (value is computed dynamically in MetricsBar)
 const METRIC_DEFS = [
@@ -139,15 +205,27 @@ const INCOMING_MSG: ChatMsg = {
   time: "",
 };
 
-// Detects locally-added messages (should receive enter animation)
-function isAnimatedMsg(id: string): boolean {
-  return (
-    id.startsWith("incoming-") ||
-    id.startsWith("staff-") ||
-    id.startsWith("ai-resume-") ||
-    id.startsWith("ai-confirm-") ||
-    id.startsWith("sys-payment-")
-  );
+function channelLabel(ch?: ConversationChannel): string {
+  if (ch === "instagram") return "Instagram";
+  if (ch === "web") return "Web chat";
+  return "WhatsApp";
+}
+
+function ChannelGlyph({
+  channel,
+  className,
+}: {
+  channel?: ConversationChannel;
+  className?: string;
+}) {
+  const ch = channel ?? "whatsapp";
+  if (ch === "instagram") {
+    return <Instagram className={cn("text-pink-400/90", className)} aria-hidden />;
+  }
+  if (ch === "web") {
+    return <Globe className={cn("text-sky-400/85", className)} aria-hidden />;
+  }
+  return <MessageCircle className={cn("text-emerald-400/90", className)} aria-hidden />;
 }
 
 // ─── Demo guest pool ──────────────────────────────────────────────────────────
@@ -223,6 +301,7 @@ export default function ConversationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string>("c2");
+  const [opsTick, setOpsTick] = useState(0);
 
   // Demo mode
   const [demoMode, setDemoMode] = useState(false);
@@ -251,6 +330,10 @@ export default function ConversationsPage() {
   const demoTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const demoRoundRef = useRef(0);
 
+  const [opsPhase, setOpsPhase] = useState<OpsPhase>("triage");
+  const [opsPulseAt, setOpsPulseAt] = useState<number>(() => Date.now());
+  const [lastSyncAt, setLastSyncAt] = useState<number>(() => Date.now());
+
   // Keep ref in sync for stale-closure safety in timeouts
   useEffect(() => {
     selectedRef.current = selected;
@@ -278,6 +361,8 @@ export default function ConversationsPage() {
       : rawReservation
     : undefined;
 
+  const selectedReservationStatus = effectiveReservation?.status;
+
   // Pre-compute confirmed metrics for MetricsBar (includes demo revenue via localReservations)
   const confirmedCount = Object.values(confirmedReservations).filter(Boolean).length;
   const confirmedRevenue = Object.entries(confirmedReservations)
@@ -304,6 +389,50 @@ export default function ConversationsPage() {
   }
 
   // ── Effects ────────────────────────────────────────────────────────────────
+
+  // Global "live ops" tick (demo-only presence layer; no backend)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setOpsTick((v) => (v + 1) % 1000);
+      setLastSyncAt(Date.now());
+      // occasional micro-pulse so UI feels alive, but calm
+      if (Math.random() < 0.33) setOpsPulseAt(Date.now());
+    }, 2600);
+    return () => clearInterval(t);
+  }, []);
+
+  // Derive an ops phase for the currently selected conversation.
+  useEffect(() => {
+    // resolved convs should feel "quiet"
+    if (effectiveStatus === "resolved") {
+      setOpsPhase("idle");
+      return;
+    }
+
+    if (effectiveStatus === "human_takeover") {
+      setOpsPhase("triage");
+      return;
+    }
+
+    // AI active
+    if (selectedReservationStatus === "pending_payment") {
+      setOpsPhase("awaiting_payment");
+      return;
+    }
+    if (selectedReservationStatus === "quoted") {
+      // oscillate between offer + follow-up scheduled (calm)
+      setOpsPhase(opsTick % 2 === 0 ? "generating_offer" : "follow_up_scheduled");
+      return;
+    }
+
+    // If AI typing we can imply ongoing checks/offer generation
+    if (isAiTyping) {
+      setOpsPhase(opsTick % 3 === 0 ? "checking_availability" : "generating_offer");
+      return;
+    }
+
+    setOpsPhase("triage");
+  }, [effectiveStatus, isAiTyping, opsTick, selectedReservationStatus]);
 
   // Reset per-conversation UI + clear unreads when switching
   useEffect(() => {
@@ -416,6 +545,7 @@ export default function ConversationsPage() {
       leadStatus: "new",
       unread: 1,
       messageCount: 1,
+      channel: "whatsapp",
     };
     setDemoConversations((prev) => [newConv, ...prev]);
     setDemoChatThreads((prev) => ({
@@ -602,7 +732,7 @@ export default function ConversationsPage() {
       <Toast toast={toast} />
 
       {/* ── Demo Mode toggle bar ─────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-between px-5 py-2 border-b border-white/[0.04] bg-zinc-950/90">
+      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-white/[0.03] bg-zinc-950/90">
         <div className="flex items-center gap-2 text-[11px] text-white/20">
           <span>Grand Hotel Demo</span>
           <span className="text-white/10">·</span>
@@ -634,7 +764,12 @@ export default function ConversationsPage() {
       </div>
 
       {/* ── ROI metrics bar ──────────────────────────────────────────────── */}
-      <MetricsBar confirmedCount={confirmedCount} confirmedRevenue={confirmedRevenue} />
+      <MetricsBar
+        confirmedCount={confirmedCount}
+        confirmedRevenue={confirmedRevenue}
+        opsPulseAt={opsPulseAt}
+        lastSyncAt={lastSyncAt}
+      />
 
       {/* ── Main 3-column area ───────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative">
@@ -650,38 +785,55 @@ export default function ConversationsPage() {
         filtered={filtered}
         localUnreads={localUnreads}
         localLastMsgs={localLastMsgs}
+        localStatuses={localStatuses}
+        localTyping={localTyping}
       />
 
       {/* ── Center: chat ─────────────────────────────────────────────────── */}
       {selectedConv && thread ? (
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r border-white/[0.05]">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r border-white/[0.03] bg-zinc-950/15">
           {/* Header */}
-          <div className="shrink-0 flex items-center justify-between px-5 py-3 border-b border-white/[0.05] bg-zinc-950/30">
-            <div className="flex items-center gap-3 min-w-0">
-              <div
-                className={cn(
-                  "w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0",
-                  selectedConv.contact.avatarColor
-                )}
-              >
-                {selectedConv.contact.initials}
+          <div className="shrink-0 flex items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.03] bg-zinc-950/40 backdrop-blur-[6px]">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="relative shrink-0">
+                <div
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full text-[12px] font-bold text-white ring-1 ring-white/[0.06]",
+                    selectedConv.contact.avatarColor
+                  )}
+                >
+                  {selectedConv.contact.initials}
+                </div>
+                <span
+                  className="pointer-events-none absolute bottom-0 left-0 z-[1] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm"
+                  title={channelLabel(selectedConv.channel)}
+                >
+                  <ChannelGlyph channel={selectedConv.channel} className="h-2 w-2" />
+                </span>
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <span className="text-[13px] font-semibold text-white">{selectedConv.contact.name}</span>
+                <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
+                  <span className="text-sm font-semibold tracking-tight text-white">
+                    {selectedConv.contact.name}
+                  </span>
                   <LanguageFlag lang={selectedConv.language} />
                   <StatusBadge status={effectiveStatus} />
                   <LeadBadge status={selectedConv.leadStatus} />
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-[11px] text-white/30">
-                    <Phone className="w-3 h-3" />
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                  <span className="flex items-center gap-1.5 text-[11px] text-white/38">
+                    <Phone className="h-3 w-3 shrink-0 opacity-70" />
                     {selectedConv.contact.phone}
                   </span>
-                  <span className="flex items-center gap-1 text-[11px] text-white/30">
-                    <Clock className="w-3 h-3" />
+                  <span className="flex items-center gap-1.5 text-[11px] text-white/38">
+                    <Clock className="h-3 w-3 shrink-0 opacity-70" />
                     {allMessages.filter((m) => m.dir !== "system").length} messages
                   </span>
+                  <span className="hidden items-center gap-1.5 text-[11px] text-white/32 sm:flex">
+                    <ChannelGlyph channel={selectedConv.channel} className="h-3 w-3 opacity-80" />
+                    {channelLabel(selectedConv.channel)}
+                  </span>
+                  <OpsLiveChip phase={opsPhase} pulseKey={opsPulseAt} />
                 </div>
               </div>
             </div>
@@ -689,7 +841,7 @@ export default function ConversationsPage() {
               {effectiveReservation && (
                 <Link
                   href="/dashboard/reservations"
-                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07] text-white/50 hover:text-white/80 hover:bg-white/[0.07] text-[11px] font-medium transition-colors"
+                  className="hidden items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-white/48 transition-[background-color,color,border-color] duration-200 hover:border-white/[0.1] hover:bg-white/[0.055] hover:text-white/78 lg:flex"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   View booking
@@ -698,7 +850,7 @@ export default function ConversationsPage() {
               {effectiveStatus === "ai_active" && (
                 <button
                   onClick={handleTakeover}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 active:scale-[0.97] text-[11px] font-medium transition-all"
+                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/18 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-400 transition-[background-color,border-color,transform] duration-200 hover:border-amber-500/26 hover:bg-amber-500/[0.14] active:scale-[0.97]"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
                   Take over
@@ -707,7 +859,7 @@ export default function ConversationsPage() {
               {effectiveStatus === "human_takeover" && (
                 <button
                   onClick={handleHandToAI}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/15 active:scale-[0.97] text-[11px] font-medium transition-all"
+                  className="flex items-center gap-1.5 rounded-lg border border-blue-500/18 bg-blue-500/10 px-3 py-1.5 text-[11px] font-medium text-blue-400 transition-[background-color,border-color,transform] duration-200 hover:border-blue-500/26 hover:bg-blue-500/[0.14] active:scale-[0.97]"
                 >
                   <Bot className="w-3.5 h-3.5" />
                   Hand to AI
@@ -717,32 +869,37 @@ export default function ConversationsPage() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-1">
-            <div className="flex justify-center mb-5">
-              <span className="text-[11px] text-white/20 px-3 py-1 bg-white/[0.03] rounded-full border border-white/[0.05]">
-                {selectedConv.time.includes("d ago") ? "Yesterday" : "Today"}
-              </span>
-            </div>
-            {allMessages.map((msg, i) => (
-              <MessageRow
-                key={msg.id}
-                msg={msg}
-                conv={selectedConv}
-                prevDir={i > 0 ? allMessages[i - 1]?.dir : undefined}
-              />
-            ))}
-            {effectiveReservation && (
-              <div className="pt-3">
-                <ReservationCard
-                  reservation={effectiveReservation}
-                  convStatus={effectiveStatus}
-                  sentLink={sentLink}
-                  onSendPaymentLink={handleSendPaymentLink}
-                />
+          <div
+            ref={scrollRef}
+            className="conv-scroll flex-1 min-h-0 space-y-0 overflow-y-auto px-5 py-7 sm:px-6"
+          >
+            <div className="mx-auto w-full max-w-[min(100%,30.5rem)]">
+              <div className="mb-7 flex justify-center">
+                <span className="rounded-full border border-white/[0.045] bg-white/[0.025] px-4 py-1.5 text-[11px] font-medium text-white/32">
+                  {selectedConv.time.includes("d ago") ? "Yesterday" : "Today"}
+                </span>
               </div>
-            )}
-            {isAiTyping && <TypingIndicator />}
-            <div className="h-2" />
+              {allMessages.map((msg, i) => (
+                <MessageRow
+                  key={msg.id}
+                  msg={msg}
+                  conv={selectedConv}
+                  prevMsg={i > 0 ? allMessages[i - 1] : undefined}
+                />
+              ))}
+              {effectiveReservation && (
+                <div className="pt-6">
+                  <ReservationCard
+                    reservation={effectiveReservation}
+                    convStatus={effectiveStatus}
+                    sentLink={sentLink}
+                    onSendPaymentLink={handleSendPaymentLink}
+                  />
+                </div>
+              )}
+              {isAiTyping && <ChatTypingIndicator />}
+              <div className="h-5" />
+            </div>
           </div>
 
           {/* Reply bar */}
@@ -846,14 +1003,28 @@ function useCountUp(target: number, duration = 1100): number {
   return displayed;
 }
 
+function timeAgoCompact(nowMs: number, thenMs: number): string {
+  const s = Math.max(0, Math.floor((nowMs - thenMs) / 1000));
+  if (s < 3) return "now";
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h`;
+}
+
 // ─── MetricsBar ───────────────────────────────────────────────────────────────
 
 function MetricsBar({
   confirmedCount,
   confirmedRevenue,
+  opsPulseAt,
+  lastSyncAt,
 }: {
   confirmedCount: number;
   confirmedRevenue: number;
+  opsPulseAt: number;
+  lastSyncAt: number;
 }) {
   const bookings = BASE_METRICS.bookings + confirmedCount;
   const revenue = BASE_METRICS.revenue + confirmedRevenue;
@@ -863,6 +1034,12 @@ function MetricsBar({
   const displayBookings = useCountUp(bookings);
   const displayRevenue = useCountUp(revenue);
   const displayOta = useCountUp(otaSaved);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowMs(Date.now()), 1200);
+    return () => clearInterval(t);
+  }, []);
 
   const values: Record<typeof METRIC_DEFS[number]["key"], { display: string; sub: string; trend: string }> = {
     bookings: {
@@ -893,15 +1070,37 @@ function MetricsBar({
   };
 
   return (
-    <div className="shrink-0 grid grid-cols-5 border-b border-white/[0.06] bg-zinc-950/60">
+    <div className="shrink-0 border-b border-white/[0.03] bg-zinc-950/55">
+      <div className="flex items-center justify-between px-5 py-2.5">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/24">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inset-0 rounded-full bg-emerald-400/70 animate-live-pulse" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400/90" />
+            </span>
+            Live ops
+          </span>
+          <span className="text-white/10">·</span>
+          <span className={cn("text-white/22", opsPulseAt ? "animate-tick-fade" : "")}>
+            sync {timeAgoCompact(nowMs, lastSyncAt)} ago
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-white/18">
+          <span className="hidden sm:inline">AI signals are simulated</span>
+          <span className="h-3 w-px bg-white/10" />
+          <span className="font-medium text-white/22">demo</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 border-t border-white/[0.03]">
       {METRIC_DEFS.map((m, i) => {
         const v = values[m.key];
         return (
           <div
             key={m.key}
             className={cn(
-              "flex items-center gap-3 px-5 py-3.5",
-              i < METRIC_DEFS.length - 1 && "border-r border-white/[0.05]"
+              "flex items-center gap-3.5 px-5 py-5",
+              i < METRIC_DEFS.length - 1 && "border-r border-white/[0.03]"
             )}
           >
             {/* Icon */}
@@ -938,13 +1137,43 @@ function MetricsBar({
                   {v.trend}
                 </span>
               </div>
-              <p className="text-[10px] text-white/40 mt-1 truncate font-medium">{m.label}</p>
-              <p className="text-[9px] text-white/20 mt-0.5 truncate">{v.sub}</p>
+              <p className="text-[10px] text-white/42 mt-1.5 truncate font-medium">{m.label}</p>
+              <p className="text-[9px] text-white/24 mt-0.5 truncate">{v.sub}</p>
             </div>
           </div>
         );
       })}
+      </div>
     </div>
+  );
+}
+
+function OpsLiveChip({ phase, pulseKey }: { phase: OpsPhase; pulseKey: number }) {
+  const meta = useMemo(() => {
+    if (phase === "idle") return null;
+    return OPS_PHASES.find((p) => p.phase === phase) ?? OPS_PHASES[0];
+  }, [phase]);
+
+  if (!meta) return null;
+  const Icon = meta.icon;
+
+  return (
+    <span
+      key={`${phase}-${pulseKey}`}
+      className={cn(
+        "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[10px] font-medium",
+        meta.wrap,
+        meta.text,
+        "animate-tick-fade"
+      )}
+      title={meta.sub}
+    >
+      <Icon className={cn("h-3 w-3 shrink-0", phase === "checking_availability" ? "animate-spin [animation-duration:2.6s]" : "")} />
+      <span className="hidden sm:inline">{meta.label}</span>
+      <span className="text-white/18 hidden sm:inline">·</span>
+      <span className="hidden sm:inline text-white/40">{meta.sub}</span>
+      <span className="sm:hidden">AI</span>
+    </span>
   );
 }
 
@@ -960,6 +1189,8 @@ function ConvList({
   filtered,
   localUnreads,
   localLastMsgs,
+  localStatuses,
+  localTyping,
 }: {
   activeTab: Tab;
   setActiveTab: (t: Tab) => void;
@@ -970,94 +1201,102 @@ function ConvList({
   filtered: typeof CONVERSATIONS;
   localUnreads: Record<string, number>;
   localLastMsgs: Record<string, string>;
+  localStatuses: Record<string, ConversationStatus>;
+  localTyping: Record<string, boolean>;
 }) {
   return (
-    <div className="w-[316px] shrink-0 flex flex-col border-r border-white/[0.05] overflow-hidden bg-zinc-950/60">
+    <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-r border-white/[0.03] bg-zinc-950/35">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-white/[0.05]">
-        <div className="flex items-center justify-between mb-0.5">
-          <div>
-            <h1 className="text-[13px] font-semibold text-white tracking-tight">Conversations</h1>
-            <p className="text-[11px] text-white/30 mt-0.5">
+      <div className="border-b border-white/[0.03] px-4 pb-5 pt-6">
+        <div className="mb-1.5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-sm font-semibold tracking-tight text-white">Conversations</h1>
+            <p className="mt-1 text-[11px] leading-relaxed text-white/30">
               Grand Hotel Demo
-              <span className="mx-1.5 text-white/10">·</span>
-              <span className="text-blue-400/70">Mia AI active</span>
+              <span className="mx-1.5 text-white/12">·</span>
+              <span className="text-blue-400/75">Mia AI active</span>
             </p>
           </div>
-          {/* Enhanced live badge: shows AI lead count */}
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 animate-ai-glow">
-              <Bot className="w-2.5 h-2.5 text-blue-400" />
-              <span className="text-[10px] font-semibold text-blue-400">4 closing</span>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <div className="flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/[0.08] px-2.5 py-1 transition-colors duration-200 hover:border-blue-500/30 hover:bg-blue-500/[0.11]">
+              <Bot className="h-2.5 w-2.5 text-blue-400" />
+              <span className="text-[10px] font-semibold text-blue-400/95">4 closing</span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[9px] text-white/20">live</span>
+            <div className="flex items-center gap-1.5">
+              <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400/90" />
+              <span className="text-[9px] font-medium uppercase tracking-wide text-white/22">Live</span>
             </div>
           </div>
         </div>
 
         {/* KPI stats */}
-        <div className="grid grid-cols-3 gap-1.5 mb-2.5 mt-3">
+        <div className="mb-4 mt-5 grid grid-cols-3 gap-2.5">
           {[
-            { label: "AI Active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.08] border-blue-500/[0.12]" },
-            { label: "Pipeline", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.08] border-amber-500/[0.12]" },
-            { label: "Confirmed", value: "3", color: "text-emerald-400", bg: "bg-emerald-500/[0.08] border-emerald-500/[0.12]" },
+            { label: "AI Active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
+            { label: "Pipeline", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.06] border-amber-500/[0.1]" },
+            { label: "Confirmed", value: "3", color: "text-emerald-400", bg: "bg-emerald-500/[0.06] border-emerald-500/[0.1]" },
           ].map((stat) => (
-            <div key={stat.label} className={cn("rounded-lg border px-2 py-2.5 text-center", stat.bg)}>
-              <p className={cn("text-[16px] font-bold leading-none tabular-nums", stat.color)}>{stat.value}</p>
-              <p className="text-[9px] text-white/30 mt-1 font-medium uppercase tracking-wider">{stat.label}</p>
+            <div
+              key={stat.label}
+              className={cn(
+                "rounded-lg border px-2.5 py-3 text-center transition-colors duration-200 hover:bg-white/[0.02]",
+                stat.bg
+              )}
+            >
+              <p className={cn("text-[16px] font-bold tabular-nums leading-none", stat.color)}>{stat.value}</p>
+              <p className="mt-2 text-[9px] font-medium uppercase tracking-wider text-white/28">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* OTA dependency risk insight */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/[0.06] border border-amber-500/[0.10] mb-2.5">
-          <AlertTriangle className="w-3 h-3 text-amber-400/60 shrink-0" />
-          <p className="text-[10px] text-white/40 leading-tight flex-1 min-w-0">
+        <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-amber-500/[0.08] bg-amber-500/[0.04] px-3 py-3">
+          <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400/55" />
+          <p className="min-w-0 flex-1 text-[10px] leading-relaxed text-white/38">
             OTA route costs you{" "}
-            <span className="text-amber-400/80 font-semibold">15–20%</span> per booking
-            <span className="mx-1 text-white/15">·</span>
-            <span className="text-emerald-400/70 font-medium">€634 saved this week</span>
+            <span className="font-semibold text-amber-400/75">15–20%</span> per booking
+            <span className="mx-1 text-white/12">·</span>
+            <span className="font-medium text-emerald-400/65">€634 saved this week</span>
           </p>
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/22" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search guests or messages…"
-            className="w-full pl-9 pr-3 py-2 bg-white/[0.04] border border-white/[0.07] rounded-lg text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/40 focus:bg-white/[0.06] transition-all"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.035] py-2 pl-9 pr-3 text-[12px] text-white placeholder:text-white/22 transition-[border-color,background-color,box-shadow] duration-200 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-blue-500/25 focus:border-blue-500/35"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0.5 px-3 py-2 border-b border-white/[0.04] shrink-0">
+      <div className="flex shrink-0 gap-1 border-b border-white/[0.03] px-3 py-3">
         {TABS.map((t) => (
           <button
             key={t.id}
+            type="button"
             onClick={() => setActiveTab(t.id)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-colors",
+              "flex flex-1 items-center justify-center gap-1 rounded-md py-2.5 text-[11px] font-medium transition-colors duration-200 ease-out",
               activeTab === t.id
-                ? "bg-white/[0.09] text-white"
-                : "text-white/35 hover:text-white/55 hover:bg-white/[0.04]"
+                ? "bg-white/[0.08] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                : "text-white/32 hover:bg-white/[0.04] hover:text-white/55"
             )}
           >
             {t.id === "ai_active" && (
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-blue-400/90" />
             )}
             {t.id === "human_takeover" && t.count > 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400/90" />
             )}
             <span className="truncate">{t.label}</span>
             <span
               className={cn(
-                "text-[10px] px-1 py-0.5 rounded-full min-w-[16px] text-center tabular-nums shrink-0",
-                activeTab === t.id ? "bg-white/10 text-white/60" : "bg-white/[0.05] text-white/25"
+                "min-w-[18px] shrink-0 rounded-full px-1.5 py-0.5 text-center text-[10px] tabular-nums transition-colors duration-200",
+                activeTab === t.id ? "bg-white/[0.08] text-white/55" : "bg-white/[0.04] text-white/22"
               )}
             >
               {t.count}
@@ -1067,7 +1306,7 @@ function ConvList({
       </div>
 
       {/* List */}
-      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-white/[0.03]">
+      <div className="conv-scroll flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto px-2.5 py-3">
         {/* Waiting guests triage — only visible when staff attention is needed */}
         {(() => {
           const waiting = filtered.filter(
@@ -1075,28 +1314,24 @@ function ConvList({
           );
           if (waiting.length === 0) return null;
           return (
-            <div className="mx-3 mt-2.5 mb-1 px-3 py-2.5 rounded-lg bg-amber-500/[0.06] border border-amber-500/[0.13]">
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                <span className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wide">
+            <div className="mx-2 mb-3 mt-1 rounded-lg border border-amber-500/[0.12] bg-amber-500/[0.04] px-3 py-3">
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400/85" />
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400/75">
                   {waiting.length} guest{waiting.length !== 1 ? "s" : ""} waiting for staff
                 </span>
               </div>
               {waiting.map((c) => (
                 <button
                   key={c.id}
+                  type="button"
                   onClick={() => setSelected(c.id)}
-                  className="flex items-center gap-2 text-[10px] w-full hover:opacity-80 transition-opacity mt-1 text-left"
+                  className="mt-1 flex w-full items-center gap-2 rounded-md py-1 text-left text-[10px] text-white/55 transition-colors duration-200 hover:bg-white/[0.04] hover:text-white/75"
                 >
-                  <span
-                    className={cn(
-                      "w-2 h-2 rounded-full shrink-0",
-                      c.contact.avatarColor
-                    )}
-                  />
-                  <span className="text-white/60 font-medium truncate">{c.contact.name}</span>
-                  <span className="text-white/15 shrink-0">·</span>
-                  <span className="text-amber-400/70 shrink-0 font-medium">{c.time}</span>
+                  <span className={cn("h-2 w-2 shrink-0 rounded-full", c.contact.avatarColor)} />
+                  <span className="truncate font-medium">{c.contact.name}</span>
+                  <span className="shrink-0 text-white/12">·</span>
+                  <span className="shrink-0 font-medium text-amber-400/70">{c.time}</span>
                 </button>
               ))}
             </div>
@@ -1109,80 +1344,95 @@ function ConvList({
           const unread = localUnreads[conv.id] ?? conv.unread;
           const lastMsg = localLastMsgs[conv.id] ?? conv.lastMessage;
           const hasUnread = unread > 0;
+          const effectiveConvStatus = localStatuses[conv.id] ?? conv.status;
+          const isAiHandling = effectiveConvStatus === "ai_active";
+          const isAiWorking = isAiHandling && (localTyping[conv.id] ?? CHAT_THREADS[conv.id]?.aiTyping ?? false);
           // Show waiting indicator only for human_takeover with unread messages
-          const isWaiting = conv.status === "human_takeover" && hasUnread && !isSelected;
+          const isWaiting = effectiveConvStatus === "human_takeover" && hasUnread && !isSelected;
 
           return (
             <button
               key={conv.id}
+              type="button"
               onClick={() => setSelected(conv.id)}
               className={cn(
-                "w-full text-left px-4 py-3.5 transition-all border-l-2 group",
+                "group w-full rounded-lg border-l-2 py-3.5 pl-3.5 pr-3.5 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-out",
                 isSelected
-                  ? "bg-white/[0.06] border-amber-400/60"
+                  ? "border-amber-400/60 bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
                   : isWaiting
-                  ? "border-amber-400/25 hover:bg-amber-500/[0.03] hover:border-amber-400/40 bg-amber-500/[0.02]"
-                  : "border-transparent hover:bg-white/[0.025] hover:border-white/10",
-                !isSelected && hasUnread && !isWaiting && "bg-blue-500/[0.02]"
+                  ? "border-amber-400/20 bg-amber-500/[0.025] hover:border-amber-400/35 hover:bg-amber-500/[0.045]"
+                  : "border-transparent hover:border-white/[0.08] hover:bg-white/[0.035]",
+                !isSelected && hasUnread && !isWaiting && "bg-blue-500/[0.02] hover:bg-blue-500/[0.035]"
               )}
             >
-              <div className="flex items-start gap-3">
-                {/* Avatar with status badge */}
-                <div className="relative shrink-0">
+              <div className="flex gap-3">
+                <div className="relative shrink-0 pt-0.5">
                   <div
                     className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white",
+                      "flex h-10 w-10 items-center justify-center rounded-full text-[11px] font-bold text-white ring-1 ring-black/25 ring-inset",
                       conv.contact.avatarColor
                     )}
                   >
                     {conv.contact.initials}
                   </div>
-                  {conv.status === "ai_active" && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-600 rounded-full border-2 border-zinc-950 flex items-center justify-center">
-                      <Bot className="w-1.5 h-1.5 text-white" />
+                  <span
+                    className="pointer-events-none absolute bottom-0 left-0 z-[2] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm backdrop-blur-[2px] transition-transform duration-200 group-hover:translate-y-[2px]"
+                    title={channelLabel(conv.channel)}
+                  >
+                    <ChannelGlyph channel={conv.channel} className="h-2 w-2" />
+                  </span>
+                  {effectiveConvStatus === "ai_active" && (
+                    <span className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-zinc-950 bg-blue-600 shadow-sm">
+                      <Bot className="h-1.5 w-1.5 text-white" />
                     </span>
                   )}
-                  {conv.status === "human_takeover" && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-500 rounded-full border-2 border-zinc-950" />
+                  {effectiveConvStatus === "human_takeover" && (
+                    <span className="absolute -bottom-0.5 -right-0.5 z-[1] h-3.5 w-3.5 rounded-full border-2 border-zinc-950 bg-amber-500 shadow-sm" />
                   )}
-                  {conv.status === "resolved" && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-zinc-700 rounded-full border-2 border-zinc-950 flex items-center justify-center">
-                      <CheckCircle2 className="w-2 h-2 text-white/60" />
+                  {effectiveConvStatus === "resolved" && (
+                    <span className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-zinc-950 bg-zinc-700 shadow-sm">
+                      <CheckCircle2 className="h-2 w-2 text-white/65" />
                     </span>
                   )}
                   {hasUnread && (
                     <span
                       className={cn(
-                        "absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white animate-msg-in",
-                        isWaiting
-                          ? "bg-amber-500 animate-ring-amber"
-                          : "bg-blue-500 animate-ring-blue"
+                        "absolute -right-0.5 -top-0.5 z-[3] flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white shadow-[0_1px_2px_rgba(0,0,0,0.4)] ring-1 ring-black/35 transition-transform duration-200 group-hover:scale-[1.02]",
+                        isWaiting ? "bg-amber-500 animate-ring-amber" : "bg-blue-500/95"
                       )}
                     >
-                      {unread}
+                      {unread > 9 ? "9+" : unread}
                     </span>
                   )}
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
                       <span
                         className={cn(
-                          "text-[13px] font-medium truncate transition-colors",
-                          hasUnread ? "text-white" : "text-white/75"
+                          "truncate text-sm font-medium tracking-tight transition-colors duration-200",
+                          hasUnread ? "text-white" : "text-white/78 group-hover:text-white/88"
                         )}
                       >
                         {conv.contact.name}
                       </span>
                       <LanguageFlag lang={conv.language} />
+                      {isAiWorking && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/18 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-200/80 animate-tick-fade">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-400/90 animate-live-pulse" />
+                          working
+                        </span>
+                      )}
                     </div>
-                    {/* Waiting time — amber for staff-needed, normal for AI-handled */}
                     <span
                       className={cn(
-                        "text-[10px] shrink-0 ml-1 font-medium",
-                        isWaiting ? "text-amber-400/70" : "text-white/25"
+                        "shrink-0 pt-0.5 text-[10px] font-medium tabular-nums tracking-tight transition-colors duration-200",
+                        isWaiting
+                          ? "text-amber-400/75"
+                          : isSelected
+                          ? "text-white/34"
+                          : "text-white/22 group-hover:text-white/34"
                       )}
                     >
                       {isWaiting ? `Waiting · ${conv.time.replace(" ago", "")}` : conv.time}
@@ -1190,26 +1440,28 @@ function ConvList({
                   </div>
                   <p
                     className={cn(
-                      "text-[11px] truncate mb-2 transition-colors",
-                      hasUnread ? "text-white/55" : "text-white/30"
+                      "mb-3 line-clamp-2 text-[11px] leading-relaxed transition-colors duration-200",
+                      hasUnread ? "text-white/46" : isSelected ? "text-white/34" : "text-white/26 group-hover:text-white/34"
                     )}
                   >
                     {lastMsg}
                   </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <StatusBadge status={conv.status} />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className={cn("flex min-w-0 flex-wrap items-center gap-1.5", !isSelected && "opacity-[0.85]")}>
+                      <StatusBadge status={effectiveConvStatus} />
                       <LeadBadge status={conv.leadStatus} />
                     </div>
                     {revenue && (
                       <span
                         className={cn(
-                          "text-[11px] font-semibold tabular-nums",
+                          "shrink-0 text-[11px] font-semibold tabular-nums transition-colors duration-200",
                           revenue.status === "confirmed"
                             ? "text-emerald-400/80"
                             : revenue.status === "pending"
                             ? "text-amber-400/80"
                             : "text-blue-400/80"
+                          ,
+                          !isSelected && "opacity-[0.72] group-hover:opacity-[0.9]"
                         )}
                       >
                         {revenue.value}
@@ -1222,7 +1474,7 @@ function ConvList({
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-center py-12 text-sm text-white/20">No conversations found</p>
+          <p className="py-14 text-center text-sm text-white/22">No conversations found</p>
         )}
       </div>
     </div>
@@ -1254,60 +1506,70 @@ function GuestSidebar({
   const showPaymentBtn = r && (r.status === "pending_payment" || r.status === "quoted");
 
   return (
-    <div className="w-[260px] shrink-0 flex flex-col overflow-y-auto bg-zinc-950/50">
+    <div className="conv-scroll flex w-[284px] shrink-0 flex-col overflow-y-auto bg-zinc-950/40">
       {/* Guest profile */}
-      <div className="p-4 border-b border-white/[0.05]">
+      <div className="border-b border-white/[0.03] px-5 py-6">
         <SidebarLabel>Guest</SidebarLabel>
-        <div className="flex items-center gap-3 mb-3">
-          <div
-            className={cn(
-              "w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0",
-              conv.contact.avatarColor
-            )}
-          >
-            {conv.contact.initials}
+        <div className="mb-5 flex items-center gap-4">
+          <div className="relative shrink-0">
+            <div
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white ring-1 ring-white/[0.06]",
+                conv.contact.avatarColor
+              )}
+            >
+              {conv.contact.initials}
+            </div>
+            <span
+              className="pointer-events-none absolute bottom-0 left-0 z-[1] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm"
+              title={channelLabel(conv.channel)}
+            >
+              <ChannelGlyph channel={conv.channel} className="h-2 w-2" />
+            </span>
           </div>
           <div className="min-w-0">
-            <p className="text-[14px] font-semibold text-white leading-tight truncate">
+            <p className="truncate text-[14px] font-semibold leading-tight tracking-tight text-white">
               {conv.contact.name}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="mt-1.5 flex items-center gap-2">
               <LanguageFlag lang={conv.language} />
-              <span className="text-[11px] text-white/30">{conv.language} speaker</span>
+              <span className="text-[11px] text-white/34">{conv.language} speaker</span>
             </div>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2 text-[11px] text-white/40">
-            <Phone className="w-3 h-3 shrink-0" />
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2.5 text-[11px] text-white/36">
+            <Phone className="h-3 w-3 shrink-0 opacity-80" />
             <span className="font-mono">{conv.contact.phone}</span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-white/40">
-            <Clock className="w-3 h-3 shrink-0" />
-            <span>{conv.messageCount} messages · {conv.time}</span>
+          <div className="flex items-center gap-2.5 text-[11px] text-white/34">
+            <Clock className="h-3 w-3 shrink-0 opacity-80" />
+            <span>
+              {conv.messageCount} messages · {conv.time}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Booking summary */}
       {r && (
-        <div className="p-4 border-b border-white/[0.05]">
+        <div className="border-b border-white/[0.03] px-5 py-6">
           <SidebarLabel>Booking</SidebarLabel>
           <div
             className={cn(
-              "rounded-xl border p-3.5 transition-all duration-500",
+              "rounded-xl border p-5 transition-all duration-500",
               r.status === "confirmed"
-                ? "border-emerald-500/25 bg-emerald-500/[0.05]"
+                ? "border-emerald-500/20 bg-emerald-500/[0.04]"
                 : r.status === "pending_payment"
-                ? "border-amber-500/25 bg-amber-500/[0.05]"
-                : "border-blue-500/25 bg-blue-500/[0.05]"
+                ? "border-amber-500/24 bg-amber-500/[0.05]"
+                : "border-blue-500/20 bg-blue-500/[0.04]"
             )}
           >
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[10px] font-mono text-white/35">#{r.ref}</span>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-mono text-white/38">#{r.ref}</span>
               <span
                 className={cn(
-                  "text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all duration-500",
+                  "text-[10px] font-semibold px-2.5 py-1 rounded-full transition-all duration-500",
                   r.status === "confirmed"
                     ? "bg-emerald-500/15 text-emerald-400"
                     : r.status === "pending_payment"
@@ -1322,8 +1584,8 @@ function GuestSidebar({
                   : "Quote sent"}
               </span>
             </div>
-            <p className="text-[12px] font-semibold text-white/90 mb-3 leading-snug">{r.room}</p>
-            <div className="space-y-1.5 text-[11px]">
+            <p className="text-[12px] font-semibold text-white/88 mb-4 leading-snug">{r.room}</p>
+            <div className="space-y-2 text-[11px]">
               <div className="flex items-center justify-between text-white/45">
                 <span className="flex items-center gap-1.5"><CalendarDays className="w-3 h-3" />Check-in</span>
                 <span className="text-white/70 font-medium">{r.checkIn}</span>
@@ -1337,9 +1599,9 @@ function GuestSidebar({
                 <span className="text-white/70 font-medium">{r.guests} · {r.nights} nights</span>
               </div>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-white/[0.08] flex items-baseline justify-between">
-              <span className="text-[10px] text-white/30">Total</span>
-              <span className="text-[19px] font-bold text-white tabular-nums">
+            <div className="mt-5 border-t border-white/[0.045] pt-4 flex items-baseline justify-between">
+              <span className="text-[10px] font-medium text-white/32">Total</span>
+              <span className="text-[20px] font-bold text-white tabular-nums tracking-tight">
                 {r.currency}{r.total.toLocaleString()}
               </span>
             </div>
@@ -1348,17 +1610,18 @@ function GuestSidebar({
       )}
 
       {/* Quick actions */}
-      <div className="p-4 border-b border-white/[0.05]">
+      <div className="border-b border-white/[0.03] px-5 py-6">
         <SidebarLabel>Quick Actions</SidebarLabel>
-        <div className="space-y-2">
+        <div className="flex flex-col gap-3">
           {showPaymentBtn && (
             <button
+              type="button"
               onClick={onSendPaymentLink}
               className={cn(
-                "w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-[12px] font-medium transition-all border",
+                "flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[12px] font-semibold transition-[background-color,border-color,transform] duration-200 ease-out active:scale-[0.98]",
                 sentLink
-                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-                  : "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/15 active:scale-[0.98]"
+                  ? "border-emerald-500/22 bg-emerald-500/10 text-emerald-300"
+                  : "border-amber-500/22 bg-amber-500/14 text-amber-200 hover:border-amber-500/30 hover:bg-amber-500/[0.18]"
               )}
             >
               {sentLink ? (
@@ -1370,8 +1633,9 @@ function GuestSidebar({
           )}
           {effectiveStatus === "ai_active" && (
             <button
+              type="button"
               onClick={onTakeover}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/50 hover:text-white/80 hover:bg-white/[0.07] text-[12px] font-medium transition-all active:scale-[0.98]"
+              className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3.5 py-2.5 text-[12px] font-medium text-white/42 transition-[background-color,color,border-color,transform] duration-200 hover:border-white/[0.09] hover:bg-white/[0.045] hover:text-white/65 active:scale-[0.98]"
             >
               <UserCheck className="w-4 h-4 shrink-0" />
               Take over chat
@@ -1379,8 +1643,9 @@ function GuestSidebar({
           )}
           {effectiveStatus === "human_takeover" && (
             <button
+              type="button"
               onClick={onHandToAI}
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/15 text-[12px] font-medium transition-all active:scale-[0.98]"
+              className="flex w-full items-center gap-2.5 rounded-xl border border-blue-500/18 bg-blue-500/[0.08] px-3.5 py-2.5 text-[12px] font-medium text-blue-300/90 transition-[background-color,border-color,transform] duration-200 hover:border-blue-500/26 hover:bg-blue-500/[0.12] active:scale-[0.98]"
             >
               <Bot className="w-4 h-4 shrink-0" />
               Hand back to AI
@@ -1389,7 +1654,7 @@ function GuestSidebar({
           {r && (
             <Link
               href="/dashboard/reservations"
-              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 hover:text-white/65 hover:bg-white/[0.06] active:scale-[0.97] text-[12px] font-medium transition-all"
+              className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.05] bg-transparent px-3.5 py-2.5 text-[12px] font-medium text-white/34 transition-[background-color,color,border-color,transform] duration-200 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white/55 active:scale-[0.98]"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
               View full reservation
@@ -1399,36 +1664,36 @@ function GuestSidebar({
       </div>
 
       {/* AI Context */}
-      <div className="p-4">
+      <div className="px-5 py-6 pb-8">
         <SidebarLabel>AI Context</SidebarLabel>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-white/35">Lead stage</span>
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-3 text-[11px]">
+            <span className="shrink-0 text-white/26">Lead stage</span>
             <span
               className={cn(
-                "px-2 py-0.5 rounded-full font-semibold",
+                "px-2.5 py-1 rounded-full font-semibold shrink-0",
                 conv.leadStatus === "confirmed"
                   ? "bg-emerald-500/15 text-emerald-400"
                   : conv.leadStatus === "quoted"
                   ? "bg-blue-500/15 text-blue-400"
                   : conv.leadStatus === "qualified"
                   ? "bg-violet-500/15 text-violet-400"
-                  : "bg-white/[0.06] text-white/40"
+                  : "bg-white/[0.05] text-white/34"
               )}
             >
               {conv.leadStatus.charAt(0).toUpperCase() + conv.leadStatus.slice(1)}
             </span>
           </div>
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="text-white/35">Handler</span>
+          <div className="flex items-center justify-between gap-3 text-[11px]">
+            <span className="shrink-0 text-white/26">Handler</span>
             <span
               className={cn(
-                "flex items-center gap-1.5 px-2 py-0.5 rounded-full font-semibold transition-all",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-all shrink-0",
                 effectiveStatus === "ai_active"
                   ? "bg-blue-500/15 text-blue-400"
                   : effectiveStatus === "human_takeover"
                   ? "bg-amber-500/15 text-amber-400"
-                  : "bg-white/[0.06] text-white/40"
+                  : "bg-white/[0.05] text-white/34"
               )}
             >
               {effectiveStatus === "ai_active" ? (
@@ -1442,21 +1707,23 @@ function GuestSidebar({
           </div>
           {effectiveStatus === "ai_active" && (
             <div>
-              <div className="flex items-center justify-between text-[11px] mb-1.5">
-                <span className="text-white/35">AI confidence</span>
-                <span className="text-white/55 font-semibold">87%</span>
+              <div className="flex items-center justify-between text-[11px] mb-2">
+                <span className="text-white/26">AI confidence</span>
+                <span className="text-white/56 font-semibold tabular-nums">87%</span>
               </div>
-              <div className="h-1.5 bg-white/[0.07] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all"
+                  className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all opacity-[0.9]"
                   style={{ width: "87%" }}
                 />
               </div>
             </div>
           )}
-          <div className="flex items-center gap-1.5 pt-1 text-[11px] text-white/25">
-            <TrendingUp className="w-3 h-3" />
-            <span>Via WhatsApp · {conv.time}</span>
+          <div className="flex items-center gap-1.5 pt-1 text-[11px] text-white/24">
+            <TrendingUp className="h-3 w-3 shrink-0 opacity-80" />
+            <span>
+              Via {channelLabel(conv.channel)} · {conv.time}
+            </span>
           </div>
         </div>
       </div>
@@ -1468,121 +1735,9 @@ function GuestSidebar({
 
 function SidebarLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-3">
+    <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/26">
       {children}
     </p>
-  );
-}
-
-// ─── MessageRow ───────────────────────────────────────────────────────────────
-
-function MessageRow({
-  msg,
-  conv,
-  prevDir,
-}: {
-  msg: ChatMsg;
-  conv: Conversation;
-  prevDir?: string;
-}) {
-  const gap = prevDir !== msg.dir ? "mt-3" : "mt-0.5";
-  const animated = isAnimatedMsg(msg.id) ? "animate-msg-in" : "";
-
-  if (msg.dir === "system") {
-    return (
-      <div className={cn("flex justify-center py-1.5", gap, animated)}>
-        <div className="flex items-center gap-1.5 px-3 py-1 bg-white/[0.04] border border-white/[0.06] rounded-full">
-          <Zap className="w-3 h-3 text-white/25" />
-          <span className="text-[11px] text-white/35">{msg.body}</span>
-          <span className="text-[10px] text-white/20 ml-0.5">{msg.time}</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (msg.dir === "in") {
-    return (
-      <div className={cn("flex items-end gap-2", gap, animated)}>
-        <div
-          className={cn(
-            "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0",
-            conv.contact.avatarColor
-          )}
-        >
-          {conv.contact.initials}
-        </div>
-        <div className="max-w-[68%]">
-          <div className="bg-zinc-800/70 border border-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-2.5">
-            <p className="text-[13px] text-white/85 leading-relaxed whitespace-pre-line">{msg.body}</p>
-          </div>
-          <p className="text-[10px] text-white/20 mt-1 ml-1">{msg.time}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // outbound
-  const isAI = msg.by === "ai";
-  return (
-    <div className={cn("flex items-end justify-end gap-2", gap, animated)}>
-      <div className="max-w-[68%] flex flex-col items-end">
-        <div
-          className={cn(
-            "rounded-2xl rounded-br-sm px-4 py-2.5",
-            isAI ? "bg-blue-600" : "bg-indigo-600"
-          )}
-        >
-          <p className="text-[13px] text-white leading-relaxed whitespace-pre-line">{msg.body}</p>
-        </div>
-        <div className="flex items-center gap-1.5 mt-1 mr-0.5">
-          {isAI ? (
-            <Bot className="w-2.5 h-2.5 text-white/25" />
-          ) : (
-            <User className="w-2.5 h-2.5 text-white/25" />
-          )}
-          <p className="text-[10px] text-white/25">
-            {isAI ? "Mia · AI" : "Staff"} · {msg.time}
-          </p>
-        </div>
-      </div>
-      <div
-        className={cn(
-          "w-7 h-7 rounded-full flex items-center justify-center shrink-0",
-          isAI
-            ? "bg-blue-600/20 border border-blue-500/30"
-            : "bg-indigo-600/20 border border-indigo-500/30"
-        )}
-      >
-        {isAI ? (
-          <Bot className="w-3.5 h-3.5 text-blue-400" />
-        ) : (
-          <User className="w-3.5 h-3.5 text-indigo-400" />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── TypingIndicator ──────────────────────────────────────────────────────────
-
-function TypingIndicator() {
-  return (
-    <div className="flex items-end gap-2 pt-2 mt-3 animate-msg-in">
-      <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-        <Bot className="w-3.5 h-3.5 text-blue-400" />
-      </div>
-      <div className="bg-zinc-800/80 border border-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:0ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:250ms]" />
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:500ms]" />
-        </div>
-        <p className="text-[10px] text-white/30 mt-1.5 flex items-center gap-1">
-          <Zap className="w-2.5 h-2.5" />
-          Mia · AI is typing
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -1603,7 +1758,7 @@ function ReservationCard({
     confirmed: {
       label: "Confirmed",
       icon: CheckCircle2,
-      border: "border-emerald-500/30",
+      border: "border-emerald-500/25",
       header: "bg-emerald-500/[0.08]",
       iconColor: "text-emerald-400",
       badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
@@ -1612,7 +1767,7 @@ function ReservationCard({
     pending_payment: {
       label: "Pending Payment",
       icon: AlertCircle,
-      border: "border-amber-500/30",
+      border: "border-amber-500/25",
       header: "bg-amber-500/[0.07]",
       iconColor: "text-amber-400",
       badge: "bg-amber-500/15 text-amber-400 border-amber-500/25",
@@ -1621,7 +1776,7 @@ function ReservationCard({
     quoted: {
       label: "Quote Sent",
       icon: FileText,
-      border: "border-blue-500/30",
+      border: "border-blue-500/25",
       header: "bg-blue-500/[0.07]",
       iconColor: "text-blue-400",
       badge: "bg-blue-500/15 text-blue-400 border-blue-500/25",
@@ -1636,12 +1791,12 @@ function ReservationCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border overflow-hidden bg-zinc-900/80 shadow-xl shadow-black/20 transition-all duration-500",
+        "overflow-hidden rounded-2xl border bg-zinc-900/75 shadow-lg shadow-black/20 transition-[border-color,box-shadow] duration-500",
         s.border
       )}
     >
       {/* Header */}
-      <div className={cn("flex items-center justify-between px-5 py-3.5 transition-all duration-500", s.header)}>
+      <div className={cn("flex items-center justify-between px-5 py-4 transition-all duration-500", s.header)}>
         <div className="flex items-center gap-2.5">
           <StatusIcon className={cn("w-4 h-4 transition-colors duration-500", s.iconColor)} />
           <div>
@@ -1653,7 +1808,7 @@ function ReservationCard({
         </div>
         <span
           className={cn(
-            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all duration-500",
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all duration-500",
             s.badge
           )}
         >
@@ -1663,15 +1818,15 @@ function ReservationCard({
       </div>
 
       {/* Details */}
-      <div className="px-5 pt-4 pb-1">
-        <p className="text-[13px] font-semibold text-white/90 mb-3">{r.room}</p>
-        <div className="grid grid-cols-4 gap-3 mb-4">
+      <div className="px-5 pt-5 pb-1">
+        <p className="text-[13px] font-semibold text-white/90 mb-3.5">{r.room}</p>
+        <div className="mb-4 grid grid-cols-4 gap-3">
           <DetailCell icon={CalendarDays} label="Check-in" value={r.checkIn} iconColor="text-blue-400" />
           <DetailCell icon={CalendarDays} label="Check-out" value={r.checkOut} iconColor="text-blue-400" />
           <DetailCell icon={Users} label="Guests" value={String(r.guests)} iconColor="text-violet-400" />
           <DetailCell icon={Moon} label="Nights" value={String(r.nights)} iconColor="text-indigo-400" />
         </div>
-        <div className="flex items-center justify-between py-3 border-t border-white/[0.06] mb-4">
+        <div className="mb-4 flex items-center justify-between border-t border-white/[0.04] py-4">
           <div>
             <p className="text-[11px] text-white/35 mb-0.5">Price per night</p>
             <p className="text-[13px] text-white/60">
@@ -1680,7 +1835,7 @@ function ReservationCard({
           </div>
           <div className="text-right">
             <p className="text-[11px] text-white/35 mb-0.5">Total amount</p>
-            <p className="text-xl font-bold text-white tabular-nums">
+            <p className="text-[22px] font-bold text-white tabular-nums tracking-tight">
               {r.currency}{r.total.toLocaleString()}
             </p>
           </div>
@@ -1688,10 +1843,10 @@ function ReservationCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 px-5 pb-4">
+      <div className="flex items-center gap-2 px-5 pb-5 pt-1">
         <Link
           href="/dashboard/reservations"
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.06] border border-white/[0.09] text-white/70 hover:text-white hover:bg-white/[0.10] active:scale-[0.97] text-xs font-medium transition-all"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.035] border border-white/[0.07] text-white/55 hover:text-white/75 hover:bg-white/[0.055] active:scale-[0.97] text-xs font-medium transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5" />
           View reservation
@@ -1700,10 +1855,12 @@ function ReservationCard({
           <button
             onClick={onSendPaymentLink}
             className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all active:scale-[0.97]",
+              "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all active:scale-[0.97]",
               sentLink
-                ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-400"
-                : "bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15"
+                ? "bg-emerald-500/15 border border-emerald-500/25 text-emerald-300"
+                : r.status === "pending_payment"
+                ? "bg-amber-500/16 border border-amber-500/26 text-amber-200 hover:bg-amber-500/20"
+                : "bg-blue-500/15 border border-blue-500/24 text-blue-200 hover:bg-blue-500/19"
             )}
           >
             {sentLink ? (
@@ -1714,7 +1871,7 @@ function ReservationCard({
           </button>
         )}
         {convStatus === "ai_active" && (
-          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.04] border border-white/[0.07] text-white/45 hover:text-white/70 hover:bg-white/[0.07] text-xs font-medium transition-colors ml-auto">
+          <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-transparent border border-white/[0.06] text-white/34 hover:text-white/55 hover:bg-white/[0.04] text-xs font-medium transition-colors ml-auto">
             <UserCheck className="w-3.5 h-3.5" />
             Take over
           </button>
@@ -1738,10 +1895,10 @@ function DetailCell({
   iconColor: string;
 }) {
   return (
-    <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3">
+    <div className="rounded-xl border border-white/[0.035] bg-white/[0.02] p-3.5">
       <Icon className={cn("w-3.5 h-3.5 mb-2", iconColor)} />
-      <p className="text-[10px] text-white/35 mb-0.5">{label}</p>
-      <p className="text-[13px] font-semibold text-white/85">{value}</p>
+      <p className="text-[10px] text-white/34 mb-1 font-medium">{label}</p>
+      <p className="text-[13px] font-semibold text-white/88">{value}</p>
     </div>
   );
 }
@@ -1763,7 +1920,7 @@ function ReplyBar({
 }) {
   if (status === "resolved") {
     return (
-      <div className="shrink-0 px-6 py-3.5 border-t border-white/[0.05]">
+      <div className="shrink-0 border-t border-white/[0.03] px-6 py-5">
         <div className="flex items-center justify-center gap-2 py-2">
           <CheckCircle2 className="w-4 h-4 text-white/20" />
           <p className="text-sm text-white/25">Conversation resolved</p>
@@ -1774,8 +1931,8 @@ function ReplyBar({
 
   if (status === "ai_active") {
     return (
-      <div className="shrink-0 px-6 py-3.5 border-t border-white/[0.05]">
-        <div className="flex items-center gap-3 px-4 py-2.5 bg-blue-500/[0.06] border border-blue-500/15 rounded-xl">
+      <div className="shrink-0 border-t border-white/[0.03] px-6 py-5">
+        <div className="flex items-center gap-3 rounded-xl border border-blue-500/14 bg-blue-500/[0.05] px-4 py-3.5">
           <div className="w-7 h-7 rounded-lg bg-blue-600/20 flex items-center justify-center shrink-0">
             <Bot className="w-3.5 h-3.5 text-blue-400" />
           </div>
@@ -1795,7 +1952,7 @@ function ReplyBar({
   }
 
   return (
-    <div className="shrink-0 px-6 py-3.5 border-t border-white/[0.05]">
+    <div className="shrink-0 border-t border-white/[0.03] px-6 py-5">
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-full bg-indigo-600/25 border border-indigo-500/30 flex items-center justify-center shrink-0">
           <User className="w-3.5 h-3.5 text-indigo-400" />
@@ -1805,7 +1962,7 @@ function ReplyBar({
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
           placeholder="Type a reply…"
-          className="flex-1 px-4 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500/40 transition-all"
+          className="flex-1 rounded-xl border border-white/[0.07] bg-white/[0.045] px-4 py-2.5 text-sm text-white placeholder:text-white/22 transition-[border-color,background-color] duration-200 focus:border-indigo-500/35 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
         />
         <button
           onClick={onSend}
