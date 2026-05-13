@@ -1,47 +1,87 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BedDouble,
-  Bot,
+  ArrowUpRight,
   ChevronDown,
   MessageSquare,
-  Sparkles,
   Send,
+  UserRound,
+  CreditCard,
+  FileText,
 } from "lucide-react";
+import type { FlowId, FlowState, ScenarioAssistantPayload } from "./concierge-web-chat-scenarios";
+import {
+  advanceScenario,
+  detectFlowFromUserText,
+  getScenarioEntryPayload,
+  randomAssistantDelayMs,
+} from "./concierge-web-chat-scenarios";
+import { useOpenDemoModal } from "./demo-modal";
 
-type ChatRole = "assistant" | "user" | "system";
-type MessageVariant = "text" | "recommendations";
+/** Message roles for the conversation model */
+type ChatRole = "visitor" | "assistant" | "system";
+
+type SystemTone = "banner" | "event";
+
+type QuickChip = {
+  id: string;
+  label: string;
+};
+
+type PricePreview = {
+  roomLabel: string;
+  guestsLabel: string;
+  nightsLabel: string;
+  totalLabel: string;
+};
+
+type ReservationPreview = {
+  roomName: string;
+  nights: number;
+  guests: number;
+  dateRangeLabel: string;
+  totalLabel: string;
+  subtitle?: string;
+  ctas: { id: string; label: string }[];
+};
+
+type DashboardCtaLink = {
+  label: string;
+  href: string;
+};
+
+/** Qualitative trust / ops hints only — no fabricated analytics */
+type ConversionSurface = {
+  consultativeLine?: string;
+  /** Short operational bridge (dashboard / live ops), no numeric claims */
+  operationalTeaser?: string;
+  /** Landing-only deep links to hero CTAs (orchestration with page anchors) */
+  navigatorChips?: DashboardCtaLink[];
+  insights?: string[];
+  dashboardLinks?: DashboardCtaLink[];
+  demoMailCta?: boolean;
+};
 
 type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
   ts: number;
-  variant?: MessageVariant;
-  cards?: RecommendationCard[];
+  systemTone?: SystemTone;
+  chips?: QuickChip[];
+  pricePreview?: PricePreview;
+  reservationPreview?: ReservationPreview;
+  conversion?: ConversionSurface;
 };
 
 type QuickAction = {
-  id: string;
+  id: "how_it_works" | "dashboard" | "fit" | "demo";
   label: string;
-  prompt: string;
-};
-
-type RecommendationCard = {
-  title: string;
-  subtitle: string;
-  price: string;
-  badge: string;
-};
-
-type AssistantPlan = {
-  states: string[];
-  text: string;
-  cards?: RecommendationCard[];
 };
 
 function nowId(prefix: string) {
@@ -49,34 +89,184 @@ function nowId(prefix: string) {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: "availability", label: "Müsaitlik kontrol et", prompt: "24-27 Haziran için 2 kişilik oda müsait mi?" },
-  { id: "prices", label: "Oda fiyatlarını öğren", prompt: "Temmuz için gecelik fiyat aralıklarınızı paylaşır mısınız?" },
-  { id: "plan", label: "Tatilimi planla", prompt: "3 gece için deniz manzaralı bir konaklama planı önerir misiniz?" },
-  { id: "reception", label: "Resepsiyon ile görüş", prompt: "Müsaitseniz resepsiyon ekibine yönlendirebilir misiniz?" },
+  { id: "how_it_works", label: "Tugobo AI nasıl çalışır?" },
+  { id: "dashboard", label: "Dashboard'u göster" },
+  { id: "fit", label: "Otelim için uygun mu?" },
+  { id: "demo", label: "Görüşme talep et" },
 ];
 
 const WELCOME_MESSAGES: ChatMessage[] = [
   {
     id: "sys_welcome",
     role: "system",
-    text: "Tugobo Assistant — Oteller için AI rezervasyon deneyimi (demo).",
+    text: "Önizleme modu · Canlı kurulumda kanallar, kurallar ve verileriniz bağlanır.",
     ts: Date.now(),
+    systemTone: "banner",
   },
   {
     id: "ai_welcome",
     role: "assistant",
     text:
-      "Tugobo Assistant'a hoş geldiniz.\n\nRezervasyon süreçlerinizi hızlandırmak için buradayım. Müsaitlik kontrolü, oda önerisi, fiyat sunumu ve resepsiyon yönlendirmesi konularında anında yardımcı olabilirim.",
-    ts: Date.now(),
-  },
-  {
-    id: "ai_trust",
-    role: "assistant",
-    text:
-      "**7/24 operasyon** · **çok dilli misafir iletişimi** · **hızlı rezervasyon dönüşümü**\n\nİsterseniz sağ üstteki hızlı başlat seçeneklerinden ilerleyelim.",
+      "Tugobo AI, otelinizin **WhatsApp**, **Instagram** ve **web sitesi** üzerinden gelen iletişimi tek operasyon katmanında toplar.\n\nAI destekli yanıt akışı, rezervasyon yönetimi ve **canlı dashboard** görünürlüğü ile işletmenizin dijital operasyonunu güçlendirir.",
     ts: Date.now(),
   },
 ];
+
+/** Landing: same ids; only `ai_welcome` may differ when pristine on `/`. */
+const LANDING_WELCOME_TEXT: Record<string, string> = {
+  sys_welcome: "Önizleme modu · Canlı kurulumda kanallar, kurallar ve verileriniz bağlanır.",
+  ai_welcome:
+    "Tugobo AI, otelinizin **WhatsApp**, **Instagram** ve **web sitesi** üzerinden gelen iletişimi tek operasyon katmanında toplar.\n\nAI destekli yanıt akışı, rezervasyon yönetimi ve **canlı dashboard** görünürlüğü ile işletmenizin dijital operasyonunu güçlendirir.",
+};
+
+const OPERATIONAL_TEASERS = [
+  "Canlı panelde misafir iletişimi, operasyon ve satış akışlarını aynı görünümde takip edebilirsiniz.",
+  "Dashboard üzerinden kanal trafiği, AI katmanı ve ekip devralmasını işletmenize göre değerlendirebilirsiniz.",
+] as const;
+
+const ESCALATION_AFTER_3 =
+  "Ürün turu veya canlı dashboard üzerinden kurulumu birlikte adım adım planlayabiliriz.";
+
+const ESCALATION_AFTER_5 =
+  "Taahhüt istemeyen kısa bir görüşmede operasyon trafiğinizi ve OTA bağımlılığını azaltma senaryolarını netleştirebiliriz.";
+
+function isDefaultWelcome(msgs: ChatMessage[]): boolean {
+  if (msgs.length !== WELCOME_MESSAGES.length) return false;
+  return msgs.every((m, i) => {
+    const d = WELCOME_MESSAGES[i];
+    return Boolean(d && m.id === d.id && m.role === d.role && m.text === d.text);
+  });
+}
+
+function applyLandingWelcomeCopy(msgs: ChatMessage[]): ChatMessage[] {
+  return msgs.map((m) => {
+    const t = LANDING_WELCOME_TEXT[m.id];
+    return t ? { ...m, text: t } : m;
+  });
+}
+
+function enrichConversion(
+  base: ConversionSurface | undefined,
+  opts: { visitorActions: number; isLanding: boolean }
+): ConversionSurface | undefined {
+  if (!base) return undefined;
+  let insights = [...(base.insights ?? [])];
+  const out: ConversionSurface = {
+    ...base,
+    insights,
+  };
+
+  if (opts.visitorActions >= 2) {
+    out.operationalTeaser =
+      out.operationalTeaser ??
+      OPERATIONAL_TEASERS[opts.visitorActions % OPERATIONAL_TEASERS.length]!;
+  }
+
+  if (opts.isLanding && opts.visitorActions >= 2) {
+    out.navigatorChips = [
+      { label: "Hero'ya dön", href: "/#tugobo-hero" },
+      { label: "Görüşme talep", href: "/#tugobo-demo-talep" },
+      { label: "Önizleme linki", href: "/#tugobo-dashboard-cta" },
+    ];
+  }
+
+  if (opts.visitorActions >= 4) {
+    const proof = [
+      "7/24 yanıt",
+      "WhatsApp + Instagram + web chat",
+      "Doğrudan satış ve rezervasyon odaklı",
+      "OTA bağımlılığını azaltma",
+      "İnsan devralma destekli",
+      "Türkçe doğal iletişim",
+    ];
+    for (const p of proof) {
+      if (!insights.includes(p)) insights.push(p);
+    }
+    out.insights = insights.slice(0, 5);
+  }
+
+  if (opts.visitorActions >= 3) {
+    out.consultativeLine = out.consultativeLine
+      ? `${out.consultativeLine}\n\n${ESCALATION_AFTER_3}`
+      : ESCALATION_AFTER_3;
+  }
+  if (opts.visitorActions >= 5) {
+    out.consultativeLine = out.consultativeLine
+      ? `${out.consultativeLine}\n\n${ESCALATION_AFTER_5}`
+      : ESCALATION_AFTER_5;
+  }
+
+  return out;
+}
+
+const TRUST_INSIGHTS = [
+  "7/24 yanıt",
+  "WhatsApp + Instagram + web chat",
+  "Doğrudan satış ve rezervasyon odaklı",
+  "OTA bağımlılığını azaltma",
+  "İnsan devralma destekli",
+  "Türkçe doğal iletişim",
+] as const;
+
+function dashboardSalesLinks(): DashboardCtaLink[] {
+  return [
+    { label: "Dashboard'u incele", href: "/dashboard" },
+    { label: "Conversations ekranı", href: "/dashboard/conversations" },
+    { label: "Rezervasyon akışı", href: "/dashboard/reservations" },
+  ];
+}
+
+function consultLineForEntryFlow(flow: FlowId): string | undefined {
+  switch (flow) {
+    case "how_it_works":
+      return "Misafir tarafındaki deneyim, otelinizin politikalarına ve kanal kurallarına göre şekillenir.";
+    case "dashboard":
+      return "Panel; konuşma hacmi, fırsatlar ve devralma akışını tek bakışta toparlar.";
+    case "fit":
+      return "İşletme profilinize göre kurulum kapsamı ve eğitim planı netleştirilebilir.";
+    case "demo":
+      return undefined;
+  }
+}
+
+const GENERIC_FREE_TEXT_REPLY =
+  "Talebinizi aldım. Tugobo AI, otelinizin **misafir iletişimini**, **operasyon görünürlüğünü** ve **doğrudan rezervasyon altyapısını** tek dijital katmanda birleştirir. İsterseniz **çalışma modelini** veya **dashboard** üzerinden nasıl yönetileceğini özetleyebilirim.";
+
+const DEMO_MAIL_HREF =
+  "mailto:hello@tugobo.ai?subject=" +
+  encodeURIComponent("Tugobo AI — görüşme talebi") +
+  "&body=" +
+  encodeURIComponent("Merhaba,\n\nTugobo AI için kısa bir ürün görüşmesi talep ediyorum.\n\nTeşekkürler,\n");
+
+/** Same asset as marketing nav / homepage (`nav.tsx`, `page.tsx`). */
+const FULL_LOGO_SRC = "/Logo.png";
+
+/** Horizontal homepage wordmark; `object-contain`, not cropped. */
+function ChatFullLogo({
+  variant,
+  className,
+}: {
+  variant: "header" | "fab";
+  className?: string;
+}) {
+  const box =
+    variant === "header"
+      ? "relative h-[38px] w-[124px] max-sm:h-[34px] max-sm:w-[100px] shrink-0"
+      : "relative h-[34px] w-[104px] shrink-0 sm:h-[36px] sm:w-[118px]";
+
+  return (
+    <div className={[box, className ?? ""].filter(Boolean).join(" ")}>
+      <Image
+        src={FULL_LOGO_SRC}
+        alt=""
+        fill
+        sizes={variant === "header" ? "(max-width:640px)100px,128px" : "(max-width:640px)104px,120px"}
+        className="object-contain object-left"
+        priority={variant === "fab" || variant === "header"}
+      />
+    </div>
+  );
+}
 
 function formatTime(ts: number) {
   try {
@@ -87,68 +277,6 @@ function formatTime(ts: number) {
   } catch {
     return "";
   }
-}
-
-function buildAssistantPlan(userText: string): AssistantPlan {
-  const t = userText.toLowerCase();
-
-  if (t.includes("müsait") || t.includes("müsaitlik") || t.includes("availability") || t.includes("haziran")) {
-    return {
-      states: ["Tarih aralığı doğrulanıyor", "Müsaitlik taranıyor", "En uygun oda seçiliyor"],
-      text:
-        "24-27 Haziran aralığı için size uygun seçenekleri hazırladım.\n\n" +
-        "2 kişilik konaklama için hem fiyat/performans hem de premium segmentte alternatifler mevcut. Dilerseniz ödeme adımı için de örnek rezervasyon akışını gösterebilirim.",
-      cards: [
-        { title: "Deluxe Garden Room", subtitle: "2 yetişkin · Kahvaltı dahil", price: "₺6.450 / gece", badge: "Müsait" },
-        { title: "Executive Sea View", subtitle: "2 yetişkin · Esnek iptal", price: "₺8.900 / gece", badge: "Önerilen" },
-      ],
-    };
-  }
-
-  if (t.includes("fiyat") || t.includes("price")) {
-    return {
-      states: ["Fiyat aralığı hesaplanıyor", "Kampanya koşulları kontrol ediliyor"],
-      text:
-        "Elbette. Sezon ve oda tipine göre güncel aralık aşağıdaki gibi görünüyor:\n\n" +
-        "• Standart: ₺4.900 - ₺6.200\n" +
-        "• Deluxe: ₺6.300 - ₺8.100\n" +
-        "• Suite: ₺8.500 - ₺12.400\n\n" +
-        "Tarihleri paylaşırsanız net toplam tutarı ve en avantajlı seçeneği tek mesajda özetleyebilirim.",
-    };
-  }
-
-  if (t.includes("plan") || t.includes("öner") || t.includes("stay") || t.includes("tatil")) {
-    return {
-      states: ["Konaklama tercihleri analiz ediliyor", "Deneyim paketi hazırlanıyor"],
-      text:
-        "Memnuniyetle. 3 gecelik premium bir konaklama için önerim:\n\n" +
-        "1. Gün: Erken check-in + gün batımı transferi\n" +
-        "2. Gün: Özel kahvaltı saati + yarım gün deneyim paketi\n" +
-        "3. Gün: Geç check-out opsiyonu\n\n" +
-        "İsterseniz bunu oda seçenekleriyle birlikte tek bir rezervasyon teklifine dönüştüreyim.",
-      cards: [
-        { title: "Signature Escape", subtitle: "3 gece · 2 kişi · transfer dahil", price: "₺22.800 toplam", badge: "En çok tercih edilen" },
-      ],
-    };
-  }
-
-  if (t.includes("resepsiyon") || t.includes("reception") || t.includes("insan")) {
-    return {
-      states: ["Uygun ekip kontrol ediliyor", "Görüşme özeti hazırlanıyor"],
-      text:
-        "Elbette. Canlı sistemde bu noktada konuşmayı resepsiyon ekibine anında devrederim ve kısa bir görüşme özeti bırakırım.\n\n" +
-        "Bu demo ortamında ise devir simülasyonu yapıyorum. İsterseniz önce tarih/kişi bilgisi alıp ekibe hazır bir rezervasyon özeti çıkarabilirim.",
-    };
-  }
-
-  return {
-    states: ["Talep sınıflandırılıyor", "En uygun akış hazırlanıyor"],
-    text:
-      "Memnuniyetle yardımcı olurum. En doğru öneri için iki kısa bilgi paylaşabilir misiniz?\n" +
-      "• Tarih aralığı\n" +
-      "• Kişi sayısı\n\n" +
-      "Ardından sizin için net bir müsaitlik ve fiyat özeti hazırlayayım.",
-  };
 }
 
 function useMounted() {
@@ -162,14 +290,40 @@ export function ConciergeWebChat() {
   const mounted = useMounted();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [assistantState, setAssistantState] = useState<string | null>(null);
+  const [assistantTyping, setAssistantTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(WELCOME_MESSAGES);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const timersRef = useRef<number[]>([]);
+  const visitorActionsRef = useRef(0);
+  const flowContextRef = useRef<FlowState | null>(null);
 
-  const lastAssistantLabel = useMemo(() => "Tugobo Assistant", []);
+  const lastAssistantLabel = useMemo(() => "Tugobo AI", []);
   const isVisibleRoute = pathname === "/" || pathname.startsWith("/dashboard");
+
+  const openDemoModal = useOpenDemoModal();
+
+  const getDashboardLinks = useCallback((): DashboardCtaLink[] => {
+    if (pathname.startsWith("/dashboard")) {
+      return [
+        { label: "Panel özeti", href: "/dashboard" },
+        { label: "Konuşmalar", href: "/dashboard/conversations" },
+        { label: "Rezervasyon akışı", href: "/dashboard/reservations" },
+      ];
+    }
+    return [
+      { label: "Canlı Dashboard'u incele", href: "/dashboard" },
+      { label: "Rezervasyon akışını gör", href: "/dashboard/reservations" },
+      { label: "AI operasyon merkezini keşfet", href: "/dashboard/conversations" },
+    ];
+  }, [pathname]);
+
+  const wrapConversion = useCallback(
+    (c: ConversionSurface | undefined) =>
+      enrichConversion(c, { visitorActions: visitorActionsRef.current, isLanding: pathname === "/" }),
+    [pathname]
+  );
 
   const handleToggleOpen = useCallback(() => {
     setOpen((v) => !v);
@@ -184,17 +338,17 @@ export function ConciergeWebChat() {
   useEffect(() => {
     if (!open) return;
     scrollToBottom("auto");
-    // focus after open transition begins (mobile keyboards need a beat)
-    const id = window.setTimeout(() => inputRef.current?.focus(), 120);
+    const id = window.setTimeout(() => {
+      if (!assistantTyping) inputRef.current?.focus();
+    }, 120);
     return () => window.clearTimeout(id);
-  }, [open, scrollToBottom]);
+  }, [open, scrollToBottom, assistantTyping]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
-    scrollToBottom("smooth");
-  }, [messages, open, scrollToBottom]);
+    scrollEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, assistantTyping, open]);
 
-  // Escape to close + lock scroll (mobile)
   const onKey = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") setOpen(false);
   }, []);
@@ -221,73 +375,375 @@ export function ConciergeWebChat() {
     timersRef.current = [];
   }, []);
 
-  const send = useCallback(
+  const pushTimer = useCallback((id: number) => {
+    timersRef.current.push(id);
+  }, []);
+
+  /** Typing bubble visible, then randomized 1–2.5s pause, then assistant message */
+  const withTyping = useCallback(
+    (runAfter: () => void) => {
+      resetTimers();
+      setAssistantTyping(true);
+      const delay = randomAssistantDelayMs();
+      const t = window.setTimeout(() => {
+        setAssistantTyping(false);
+        runAfter();
+      }, delay);
+      pushTimer(t);
+    },
+    [pushTimer, resetTimers]
+  );
+
+  const appendVisitor = useCallback((text: string) => {
+    visitorActionsRef.current += 1;
+    const msg: ChatMessage = {
+      id: nowId("visitor"),
+      role: "visitor",
+      text,
+      ts: Date.now(),
+    };
+    setMessages((m) => [...m, msg]);
+  }, []);
+
+  const appendAssistant = useCallback((partial: Omit<ChatMessage, "id" | "role" | "ts"> & { text: string }) => {
+    const msg: ChatMessage = {
+      id: nowId("assistant"),
+      role: "assistant",
+      ts: Date.now(),
+      ...partial,
+    };
+    setMessages((m) => [...m, msg]);
+  }, []);
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+    setMessages((prev) => {
+      if (!isDefaultWelcome(prev)) return prev;
+      return applyLandingWelcomeCopy(prev);
+    });
+  }, [pathname]);
+
+  const appendScenarioAssistant = useCallback(
+    (p: ScenarioAssistantPayload, conversion?: ConversionSurface) => {
+      appendAssistant({
+        text: p.text,
+        chips: p.chips,
+        conversion:
+          conversion ??
+          wrapConversion({
+            insights: p.chips?.length
+              ? p.chips.slice(0, 3).map((c) => c.label)
+              : [...TRUST_INSIGHTS].slice(0, 3),
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          }),
+      });
+    },
+    [appendAssistant, getDashboardLinks, wrapConversion]
+  );
+
+  const sendFreeText = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
       setInput("");
-
-      const userMsg: ChatMessage = {
-        id: nowId("user"),
-        role: "user",
-        text: trimmed,
-        ts: Date.now(),
-      };
-      setMessages((m) => [...m, userMsg]);
-
-      const plan = buildAssistantPlan(trimmed);
       resetTimers();
+      setAssistantTyping(false);
+      appendVisitor(trimmed);
 
-      let elapsed = 260;
-      plan.states.forEach((stateLabel, idx) => {
-        const id = window.setTimeout(() => {
-          setAssistantState(stateLabel);
-        }, elapsed);
-        timersRef.current.push(id);
-        elapsed += idx === 0 ? 900 : 780;
+      const routed = detectFlowFromUserText(trimmed);
+      if (routed) {
+        flowContextRef.current = { flow: routed, step: 0 };
+        const entry = getScenarioEntryPayload(routed);
+        withTyping(() => {
+          if (routed === "demo") {
+            appendScenarioAssistant(
+              entry,
+              wrapConversion({
+                insights: [...TRUST_INSIGHTS],
+                dashboardLinks: getDashboardLinks(),
+                navigatorChips: [
+                  { label: "Görüşme formu (sayfa)", href: "/#tugobo-demo-talep" },
+                  { label: "Dashboard", href: "/dashboard" },
+                ],
+                demoMailCta: true,
+              })
+            );
+            openDemoModal();
+            flowContextRef.current = null;
+            return;
+          }
+          if (routed === "dashboard") {
+            appendScenarioAssistant(
+              entry,
+              wrapConversion({
+                consultativeLine: consultLineForEntryFlow("dashboard"),
+                insights: [...TRUST_INSIGHTS],
+                dashboardLinks: dashboardSalesLinks(),
+                demoMailCta: true,
+              })
+            );
+            return;
+          }
+          appendScenarioAssistant(
+            entry,
+            wrapConversion({
+              consultativeLine: consultLineForEntryFlow(routed),
+              insights: [...TRUST_INSIGHTS],
+              dashboardLinks: getDashboardLinks(),
+              demoMailCta: true,
+            })
+          );
+        });
+        return;
+      }
+
+      const ctx = flowContextRef.current;
+      if (ctx) {
+        const adv = advanceScenario(ctx, trimmed);
+        if (adv) {
+          flowContextRef.current = adv.next;
+          withTyping(() => {
+            appendScenarioAssistant(
+              adv.reply,
+              wrapConversion({
+                consultativeLine:
+                  "Canlı kurulumda içerik, fiyat ve politikalar otelinizin gerçek verisine bağlanır.",
+                insights: [...TRUST_INSIGHTS],
+                dashboardLinks: getDashboardLinks(),
+                demoMailCta: true,
+              })
+            );
+          });
+          return;
+        }
+        flowContextRef.current = null;
+      }
+
+      withTyping(() => {
+        appendAssistant({
+          text: GENERIC_FREE_TEXT_REPLY,
+          conversion: wrapConversion({
+            consultativeLine:
+              "Kurulum sonrası yanıtlar işletmenizin kurallarına göre kişiselleşir; ekibiniz için özet ve öncelik önerileri üretilir.",
+            insights: [...TRUST_INSIGHTS],
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          }),
+        });
       });
-
-      const finalId = window.setTimeout(() => {
-        const ai: ChatMessage = {
-          id: nowId("ai"),
-          role: "assistant",
-          text: plan.text,
-          ts: Date.now(),
-          variant: plan.cards?.length ? "recommendations" : "text",
-          cards: plan.cards,
-        };
-        setMessages((m) => [...m, ai]);
-        setAssistantState(null);
-      }, elapsed);
-      timersRef.current.push(finalId);
     },
-    [resetTimers]
+    [
+      appendAssistant,
+      appendScenarioAssistant,
+      appendVisitor,
+      getDashboardLinks,
+      openDemoModal,
+      resetTimers,
+      withTyping,
+      wrapConversion,
+    ]
+  );
+
+  const handleScenarioChip = useCallback(
+    (label: string) => {
+      resetTimers();
+      setAssistantTyping(false);
+      appendVisitor(label);
+      const low = label.toLocaleLowerCase("tr-TR");
+
+      if (
+        low.includes("demo formunu") ||
+        low.includes("görüşme formunu") ||
+        low.includes("gorusme formunu") ||
+        low.includes("ücretsiz görüşme formu") ||
+        low.includes("demo talep") ||
+        low.includes("görüşme talep") ||
+        low.includes("gorusme talep") ||
+        low.includes("demo plan") ||
+        low.includes("görüşme plan")
+      ) {
+        withTyping(() => {
+          appendAssistant({
+            text: "Harika — **görüşme formunu** açıyorum. Kısa bilgilerinizi iletmeniz yeterli; ekibimiz size geri döner.",
+            conversion: wrapConversion({
+              insights: [...TRUST_INSIGHTS],
+              dashboardLinks: getDashboardLinks(),
+              demoMailCta: true,
+            }),
+          });
+          openDemoModal();
+        });
+        flowContextRef.current = null;
+        return;
+      }
+
+      if (
+        low.includes("önce dashboard") ||
+        low.includes("once dashboard") ||
+        low.includes("paneli göster") ||
+        low.includes("paneli goster") ||
+        (low.includes("dashboard") && !low.includes("görüşme talep") && !low.includes("gorusme talep"))
+      ) {
+        flowContextRef.current = { flow: "dashboard", step: 0 };
+        withTyping(() => {
+          const dash = getScenarioEntryPayload("dashboard");
+          appendScenarioAssistant(
+            dash,
+            wrapConversion({
+              consultativeLine: "Bu ekranlar satış önizlemesidir; canlı veriler kurulumla gelir.",
+              insights: [...TRUST_INSIGHTS],
+              dashboardLinks: dashboardSalesLinks(),
+              demoMailCta: true,
+            })
+          );
+        });
+        return;
+      }
+
+      const ctx = flowContextRef.current;
+      if (ctx) {
+        const adv = advanceScenario(ctx, label);
+        if (adv) {
+          flowContextRef.current = adv.next;
+          withTyping(() => {
+            appendScenarioAssistant(
+              adv.reply,
+              wrapConversion({
+                consultativeLine:
+                  "Bu anlatım önizleme amaçlıdır; canlıda kanal ve politika kurallarınız uygulanır.",
+                insights: [...TRUST_INSIGHTS],
+                dashboardLinks: getDashboardLinks(),
+                demoMailCta: true,
+              })
+            );
+          });
+          return;
+        }
+      }
+
+      withTyping(() => {
+        appendAssistant({
+          text:
+            "Anladım. İsterseniz **Tugobo AI nasıl çalışır?** ile başlayabilir veya **Dashboard** linklerinden canlı önizlemeye geçebilirsiniz.",
+          conversion: wrapConversion({
+            insights: [...TRUST_INSIGHTS],
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          }),
+        });
+      });
+    },
+    [
+      appendAssistant,
+      appendScenarioAssistant,
+      appendVisitor,
+      getDashboardLinks,
+      openDemoModal,
+      resetTimers,
+      withTyping,
+      wrapConversion,
+    ]
+  );
+
+  const runQuickAction = useCallback(
+    (action: QuickAction["id"]) => {
+      resetTimers();
+      setAssistantTyping(false);
+      flowContextRef.current =
+        action === "demo" ? { flow: "demo", step: 0 } : { flow: action, step: 0 };
+
+      const visitorLine =
+        action === "how_it_works"
+          ? "Tugobo AI nasıl çalışır?"
+          : action === "dashboard"
+            ? "Dashboard'u görmek istiyorum."
+            : action === "fit"
+              ? "Otelim için Tugobo AI uygun mu?"
+              : "Görüşme talep etmek istiyorum.";
+      appendVisitor(visitorLine);
+
+      if (action === "demo") {
+        const entry = getScenarioEntryPayload("demo");
+        withTyping(() => {
+          appendScenarioAssistant(
+            entry,
+            wrapConversion({
+              insights: [...TRUST_INSIGHTS],
+              dashboardLinks: getDashboardLinks(),
+              navigatorChips: [
+                { label: "Görüşme formu (sayfa)", href: "/#tugobo-demo-talep" },
+                { label: "Dashboard", href: "/dashboard" },
+              ],
+              demoMailCta: true,
+            })
+          );
+          openDemoModal();
+          flowContextRef.current = null;
+        });
+        return;
+      }
+
+      if (action === "dashboard") {
+        const entry = getScenarioEntryPayload("dashboard");
+        withTyping(() => {
+          appendScenarioAssistant(
+            entry,
+            wrapConversion({
+              consultativeLine: consultLineForEntryFlow("dashboard"),
+              insights: [...TRUST_INSIGHTS],
+              dashboardLinks: dashboardSalesLinks(),
+              demoMailCta: true,
+            })
+          );
+        });
+        return;
+      }
+
+      const entry = getScenarioEntryPayload(action);
+      withTyping(() => {
+        appendScenarioAssistant(
+          entry,
+          wrapConversion({
+            consultativeLine: consultLineForEntryFlow(action),
+            insights: [...TRUST_INSIGHTS],
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          })
+        );
+      });
+    },
+    [
+      appendScenarioAssistant,
+      appendVisitor,
+      getDashboardLinks,
+      openDemoModal,
+      resetTimers,
+      withTyping,
+      wrapConversion,
+    ]
   );
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    send(input);
+    if (assistantTyping) return;
+    sendFreeText(input);
   }
 
   function onQuickAction(a: QuickAction) {
     if (!open) setOpen(true);
-    send(a.prompt);
+    runQuickAction(a.id);
   }
 
   if (!mounted || !isVisibleRoute) return null;
 
   return createPortal(
     <>
-      {/* Floating entry button */}
-      <div
-        className={[
-          "fixed bottom-6 right-6 pointer-events-auto z-[9999]",
-        ].join(" ")}
-      >
+      <div className={["fixed bottom-6 right-6 pointer-events-auto z-[9999]"].join(" ")}>
         <button
           type="button"
           onClick={handleToggleOpen}
-          aria-label={open ? "Sohbeti kapat" : "Tugobo Assistant ile sohbet et"}
+          aria-label={open ? "Sohbeti kapat" : "Tugobo AI ile sohbet et"}
           className={[
             "group relative",
             "flex items-center gap-3",
@@ -303,24 +759,22 @@ export function ConciergeWebChat() {
             open ? "opacity-0 scale-[0.96] pointer-events-none" : "",
           ].join(" ")}
         >
-          {/* calm presence halo */}
           <span className="absolute -inset-0.5 rounded-[18px] bg-gradient-to-r from-blue-500/[0.14] via-violet-500/[0.12] to-emerald-500/[0.10] blur-xl opacity-60 group-hover:opacity-80 transition-opacity animate-shimmer-soft" />
           <span className="absolute -inset-px rounded-[18px] bg-white/[0.02]" />
 
-          <span className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-white/[0.05] border border-white/[0.10]">
-            <Image src="/Logo.png" alt="Tugobo AI" width={92} height={26} className="h-[18px] w-auto opacity-95" />
-            <span className="absolute -right-1 -bottom-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-zinc-950 animate-live-pulse" />
+          <span className="relative shrink-0">
+            <ChatFullLogo variant="fab" />
+            <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-emerald-500 animate-live-pulse" />
           </span>
 
-          <span className="relative flex flex-col items-start leading-tight">
-            <span className="text-[13px] font-semibold text-white/85 flex items-center gap-2">
-              Tugobo Assistant
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-emerald-500/[0.10] border border-emerald-500/[0.20]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-live-pulse" />
-                <span className="text-[10px] font-semibold text-emerald-300/90">Online</span>
-              </span>
+          <span className="relative flex min-w-0 flex-col items-start gap-1 leading-tight">
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/[0.20] bg-emerald-500/[0.10] px-2 py-0.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 animate-live-pulse" />
+              <span className="text-[10px] font-semibold text-emerald-300/90">Online</span>
             </span>
-            <span className="text-[11px] text-white/35">AI Reservation Assistant</span>
+            <span className="max-w-[14rem] truncate text-[11px] text-white/40 sm:max-w-[16rem]">
+              Dijital Otel İşletim Sistemi
+            </span>
           </span>
 
           <span className="relative ml-2 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.08] text-white/45 group-hover:text-white/70 transition-colors w-9 h-9">
@@ -329,169 +783,165 @@ export function ConciergeWebChat() {
         </button>
       </div>
 
-      {/* Panel */}
       <div
         className={[
-          "fixed bottom-6 right-6 z-[10000]",
-          "w-[min(420px,calc(100vw-24px))] sm:w-[min(420px,calc(100vw-40px))]",
-          "h-[min(620px,calc(100vh-24px))] sm:h-[min(660px,calc(100vh-48px))]",
-          "max-sm:top-16 max-sm:left-3 max-sm:right-3 max-sm:bottom-3 max-sm:w-auto max-sm:h-auto",
+          "fixed right-6 bottom-24 z-[10000] flex flex-col xl:right-8",
+          "w-[min(380px,calc(100vw-40px))]",
+          "h-[min(560px,calc(100vh-140px))]",
+          "max-sm:top-28 max-sm:left-3 max-sm:right-3 max-sm:bottom-4 max-sm:w-auto max-sm:h-[min(480px,calc(100dvh-8.5rem))]",
           "transition-all duration-300 ease-out",
           open ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-3 scale-[0.985] pointer-events-none",
         ].join(" ")}
         role="dialog"
-        aria-label="Tugobo Assistant sohbet penceresi"
+        aria-label="Tugobo AI sohbet penceresi"
       >
-        <div className="relative h-full rounded-3xl border border-white/[0.10] bg-zinc-950/55 backdrop-blur-2xl shadow-2xl shadow-black/70 overflow-hidden">
-          {/* premium surface gradient */}
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/[0.14] bg-zinc-950/90 backdrop-blur-3xl shadow-[0_32px_70px_-14px_rgba(0,0,0,0.78),0_16px_32px_-8px_rgba(0,0,0,0.55)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_30%_0%,rgba(59,130,246,0.10),transparent_55%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_100%_25%,rgba(139,92,246,0.08),transparent_60%)]" />
-
-          {/* Header */}
-          <div className="relative px-4 pt-4 pb-3 border-b border-white/[0.06] bg-zinc-950/40">
-            <div className="flex items-start gap-3">
-              <div className="relative mt-0.5 w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                <Image src="/Logo.png" alt="Tugobo AI" width={96} height={26} className="h-[18px] w-auto opacity-95" />
-                <span className="absolute -right-1 -bottom-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-zinc-950 animate-live-pulse" />
-              </div>
-
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-semibold text-white/90 truncate">
-                    AI Reservation Assistant
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 bg-blue-500/[0.10] border border-blue-500/[0.18]">
-                    <Sparkles className="w-3 h-3 text-blue-300/90" />
-                    <span className="text-[10px] font-semibold text-blue-200/80">Demo</span>
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="inline-flex items-center gap-1 text-[11px] text-white/35">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-live-pulse" />
-                    Genellikle saniyeler içinde yanıtlar
-                  </span>
-                  <span className="text-[11px] text-white/18">·</span>
-                  <span className="text-[11px] text-white/25">Rezervasyon concierge deneyimi</span>
-                </div>
-              </div>
-
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="p-2 rounded-xl text-white/35 hover:text-white/70 hover:bg-white/[0.06] transition-colors cursor-pointer"
-                  aria-label="Kapat"
-                >
-                  <ChevronDown className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Welcome + quick actions (top strip) */}
-          <div className="relative px-4 pt-3">
-            <div className="flex flex-wrap gap-2">
-              {QUICK_ACTIONS.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => onQuickAction(a)}
-                  className={[
-                    "px-3 py-1.5 rounded-full",
-                    "text-[12px] font-medium",
-                    "bg-white/[0.03] border border-white/[0.08]",
-                    "text-white/50 hover:text-white/75 hover:border-white/[0.14] hover:bg-white/[0.05]",
-                    "transition-all active:scale-[0.98] cursor-pointer",
-                  ].join(" ")}
-                >
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Messages */}
           <div
-            ref={scrollRef}
-            className="relative mt-3 px-4 pb-24 h-[calc(100%-176px)] overflow-y-auto tugobo-chat-scroll"
-          >
-            <div className="space-y-3">
-              {messages
-                .filter((m): m is ChatMessage & { role: "assistant" | "user" } => m.role !== "system")
-                .map((m) => (
-                  <MessageBubble
-                    key={m.id}
-                    role={m.role}
-                    text={m.text}
-                    meta={m.role === "assistant" ? `${lastAssistantLabel} · ${formatTime(m.ts)}` : formatTime(m.ts)}
-                    variant={m.variant}
-                    cards={m.cards}
-                  />
-                ))}
+            className="pointer-events-none absolute inset-0 rounded-3xl bg-[linear-gradient(to_bottom,rgba(10,10,10,0.92),rgba(5,5,5,0.96))]"
+            aria-hidden
+          />
 
-              {assistantState && (
-                <div className="flex items-end gap-2">
-                  <div className="w-8 h-8 rounded-2xl bg-blue-500/[0.10] border border-blue-500/[0.18] flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-blue-300/90" />
-                  </div>
-                  <div className="rounded-2xl rounded-bl-md px-3 py-2.5 bg-white/[0.04] border border-white/[0.08] animate-typing-breathe">
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/35 animate-typing-dot [animation-delay:0ms]" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/35 animate-typing-dot [animation-delay:250ms]" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/35 animate-typing-dot [animation-delay:500ms]" />
+          <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">
+            <header className="shrink-0 border-b border-white/[0.06] bg-zinc-950/40 px-5 py-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="relative shrink-0">
+                  <ChatFullLogo variant="header" />
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-emerald-500 animate-live-pulse" aria-hidden />
+                </div>
+
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                  <span className="truncate text-[13px] font-semibold leading-snug text-white/90">Tugobo AI</span>
+                  <span className="truncate text-[11px] leading-snug text-white/40">Dijital Otel İşletim Sistemi</span>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl p-2 text-white/35 transition-colors duration-200 hover:bg-white/[0.06] hover:text-white/70 cursor-pointer"
+                    aria-label="Kapat"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            <div className="shrink-0 border-b border-white/[0.04] px-5 py-3">
+              <div className="flex flex-wrap gap-2">
+                {QUICK_ACTIONS.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => onQuickAction(a)}
+                    className={[
+                      "px-3 py-1.5 rounded-full",
+                      "text-[12px] font-medium",
+                      "bg-white/[0.03] border border-white/[0.08]",
+                      "text-white/50 hover:text-white/75 hover:border-white/[0.14] hover:bg-white/[0.05]",
+                      "transition-all duration-200 active:scale-[0.98] cursor-pointer",
+                    ].join(" ")}
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div
+              ref={scrollRef}
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 tugobo-chat-scroll"
+            >
+              <div className="flex flex-col space-y-4 pb-10">
+                {messages.map((m) => {
+                  if (m.role === "system") {
+                    return <SystemLine key={m.id} text={m.text} tone={m.systemTone ?? "banner"} />;
+                  }
+                  return (
+                    <MessageBubble
+                      key={m.id}
+                      role={m.role}
+                      text={m.text}
+                      meta={
+                        m.role === "assistant"
+                          ? `${lastAssistantLabel} · ${formatTime(m.ts)}`
+                          : `Siz · ${formatTime(m.ts)}`
+                      }
+                      chips={m.chips}
+                      pricePreview={m.pricePreview}
+                      reservationPreview={m.reservationPreview}
+                      conversion={m.conversion}
+                      onChipPick={handleScenarioChip}
+                    />
+                  );
+                })}
+
+                {assistantTyping && (
+                  <div className="flex justify-start animate-tugobo-chat-msg">
+                    <div
+                      className="relative rounded-2xl rounded-bl-md border border-white/[0.10] bg-white/[0.045] px-4 py-3 shadow-[0_0_24px_-4px_rgba(59,130,246,0.22)]"
+                      aria-live="polite"
+                      aria-busy="true"
+                    >
+                      <span className="sr-only">Yanıt hazırlanıyor</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-blue-300/80 shadow-[0_0_8px_rgba(96,165,250,0.55)] animate-typing-dot [animation-delay:0ms]" />
+                        <span className="h-2 w-2 rounded-full bg-blue-300/80 shadow-[0_0_8px_rgba(96,165,250,0.55)] animate-typing-dot [animation-delay:200ms]" />
+                        <span className="h-2 w-2 rounded-full bg-blue-300/80 shadow-[0_0_8px_rgba(96,165,250,0.55)] animate-typing-dot [animation-delay:400ms]" />
                       </div>
-                      <span className="text-[11px] text-white/45">{assistantState}...</span>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Input */}
-          <form
-            onSubmit={onSubmit}
-            className="absolute left-0 right-0 bottom-0 px-4 pb-4 pt-3 border-t border-white/[0.06] bg-zinc-950/55 backdrop-blur-xl"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Müsaitlik, fiyat veya oda önerisi sor..."
-                  className={[
-                    "w-full h-11 px-4 rounded-2xl",
-                    "bg-white/[0.04] border border-white/[0.09]",
-                    "text-[13px] text-white/85 placeholder:text-white/25",
-                    "focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06]",
-                    "transition-all",
-                  ].join(" ")}
-                />
+                )}
+                <div ref={scrollEndRef} className="h-px w-full shrink-0" aria-hidden />
               </div>
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className={[
-                  "h-11 w-11 rounded-2xl",
-                  "flex items-center justify-center",
-                  "bg-blue-600/90 hover:bg-blue-600",
-                  "border border-blue-500/40",
-                  "text-white",
-                  "transition-all active:scale-[0.98] cursor-pointer",
-                  "disabled:opacity-40 disabled:hover:bg-blue-600/90 disabled:cursor-not-allowed",
-                ].join(" ")}
-                aria-label="Gönder"
-              >
-                <Send className="w-4 h-4" />
-              </button>
             </div>
-            <div className="mt-2 text-[11px] text-white/20 flex items-center justify-between">
-              <span>Demo sürüm: gerçek AI ve canlı rezervasyon bağlantısı yakında.</span>
-              <span className="hidden sm:inline">Tugobo AI · Hotel Operating Intelligence</span>
-            </div>
-          </form>
+
+            <p className="px-5 pt-2 pb-1 text-center text-[10px] leading-snug text-white/28">
+              Önizleme modu · Canlı kurulumda tam entegrasyon ve veri bağlantısı aktifleşir.
+            </p>
+            <form
+              onSubmit={onSubmit}
+              className="shrink-0 border-t border-white/[0.06] bg-zinc-950/70 backdrop-blur-xl px-5 py-4"
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-0">
+                  <input
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Operasyon, kanallar veya kurulum hakkında sorun..."
+                    disabled={assistantTyping}
+                    className={[
+                      "w-full h-11 px-4 rounded-2xl",
+                      "bg-white/[0.04] border border-white/[0.09]",
+                      "text-[13px] text-white/85 placeholder:text-white/25",
+                      "focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.06]",
+                      "transition-all duration-200",
+                      assistantTyping ? "opacity-50 cursor-not-allowed" : "",
+                    ].join(" ")}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!input.trim() || assistantTyping}
+                  className={[
+                    "h-11 w-11 shrink-0 rounded-2xl",
+                    "flex items-center justify-center",
+                    "bg-blue-600/90 hover:bg-blue-600",
+                    "border border-blue-500/40",
+                    "text-white",
+                    "transition-all duration-200 active:scale-[0.98] cursor-pointer",
+                    "disabled:opacity-40 disabled:hover:bg-blue-600/90 disabled:cursor-not-allowed",
+                  ].join(" ")}
+                  aria-label="Gönder"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </>,
@@ -499,33 +949,237 @@ export function ConciergeWebChat() {
   );
 }
 
+function SystemLine({ text, tone }: { text: string; tone: SystemTone }) {
+  if (tone === "event") {
+    return (
+      <div className="flex justify-center py-1 animate-tugobo-chat-msg">
+        <div
+          className={[
+            "inline-flex items-center gap-2 rounded-full px-3 py-1.5",
+            "border border-amber-500/25 bg-amber-500/[0.08]",
+            "text-[11px] font-medium text-amber-100/90",
+          ].join(" ")}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400/90 animate-live-pulse" />
+          {text}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="animate-tugobo-chat-msg pt-0.5">
+      <p className="text-left text-[11px] leading-relaxed text-white/35">{text}</p>
+    </div>
+  );
+}
+
+function MiniPriceRecommendation({ preview }: { preview: PricePreview }) {
+  return (
+    <div className="mt-3 rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.07] to-blue-500/[0.05] px-3.5 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35 mb-2">Örnek öneri</p>
+      <div className="space-y-1.5">
+        <p className="text-[13px] font-semibold text-white/90">{preview.roomLabel}</p>
+        <p className="text-[12px] text-white/55">{preview.guestsLabel}</p>
+        <p className="text-[12px] text-white/55">{preview.nightsLabel}</p>
+        <div className="pt-2 mt-1 border-t border-white/[0.08]">
+          <p className="text-[12px] font-semibold text-white/88">{preview.totalLabel}</p>
+          <p className="text-[10px] text-white/35 mt-1">Gösterim amaçlı örnek tutar; canlı fiyatlar tarihe göre değişir.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReservationInlineCard({
+  preview,
+  onCta,
+}: {
+  preview: ReservationPreview;
+  onCta: (id: string) => void;
+}) {
+  return (
+    <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/[0.07] via-zinc-900/50 to-blue-500/[0.05] px-3.5 py-3.5 shadow-[0_0_32px_-10px_rgba(16,185,129,0.28)]">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-200/55">Ön rezervasyon</p>
+        <span className="text-[10px] font-medium text-white/35 tabular-nums">{preview.dateRangeLabel}</span>
+      </div>
+      <p className="text-[14px] font-semibold text-white/92 leading-snug">{preview.roomName}</p>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-white/55">
+        <span>{preview.nights} gece</span>
+        <span className="text-white/20">·</span>
+        <span>{preview.guests} kişi</span>
+      </div>
+      <div className="mt-3 pt-2.5 border-t border-white/[0.08]">
+        <p className="text-[15px] font-bold text-white tabular-nums">{preview.totalLabel}</p>
+        {preview.subtitle ? (
+          <p className="text-[10px] text-white/38 mt-1 leading-relaxed">{preview.subtitle}</p>
+        ) : null}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {preview.ctas.map((cta) => (
+          <button
+            key={cta.id}
+            type="button"
+            onClick={() => onCta(cta.id)}
+            className={[
+              "inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-semibold transition-all duration-200 active:scale-[0.98]",
+              cta.id === "reserve_pay"
+                ? "bg-blue-600/95 text-white border border-blue-500/40 hover:bg-blue-500"
+                : "bg-white/[0.06] text-white/75 border border-white/[0.12] hover:bg-white/[0.10] hover:text-white/90",
+            ].join(" ")}
+          >
+            {cta.id === "reserve_pay" ? (
+              <CreditCard className="w-3.5 h-3.5 opacity-90" aria-hidden />
+            ) : (
+              <FileText className="w-3.5 h-3.5 opacity-80" aria-hidden />
+            )}
+            {cta.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ConversionAttachments({ surface }: { surface: ConversionSurface }) {
+  const has =
+    Boolean(surface.consultativeLine) ||
+    Boolean(surface.operationalTeaser) ||
+    (surface.navigatorChips && surface.navigatorChips.length > 0) ||
+    (surface.insights && surface.insights.length > 0) ||
+    (surface.dashboardLinks && surface.dashboardLinks.length > 0) ||
+    Boolean(surface.demoMailCta);
+  if (!has) return null;
+  return (
+    <div className="mt-3 max-w-full space-y-3 animate-tugobo-chat-msg [animation-delay:95ms] [animation-fill-mode:both]">
+      {surface.consultativeLine ? <ConsultativeAside text={surface.consultativeLine} /> : null}
+      {surface.operationalTeaser ? <OperationalTeaser text={surface.operationalTeaser} /> : null}
+      {surface.navigatorChips && surface.navigatorChips.length > 0 ? (
+        <NavigatorChipsRow chips={surface.navigatorChips} />
+      ) : null}
+      {surface.insights && surface.insights.length > 0 ? <InsightStrip items={surface.insights} /> : null}
+      {surface.dashboardLinks && surface.dashboardLinks.length > 0 ? (
+        <DashboardPreviewStrip links={surface.dashboardLinks} />
+      ) : null}
+      {surface.demoMailCta ? <DemoSoftEscalation /> : null}
+    </div>
+  );
+}
+
+function OperationalTeaser({ text }: { text: string }) {
+  return (
+    <p className="text-[11px] leading-relaxed text-white/40 border border-white/[0.06] rounded-xl bg-white/[0.02] px-3 py-2">
+      {text}
+    </p>
+  );
+}
+
+function NavigatorChipsRow({ chips }: { chips: DashboardCtaLink[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {chips.map((c) => (
+        <Link
+          key={c.href + c.label}
+          href={c.href}
+          className="inline-flex items-center rounded-full border border-white/[0.09] bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-white/55 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-white/78 active:scale-[0.98]"
+        >
+          {c.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function ConsultativeAside({ text }: { text: string }) {
+  return (
+    <p className="text-[12px] leading-relaxed text-white/52 border-l-2 border-emerald-500/20 pl-3 py-0.5 whitespace-pre-wrap">
+      {text}
+    </p>
+  );
+}
+
+function InsightStrip({ items }: { items: string[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((t) => (
+        <span
+          key={t}
+          className="inline-flex items-center rounded-lg border border-white/[0.07] bg-white/[0.02] px-2 py-1 text-[11px] font-medium text-white/44 tracking-tight"
+        >
+          {t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function DashboardPreviewStrip({ links }: { links: DashboardCtaLink[] }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.09] bg-zinc-950/50 px-3 py-2.5">
+      <p className="text-[10px] font-medium uppercase tracking-wide text-white/32 mb-2">Önerilen adımlar</p>
+      <div className="flex flex-col gap-1.5">
+        {links.map((l) => (
+          <Link
+            key={l.href + l.label}
+            href={l.href}
+            className="group flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 text-left text-[12px] font-medium text-white/78 transition-all duration-200 hover:border-white/[0.12] hover:bg-white/[0.05] hover:text-white/92 active:scale-[0.99]"
+          >
+            <span className="min-w-0 leading-snug">{l.label}</span>
+            <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-white/28 transition-colors duration-200 group-hover:text-blue-300/80" />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DemoSoftEscalation() {
+  return (
+    <div className="rounded-xl border border-white/[0.05] bg-white/[0.015] px-3 py-2.5">
+      <a
+        href={DEMO_MAIL_HREF}
+        className="text-[12px] leading-snug text-blue-200/72 transition-colors duration-200 hover:text-blue-100/90 underline-offset-4 hover:underline"
+      >
+        Uygun olduğunuz bir zaman için kısa bir ürün görüşmesi planlamak isterseniz buradan yazabilirsiniz.
+      </a>
+    </div>
+  );
+}
+
 function MessageBubble({
   role,
   text,
   meta,
-  variant,
-  cards,
+  chips,
+  pricePreview,
+  reservationPreview,
+  conversion,
+  onChipPick,
+  onReservationCta,
 }: {
-  role: "assistant" | "user";
+  role: "assistant" | "visitor";
   text: string;
   meta: string;
-  variant?: MessageVariant;
-  cards?: RecommendationCard[];
+  chips?: QuickChip[];
+  pricePreview?: PricePreview;
+  reservationPreview?: ReservationPreview;
+  conversion?: ConversionSurface;
+  onChipPick: (label: string) => void;
+  onReservationCta?: (id: string) => void;
 }) {
   const isAI = role === "assistant";
   return (
-    <div className={isAI ? "flex items-end gap-2 animate-msg-in" : "flex items-end justify-end gap-2 animate-msg-in"}>
-      {isAI && (
-        <div className="w-8 h-8 rounded-2xl bg-blue-500/[0.10] border border-blue-500/[0.18] flex items-center justify-center shrink-0">
-          <Bot className="w-4 h-4 text-blue-300/90" />
-        </div>
-      )}
-
-      <div className={isAI ? "max-w-[86%]" : "max-w-[86%] flex flex-col items-end"}>
+    <div className={isAI ? "flex animate-tugobo-chat-msg justify-start" : "flex animate-tugobo-chat-msg justify-end"}>
+      <div
+        className={
+          isAI
+            ? "flex min-w-0 w-fit max-w-[82%] flex-col items-start"
+            : "flex min-w-0 w-fit max-w-[82%] flex-col items-end"
+        }
+      >
         <div
           className={[
-            "rounded-2xl px-3.5 py-2.5",
-            "border",
+            "rounded-2xl border p-4",
             isAI
               ? "bg-white/[0.04] border-white/[0.08] rounded-bl-md"
               : "bg-blue-600 border-blue-500/30 rounded-br-md",
@@ -533,46 +1187,44 @@ function MessageBubble({
         >
           <RichText text={text} invert={isAI} />
         </div>
-        {isAI && variant === "recommendations" && cards && cards.length > 0 && (
-          <div className="mt-2 space-y-2">
-            {cards.map((card) => (
-              <div
-                key={`${card.title}-${card.price}`}
-                className="rounded-2xl border border-white/[0.09] bg-white/[0.03] px-3.5 py-3"
+
+        {isAI && pricePreview && !reservationPreview && <MiniPriceRecommendation preview={pricePreview} />}
+
+        {isAI && reservationPreview && onReservationCta ? (
+          <ReservationInlineCard preview={reservationPreview} onCta={onReservationCta} />
+        ) : null}
+
+        {isAI && chips && chips.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {chips.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onChipPick(c.label)}
+                className={[
+                  "px-2.5 py-1 rounded-full text-[11px] font-medium",
+                  "bg-white/[0.04] border border-white/[0.10] text-white/65",
+                  "hover:text-white/85 hover:border-white/[0.16] hover:bg-white/[0.06]",
+                  "transition-all duration-200 active:scale-[0.98] cursor-pointer",
+                ].join(" ")}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-white/90 flex items-center gap-1.5">
-                      <BedDouble className="w-3.5 h-3.5 text-blue-300/85 shrink-0" />
-                      {card.title}
-                    </p>
-                    <p className="text-[11px] text-white/40 mt-1">{card.subtitle}</p>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/[0.10] border border-emerald-500/[0.20] text-emerald-300/90 shrink-0">
-                    {card.badge}
-                  </span>
-                </div>
-                <div className="mt-2.5 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-white/85">{card.price}</span>
-                  <button
-                    type="button"
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-blue-500/[0.10] border border-blue-500/[0.20] text-blue-200/85 hover:text-blue-100 hover:bg-blue-500/[0.16] transition-colors"
-                  >
-                    Teklife ekle
-                  </button>
-                </div>
-              </div>
+                {c.label}
+              </button>
             ))}
           </div>
         )}
-        <div className={isAI ? "mt-1 text-[10px] text-white/18" : "mt-1 text-[10px] text-white/25"}>
+
+        {isAI && conversion ? <ConversionAttachments surface={conversion} /> : null}
+
+        <div className={isAI ? "mt-2 self-start text-[10px] text-white/18" : "mt-2 self-end text-[10px] text-white/25"}>
           {meta}
         </div>
       </div>
 
       {!isAI && (
-        <div className="w-8 h-8 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
-          <span className="text-[11px] font-semibold text-white/50">Siz</span>
+        <div className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.04]">
+          <UserRound className="h-4 w-4 text-white/45" aria-hidden />
+          <span className="sr-only">Siz</span>
         </div>
       )}
     </div>
@@ -580,7 +1232,6 @@ function MessageBubble({
 }
 
 function RichText({ text, invert }: { text: string; invert: boolean }) {
-  // Minimal markdown-ish: **bold** + \n line breaks (no external deps)
   const parts = useMemo(() => {
     const out: Array<{ t: string; b: boolean }> = [];
     const re = /\*\*(.+?)\*\*/g;
@@ -597,10 +1248,14 @@ function RichText({ text, invert }: { text: string; invert: boolean }) {
   }, [text]);
 
   return (
-    <p className={invert ? "text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap" : "text-[13px] text-white leading-relaxed whitespace-pre-wrap"}>
+    <p
+      className={
+        invert ? "text-[13px] text-white/80 leading-relaxed whitespace-pre-wrap" : "text-[13px] text-white leading-relaxed whitespace-pre-wrap"
+      }
+    >
       {parts.map((p, i) =>
         p.b ? (
-          <strong key={i} className={invert ? "font-semibold text-white" : "font-semibold text-white"}>
+          <strong key={i} className="font-semibold text-white">
             {p.t}
           </strong>
         ) : (
@@ -610,4 +1265,3 @@ function RichText({ text, invert }: { text: string; invert: boolean }) {
     </p>
   );
 }
-

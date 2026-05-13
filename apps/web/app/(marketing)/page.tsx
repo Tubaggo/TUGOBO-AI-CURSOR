@@ -133,7 +133,7 @@ export default function LandingPage() {
       <Nav />
 
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section className="relative pt-32 pb-16 overflow-hidden">
+      <section id="tugobo-hero" className="relative pt-32 pb-16 overflow-hidden">
         {/* Dot grid */}
         <div className="absolute inset-0 lp-grid opacity-100 pointer-events-none" />
         {/* Radial fade over grid */}
@@ -166,11 +166,15 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
-            <DemoButton className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-[15px] transition-all active:scale-[0.97] shadow-lg shadow-blue-500/20">
+            <DemoButton
+              id="tugobo-demo-talep"
+              className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-[15px] transition-all active:scale-[0.97] shadow-lg shadow-blue-500/20"
+            >
               <Zap className="w-4 h-4" />
               Ücretsiz Demo Talep Et
             </DemoButton>
             <Link
+              id="tugobo-dashboard-cta"
               href="/dashboard"
               className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.18] text-[15px] font-medium transition-all"
             >

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConciergeWebChat } from "./(marketing)/_components/concierge-web-chat";
+import { DemoModalProvider } from "./(marketing)/_components/demo-modal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,8 +68,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark bg-zinc-950">
       <body className={`${inter.className} bg-zinc-950`}>
-        {children}
-        <ConciergeWebChat />
+        <DemoModalProvider>
+          {children}
+          <ConciergeWebChat />
+        </DemoModalProvider>
       </body>
     </html>
   );
