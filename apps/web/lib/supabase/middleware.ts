@@ -37,6 +37,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isDashboardRoute =
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/inbox") ||
     pathname.startsWith("/reservations") ||
     pathname.startsWith("/knowledge") ||

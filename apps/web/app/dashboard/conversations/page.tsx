@@ -33,6 +33,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   CONVERSATIONS,
   type Conversation,
@@ -298,6 +299,10 @@ type ToastData = { title: string; sub?: string; type: "success" | "new" };
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ConversationsPage() {
+  const pathname = usePathname();
+  const panelBase = pathname.startsWith("/demo/otel-paneli") ? "/demo/otel-paneli" : "/dashboard";
+  const reservationsHref = `${panelBase}/reservations`;
+
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string>("c2");
@@ -840,7 +845,7 @@ export default function ConversationsPage() {
             <div className="flex items-center gap-2 shrink-0">
               {effectiveReservation && (
                 <Link
-                  href="/dashboard/reservations"
+                  href={reservationsHref}
                   className="hidden items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-white/48 transition-[background-color,color,border-color] duration-200 hover:border-white/[0.1] hover:bg-white/[0.055] hover:text-white/78 lg:flex"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -894,6 +899,7 @@ export default function ConversationsPage() {
                     convStatus={effectiveStatus}
                     sentLink={sentLink}
                     onSendPaymentLink={handleSendPaymentLink}
+                    reservationsHref={reservationsHref}
                   />
                 </div>
               )}
@@ -928,6 +934,7 @@ export default function ConversationsPage() {
           onSendPaymentLink={handleSendPaymentLink}
           onTakeover={handleTakeover}
           onHandToAI={handleHandToAI}
+          reservationsHref={reservationsHref}
         />
       )}
       </div>{/* end 3-column area */}
@@ -1492,6 +1499,7 @@ function GuestSidebar({
   onSendPaymentLink,
   onTakeover,
   onHandToAI,
+  reservationsHref,
 }: {
   conv: Conversation;
   thread: ChatThread;
@@ -1501,6 +1509,7 @@ function GuestSidebar({
   onSendPaymentLink: () => void;
   onTakeover: () => void;
   onHandToAI: () => void;
+  reservationsHref: string;
 }) {
   const r = effectiveReservation;
   const showPaymentBtn = r && (r.status === "pending_payment" || r.status === "quoted");
@@ -1653,7 +1662,7 @@ function GuestSidebar({
           )}
           {r && (
             <Link
-              href="/dashboard/reservations"
+              href={reservationsHref}
               className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.05] bg-transparent px-3.5 py-2.5 text-[12px] font-medium text-white/34 transition-[background-color,color,border-color,transform] duration-200 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white/55 active:scale-[0.98]"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
@@ -1748,11 +1757,13 @@ function ReservationCard({
   convStatus,
   sentLink,
   onSendPaymentLink,
+  reservationsHref,
 }: {
   reservation: ConvReservation;
   convStatus: ConversationStatus;
   sentLink: boolean;
   onSendPaymentLink: () => void;
+  reservationsHref: string;
 }) {
   const statusMap = {
     confirmed: {
@@ -1845,7 +1856,7 @@ function ReservationCard({
       {/* Actions */}
       <div className="flex items-center gap-2 px-5 pb-5 pt-1">
         <Link
-          href="/dashboard/reservations"
+          href={reservationsHref}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.035] border border-white/[0.07] text-white/55 hover:text-white/75 hover:bg-white/[0.055] active:scale-[0.97] text-xs font-medium transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5" />

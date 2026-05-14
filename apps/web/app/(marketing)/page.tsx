@@ -24,6 +24,7 @@ import {
   FileText,
 } from "lucide-react";
 import { Nav } from "./_components/nav";
+import { DemoAccessButton } from "./_components/demo-access-modal";
 import { DemoButton } from "./_components/demo-modal";
 import { LandingHeroMetrics } from "./_components/landing-hero-metrics";
 
@@ -320,14 +321,13 @@ export default function LandingPage() {
                   <Zap className="relative h-4 w-4 shrink-0" />
                   <span className="relative">Operasyon turu planlayın</span>
                 </DemoButton>
-                <Link
+                <DemoAccessButton
                   id="tugobo-dashboard-cta"
-                  href="/dashboard"
                   className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.03] px-8 py-3.5 text-[15px] font-medium text-white/65 backdrop-blur-sm transition-all hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-white/90 active:scale-[0.98] sm:min-w-[220px]"
                 >
                   Canlı operasyon paneli
                   <ArrowRight className="h-4 w-4 shrink-0 opacity-70" />
-                </Link>
+                </DemoAccessButton>
               </div>
               <p className="mt-4 text-[12px] text-white/25">30 dakikada sistem turu · Taahhüt yok · Türkçe destek</p>
             </div>
@@ -365,7 +365,9 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-white/[0.08]" />
                 </div>
                 <div className="flex-1 mx-3 px-3 py-1 bg-white/[0.04] rounded-md text-center border border-white/[0.06]">
-                  <span className="text-[11px] text-white/25 font-mono">tugobo.ai/dashboard/conversations</span>
+                  <span className="text-[11px] text-white/25 font-mono">
+                    Hotel Operating Intelligence Preview · conversations
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shrink-0">
                   <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
@@ -1106,7 +1108,7 @@ export default function LandingPage() {
                   { label: "Rezervasyon bandı", href: "#rezervasyon-akisi" },
                   { label: "Operasyon görünürlüğü", href: "#operasyon-gorunurlugu" },
                   { label: "Direkt kanal & OTA", href: "#ota-bagimsizlik" },
-                  { label: "Operasyon paneli", href: "/dashboard" },
+                  { label: "Örnek operasyon paneli", href: "/#tugobo-preview-erisim" },
                   { label: "Fiyatlar", href: "#fiyat" },
                 ].map(({ label, href }) => (
                   <li key={label}>

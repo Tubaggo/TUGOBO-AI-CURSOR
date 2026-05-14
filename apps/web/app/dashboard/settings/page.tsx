@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Building2,
   Bot,
@@ -26,6 +27,9 @@ const defaultHours: Record<number, { open: boolean; from: string; to: string }> 
 };
 
 export default function SettingsPage() {
+  const pathname = usePathname();
+  const isSalesPreview = pathname.startsWith("/demo/otel-paneli");
+
   const [saved, setSaved] = useState(false);
   const [persona, setPersona] = useState(
     "You are a friendly and professional AI concierge for Grand Hotel Demo. Be warm, helpful, and concise. Always respond in the language the guest uses. Keep replies under 4 sentences unless more detail is needed."
@@ -36,14 +40,16 @@ export default function SettingsPage() {
 
   async function handleSave() {
     setSaved(true);
-    try {
-      await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hotelName, timezone, persona }),
-      });
-    } catch {
-      // Swallow — UI feedback already shown
+    if (!isSalesPreview) {
+      try {
+        await fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hotelName, timezone, persona }),
+        });
+      } catch {
+        // Swallow — UI feedback already shown
+      }
     }
     setTimeout(() => setSaved(false), 2500);
   }
@@ -58,6 +64,11 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
+          {isSalesPreview ? (
+            <p className="mb-2 text-[11px] leading-relaxed text-white/38">
+              Örnek ayarlar — canlı hesapta kayıtlarınız ve entegrasyonlarınız kullanılır.
+            </p>
+          ) : null}
           <h1 className="text-xl font-semibold text-white">Settings</h1>
           <p className="text-sm text-white/40 mt-0.5">Configure your hotel, AI persona, and channels</p>
         </div>

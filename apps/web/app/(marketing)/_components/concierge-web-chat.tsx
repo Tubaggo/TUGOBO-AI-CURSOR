@@ -24,6 +24,7 @@ import {
   getScenarioEntryPayload,
   randomAssistantDelayMs,
 } from "./concierge-web-chat-scenarios";
+import { DEMO_ACCESS_LANDING_HREF, useOpenDemoAccessModal } from "./demo-access-modal";
 import { useOpenDemoModal } from "./demo-modal";
 import {
   SALES_DEMO_CONFIRMED,
@@ -214,6 +215,9 @@ function applyLandingWelcomeCopy(msgs: ChatMessage[]): ChatMessage[] {
   });
 }
 
+/** Public sales preview — no auth; static mock only */
+const PUBLIC_DEMO_PANEL = "/demo/otel-paneli";
+
 function enrichConversion(
   base: ConversionSurface | undefined,
   opts: { visitorActions: number; isLanding: boolean }
@@ -235,7 +239,7 @@ function enrichConversion(
     out.navigatorChips = [
       { label: "Hero'ya dön", href: "/#tugobo-hero" },
       { label: "Kurulum görüşmesi", href: "/#tugobo-demo-talep" },
-      { label: "Operasyon paneli", href: "/#tugobo-dashboard-cta" },
+      { label: "Canlı ürün önizlemesi", href: DEMO_ACCESS_LANDING_HREF },
     ];
   }
 
@@ -277,11 +281,15 @@ const TRUST_INSIGHTS = [
   "Türkçe + çok dilli",
 ] as const;
 
-function dashboardSalesLinks(): DashboardCtaLink[] {
+function dashboardSalesLinks(pathname: string): DashboardCtaLink[] {
+  const entry: DashboardCtaLink =
+    pathname === "/"
+      ? { label: "Canlı ürün önizlemesi", href: DEMO_ACCESS_LANDING_HREF }
+      : { label: "Örnek operasyon paneli", href: PUBLIC_DEMO_PANEL };
   return [
-    { label: "Operasyon paneli", href: "/dashboard" },
-    { label: "Konuşma operasyonu", href: "/dashboard/conversations" },
-    { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
+    entry,
+    { label: "Konuşma operasyonu", href: `${PUBLIC_DEMO_PANEL}/conversations` },
+    { label: "Direkt rezervasyon akışı", href: `${PUBLIC_DEMO_PANEL}/reservations` },
   ];
 }
 
@@ -375,13 +383,15 @@ export function ConciergeWebChat() {
   const intelligenceAbortRef = useRef<AbortController | null>(null);
 
   const lastAssistantLabel = useMemo(() => "Tugobo AI", []);
-  const isVisibleRoute = pathname === "/" || pathname.startsWith("/dashboard");
+  const isVisibleRoute =
+    pathname === "/" || pathname.startsWith("/dashboard") || pathname.startsWith(PUBLIC_DEMO_PANEL);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
   const openDemoModal = useOpenDemoModal();
+  const openDemoAccessModal = useOpenDemoAccessModal();
 
   const getDashboardLinks = useCallback((): DashboardCtaLink[] => {
     if (pathname.startsWith("/dashboard")) {
@@ -391,10 +401,17 @@ export function ConciergeWebChat() {
         { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
       ];
     }
+    if (pathname.startsWith(PUBLIC_DEMO_PANEL)) {
+      return [
+        { label: "Özet", href: PUBLIC_DEMO_PANEL },
+        { label: "Konuşmalar", href: `${PUBLIC_DEMO_PANEL}/conversations` },
+        { label: "Rezervasyonlar", href: `${PUBLIC_DEMO_PANEL}/reservations` },
+      ];
+    }
     return [
-      { label: "Canlı operasyon paneli", href: "/dashboard" },
-      { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
-      { label: "Konuşma operasyonu", href: "/dashboard/conversations" },
+      { label: "Canlı ürün önizlemesi", href: DEMO_ACCESS_LANDING_HREF },
+      { label: "Direkt rezervasyon akışı", href: `${PUBLIC_DEMO_PANEL}/reservations` },
+      { label: "Konuşma operasyonu", href: `${PUBLIC_DEMO_PANEL}/conversations` },
     ];
   }, [pathname]);
 
@@ -573,7 +590,7 @@ export function ConciergeWebChat() {
                   consultativeLine:
                     "Bu özet kartı, operasyon panelindeki **rezervasyon bandı** ve **tahsilat satırı** ile aynı çizelgede görünür.",
                   insights: ["Pipeline", "Ödeme bandı", "İnsan devralma", "Doğrudan kanal"],
-                  dashboardLinks: dashboardSalesLinks(),
+                  dashboardLinks: dashboardSalesLinks(pathname),
                   demoMailCta: false,
                 })
               : wrapConversion({
@@ -590,13 +607,17 @@ export function ConciergeWebChat() {
       };
       runNext(startIndex);
     },
-    [appendAssistant, appendSystemEventLine, appendVisitor, getDashboardLinks, wrapConversion]
+    [appendAssistant, appendSystemEventLine, appendVisitor, getDashboardLinks, pathname, wrapConversion]
   );
 
   const handleReservationCta = useCallback(
     (id: string) => {
       if (id === "demo_dash") {
-        window.location.href = "/dashboard";
+        if (pathname === "/") {
+          openDemoAccessModal();
+        } else {
+          window.location.href = PUBLIC_DEMO_PANEL;
+        }
         return;
       }
       if (id === "demo_pay_pending" && salesDemoPhaseRef.current === "await_pay") {
@@ -606,7 +627,7 @@ export function ConciergeWebChat() {
         return;
       }
     },
-    [clearDemoTimers, runSalesDemoLines]
+    [clearDemoTimers, openDemoAccessModal, pathname, runSalesDemoLines]
   );
 
   const runHotelIntelligence = useCallback(
@@ -706,7 +727,7 @@ export function ConciergeWebChat() {
                 dashboardLinks: getDashboardLinks(),
                 navigatorChips: [
                   { label: "Kurulum formu (sayfa)", href: "/#tugobo-demo-talep" },
-                  { label: "Operasyon paneli", href: "/dashboard" },
+                  { label: "Canlı ürün önizlemesi", href: DEMO_ACCESS_LANDING_HREF },
                 ],
                 demoMailCta: true,
               })
@@ -721,7 +742,7 @@ export function ConciergeWebChat() {
               wrapConversion({
                 consultativeLine: consultLineForEntryFlow("dashboard"),
                 insights: [...TRUST_INSIGHTS],
-                dashboardLinks: dashboardSalesLinks(),
+                dashboardLinks: dashboardSalesLinks(pathname),
                 demoMailCta: true,
               })
             );
@@ -856,7 +877,7 @@ export function ConciergeWebChat() {
             wrapConversion({
               consultativeLine: "Bu ekranlar operasyon önizlemesidir; canlı veriler kurulumla gelir.",
               insights: [...TRUST_INSIGHTS],
-              dashboardLinks: dashboardSalesLinks(),
+              dashboardLinks: dashboardSalesLinks(pathname),
               demoMailCta: true,
             })
           );
@@ -945,7 +966,7 @@ export function ConciergeWebChat() {
               dashboardLinks: getDashboardLinks(),
               navigatorChips: [
                   { label: "Kurulum formu (sayfa)", href: "/#tugobo-demo-talep" },
-                  { label: "Operasyon paneli", href: "/dashboard" },
+                  { label: "Canlı ürün önizlemesi", href: DEMO_ACCESS_LANDING_HREF },
                 ],
               demoMailCta: true,
             })
@@ -964,7 +985,7 @@ export function ConciergeWebChat() {
             wrapConversion({
               consultativeLine: consultLineForEntryFlow("dashboard"),
               insights: [...TRUST_INSIGHTS],
-              dashboardLinks: dashboardSalesLinks(),
+              dashboardLinks: dashboardSalesLinks(pathname),
               demoMailCta: true,
             })
           );

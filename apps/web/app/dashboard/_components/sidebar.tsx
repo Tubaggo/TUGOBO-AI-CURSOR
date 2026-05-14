@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -13,24 +14,33 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/dashboard", label: "Ops command", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/conversations", label: "Guest threads", icon: MessageSquare, badge: 6 },
-  { href: "/dashboard/reservations", label: "Pipeline", icon: Calendar, badge: null },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings, badge: null },
-];
+const DEFAULT_BASE = "/dashboard";
 
-export function Sidebar() {
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  badge: number | null;
+};
+
+export function Sidebar({ basePath = DEFAULT_BASE }: { basePath?: string }) {
   const pathname = usePathname();
 
+  const navItems: NavItem[] = useMemo(
+    () => [
+      { href: basePath, label: "Ops command", icon: LayoutDashboard, exact: true, badge: null },
+      { href: `${basePath}/conversations`, label: "Guest threads", icon: MessageSquare, badge: 6 },
+      { href: `${basePath}/reservations`, label: "Pipeline", icon: Calendar, badge: null },
+      { href: `${basePath}/settings`, label: "Settings", icon: Settings, badge: null },
+    ],
+    [basePath]
+  );
+
   return (
-    <aside className="w-[220px] shrink-0 flex flex-col h-full bg-zinc-900 border-r border-white/[0.06]">
-      {/* Logo */}
-      <div className="flex items-center px-4 py-6 border-b border-white/[0.06] min-h-[88px]">
-        <Link
-          href="/"
-          className="flex items-center hover:opacity-90 transition-opacity"
-        >
+    <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-zinc-900">
+      <div className="flex min-h-[88px] items-center border-b border-white/[0.06] px-4 py-6">
+        <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
           <Image
             src="/Logo.png"
             alt="Tugobo AI"
@@ -42,24 +52,23 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Hotel selector */}
-      <div className="px-3 pt-4 pb-2">
-        <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] transition-colors group">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-5 h-5 rounded bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+      <div className="px-3 pb-2 pt-4">
+        <button
+          type="button"
+          className="group flex w-full items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 transition-colors hover:bg-white/[0.07]"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-gradient-to-br from-amber-400 to-orange-500 text-[9px] font-bold text-white">
               H
             </div>
-            <span className="text-xs text-white/70 font-medium truncate">Grand Hotel Demo</span>
+            <span className="truncate text-xs font-medium text-white/70">Grand Hotel Demo</span>
           </div>
-          <ChevronRight className="w-3 h-3 text-white/30 shrink-0" />
+          <ChevronRight className="h-3 w-3 shrink-0 text-white/30" />
         </button>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
-        <p className="px-3 pt-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/25">
-          Main
-        </p>
+      <nav className="flex-1 space-y-0.5 px-3 py-2">
+        <p className="px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">Main</p>
         {navItems.map(({ href, label, icon: Icon, badge, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
@@ -67,46 +76,46 @@ export function Sidebar() {
               key={href}
               href={href}
               className={cn(
-                "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
+                "group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-all duration-150",
                 isActive
                   ? "bg-white/[0.08] text-white"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
+                  : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"
               )}
             >
               <div className="flex items-center gap-3">
                 <Icon
                   className={cn(
-                    "w-4 h-4 shrink-0 transition-colors",
+                    "h-4 w-4 shrink-0 transition-colors",
                     isActive ? "text-blue-400" : "text-white/30 group-hover:text-white/50"
                   )}
                 />
                 <span className="font-medium">{label}</span>
               </div>
               {badge ? (
-                <span className="text-[10px] font-semibold bg-blue-500/20 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded-full">
+                <span className="rounded-full border border-blue-500/20 bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-blue-400">
                   {badge}
                 </span>
               ) : null}
-              {isActive && !badge && (
-                <div className="w-1 h-1 rounded-full bg-blue-400" />
-              )}
+              {isActive && !badge ? <div className="h-1 w-1 rounded-full bg-blue-400" /> : null}
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-3 pb-4 pt-2 border-t border-white/[0.06] space-y-1">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-colors text-sm">
-          <Bell className="w-4 h-4" />
+      <div className="space-y-1 border-t border-white/[0.06] px-3 pb-4 pt-2">
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 transition-colors hover:bg-white/[0.04] hover:text-white/70"
+        >
+          <Bell className="h-4 w-4" />
           <span className="font-medium">Notifications</span>
         </button>
-        <div className="flex items-center gap-2.5 px-3 py-2 mt-1">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+        <div className="mt-1 flex items-center gap-2.5 px-3 py-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">
             G
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-medium text-white/60 truncate">hotel@example.com</p>
+            <p className="truncate text-xs font-medium text-white/60">hotel@example.com</p>
           </div>
         </div>
       </div>
