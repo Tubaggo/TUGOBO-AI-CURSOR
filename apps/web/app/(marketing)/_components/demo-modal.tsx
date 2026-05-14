@@ -299,7 +299,7 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
               <CheckCircle2 className="w-7 h-7 text-emerald-400" strokeWidth={1.75} />
             </div>
             <h3 id={titleId} className="text-[22px] font-bold text-white tracking-tight mb-3">
-              Demo talebiniz alındı
+              Kurulum talebiniz alındı
             </h3>
             <p id={descId} className="text-[14px] text-white/50 leading-relaxed mb-8 max-w-sm mx-auto">
               Teşekkürler. Ekibimiz kısa süre içinde sizinle WhatsApp üzerinden iletişime geçecek.
@@ -319,14 +319,14 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
                 id={titleId}
                 className="text-[21px] sm:text-[22px] font-bold text-white leading-snug pr-10"
               >
-                Ücretsiz demo talep edin
+                Kurulum görüşmesi talep edin
               </h2>
               <p id={descId} className="text-[13px] text-white/42 leading-relaxed mt-2">
-                Otelinize özel AI rezervasyon akışını 30 dakikalık kısa bir görüşmede birlikte
-                inceleyelim.
+                Digital Hotel Operating System ve Hotel Operating Intelligence katmanını 30 dakikalık
+                sistem turunda birlikte değerlendirelim.
               </p>
               <p className="text-[11px] text-white/32 mt-3 leading-relaxed">
-                Taahhüt yok · Satış baskısı yok · Otelinize özel değerlendirme
+                Taahhüt yok · Satış baskısı yok · Otelinize özel operasyon değerlendirmesi
               </p>
             </div>
 

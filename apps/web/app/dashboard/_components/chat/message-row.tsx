@@ -106,7 +106,7 @@ function AiMessageBubble({ msg, className }: { msg: ChatMsg; className?: string 
         >
           <div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium text-blue-100/52">
             <Sparkles className="h-3 w-3 shrink-0 text-blue-200/70" aria-hidden />
-            <span className="tracking-wide">Mia · AI</span>
+            <span className="tracking-wide">Tugobo · ops</span>
           </div>
           <p className="whitespace-pre-line text-[13px] font-normal leading-[1.62] text-white/[0.96]">{msg.body}</p>
           <div className="mt-3 flex justify-end">

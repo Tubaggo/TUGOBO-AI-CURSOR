@@ -9,6 +9,11 @@ const envSchema = z.object({
   // OpenAI
   OPENAI_API_KEY: z.string().min(1),
 
+  /** DeepSeek (OpenAI-compatible API) — server-only; never NEXT_PUBLIC_ */
+  DEEPSEEK_API_KEY: z.string().min(1).optional(),
+  /** Override only if DeepSeek provides a different base URL for your account */
+  DEEPSEEK_BASE_URL: z.string().url().optional(),
+
   // Twilio (week 1)
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),

@@ -30,7 +30,7 @@ export function ChatTypingIndicator() {
           <span className="h-3 w-px shrink-0 bg-white/10" aria-hidden />
           <div className="flex min-w-0 items-center gap-1 text-[10px] font-medium tracking-wide text-blue-100/55">
             <Sparkles className="h-3 w-3 shrink-0 text-blue-300/70" aria-hidden />
-            <span className="truncate">Mia · composing</span>
+            <span className="truncate">Tugobo · composing</span>
           </div>
         </div>
       </div>

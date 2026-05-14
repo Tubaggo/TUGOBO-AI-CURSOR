@@ -14,9 +14,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/conversations", label: "Conversations", icon: MessageSquare, badge: 6 },
-  { href: "/dashboard/reservations", label: "Reservations", icon: Calendar, badge: null },
+  { href: "/dashboard", label: "Ops command", icon: LayoutDashboard, exact: true },
+  { href: "/dashboard/conversations", label: "Guest threads", icon: MessageSquare, badge: 6 },
+  { href: "/dashboard/reservations", label: "Pipeline", icon: Calendar, badge: null },
   { href: "/dashboard/settings", label: "Settings", icon: Settings, badge: null },
 ];
 

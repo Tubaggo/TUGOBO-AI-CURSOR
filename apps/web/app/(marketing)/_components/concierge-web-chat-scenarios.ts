@@ -1,5 +1,5 @@
 /**
- * B2B sales/demo scenarios for ConciergeWebChat (hotel owners & operators).
+ * B2B onboarding scenarios for ConciergeWebChat (hotel operators evaluating the Digital Hotel Operating System).
  * Pure data + routing — swap for a real AI layer later without changing UI envelopes.
  */
 
@@ -24,18 +24,22 @@ export function detectFlowFromUserText(text: string): FlowId | null {
 
   if (
     t.includes("demo") ||
+    t.includes("kurulum görüşmesi") ||
+    t.includes("kurulum gorusmesi") ||
     t.includes("görüşme") ||
     t.includes("gorusme") ||
     t.includes("görüşme talep") ||
     t.includes("gorusme talep") ||
     t.includes("randevu") ||
     t.includes("tanışalım") ||
-    t.includes("tanışmak")
+    t.includes("tanışmak") ||
+    t.includes("operasyon turu")
   ) {
     return "demo";
   }
   if (
     t.includes("dashboard") ||
+    t.includes("operasyon panel") ||
     t.includes("panel") ||
     t.includes("konuşma") ||
     t.includes("konusma") ||
@@ -61,7 +65,8 @@ export function detectFlowFromUserText(text: string): FlowId | null {
   if (
     t.includes("nasıl çalışır") ||
     t.includes("nasil calisir") ||
-    t.includes("tugobo") ||
+    t.includes("digital") ||
+    t.includes("hotel operating") ||
     t.includes("nedir") ||
     t.includes("ne işe yarar") ||
     t.includes("ne ise yarar") ||
@@ -80,23 +85,23 @@ export function getScenarioEntryPayload(flow: FlowId): ScenarioAssistantPayload 
     case "how_it_works":
       return {
         text:
-          "Tugobo AI, otelinizin **WhatsApp**, **Instagram DM** ve **web chat** kanallarından gelen mesajları tek ekranda toplar. Misafire hızlı yanıt verir, uygun oda ve politika bilgisini sunar, **ödeme veya rezervasyon adımına** yönlendirir.\n\nEkibiniz için özet ve öncelik üretir; **insan devralma** ile hassas durumlara müdahale edebilirsiniz.",
+          "**Digital Hotel Operating System**; **WhatsApp**, **Instagram DM** ve **web** kanallarından gelen işleri tek **operasyon kuyruğunda** toplar. **Hotel Operating Intelligence** politika ve fiyat kurallarınızı uygular; **direkt rezervasyon altyapısı** ile ödeme veya onay adımlarını sistematik yürütür.\n\nEkibiniz için özet ve öncelik üretir; **insan devralma** ile riskli vakalarda kontrol sizde kalır.",
         chips: [
-          { id: "hi_wa", label: "WhatsApp akışı" },
-          { id: "hi_ig", label: "Instagram DM akışı" },
-          { id: "hi_web", label: "Web chat akışı" },
+          { id: "hi_wa", label: "WhatsApp operasyonu" },
+          { id: "hi_ig", label: "Instagram DM operasyonu" },
+          { id: "hi_web", label: "Web kanalı" },
           { id: "hi_takeover", label: "İnsan devralma" },
         ],
       };
     case "dashboard":
       return {
         text:
-          "Dashboard’da **misafir iletişimi**, **operasyon ve satış fırsatları**, **AI yanıt süresi**, **OTA komisyonundan tasarruf** ve **insan devralma** akışı tek ekranda takip edilir. İşletmenizin dijital operasyonuna tek bakışta hakim olursunuz.",
+          "Operasyon panelinde **birleşik misafir iletişimi**, **pipeline / fırsatlar**, **AI katmanı performansı**, **OTA’dan kaçınma** ve **insan devralma** tek ekranda okunur. **Operasyonel görünürlük** ile gece-gündüz trafiği yönetirsiniz.",
       };
     case "fit":
       return {
         text:
-          "Eğer işletmeniz **WhatsApp**, **Instagram** veya **web sitesi** üzerinden rezervasyon talebi alıyorsa Tugobo AI sizin için uygundur. Özellikle **butik otel**, **bungalov**, **villa**, **pansiyon** ve **resort** işletmeleri için tasarlanmıştır.",
+          "WhatsApp, Instagram veya web üzerinden **düzenli talep ve rezervasyon trafiği** alan işletmeler için Tugobo; **butik otel**, **bungalov**, **villa**, **pansiyon** ve **resort** profillerinde en güçlü kazanımı **direkt kanal + operasyon görünürlüğü** olarak verir.",
         chips: [
           { id: "fit_bt", label: "Butik otel" },
           { id: "fit_bg", label: "Bungalov" },
@@ -108,10 +113,10 @@ export function getScenarioEntryPayload(flow: FlowId): ScenarioAssistantPayload 
     case "demo":
       return {
         text:
-          "İşletmeniz için kısa bir **ürün görüşmesi** planlayabiliriz. Mesaj trafiğinizi, rezervasyon sürecinizi ve AI katmanının operasyonu nasıl sadeleştireceğini birlikte inceleriz.\n\nFormdan talebinizi iletebilir veya önce canlı paneli gezebilirsiniz.",
+          "**Digital Hotel Operating System** kurulumu için kısa bir **operasyon görüşmesi** planlayalım. Kanal trafiğinizi, mevcut rezervasyon sürecinizi ve **AI operasyon katmanının** ekibinize nasıl görünür olacağını birlikte netleştiririz.\n\nFormdan talep iletebilir veya önce **canlı operasyon panelini** gezebilirsiniz.",
         chips: [
-          { id: "dm_form", label: "Görüşme formunu aç" },
-          { id: "dm_dash", label: "Önce dashboard" },
+          { id: "dm_form", label: "Kurulum formunu aç" },
+          { id: "dm_dash", label: "Önce operasyon paneli" },
         ],
       };
   }
@@ -122,53 +127,53 @@ function howItWorksFollowUp(userText: string): ScenarioAssistantPayload {
   if (t.includes("whatsapp")) {
     return {
       text:
-        "**WhatsApp** hattınızda misafir mesajı geldiğinde Tugobo AI önce bağlamı okur, müsaitlik ve politika çerçevesinde yanıtlar, gerekirse ödeme veya rezervasyon linkine yönlendirir. Tüm konuşma **tek panelde** görünür; siz **devral** diyerek istediğiniz an devreye girersiniz.",
+        "**WhatsApp** hattınızda talep geldiğinde Hotel Operating Intelligence önce bağlamı ve politika çerçevesini okur; **direkt rezervasyon altyapısı** üzerinden teklif veya ödeme adımına taşır. Konuşma **tek operasyon panelinde** kalır; **devral** ile ekibiniz anında devreye girer.",
       chips: [
         { id: "hi2_ig", label: "Instagram örneği" },
-        { id: "hi2_dash", label: "Dashboard'u göster" },
-        { id: "hi2_demo", label: "Görüşme talep et" },
+        { id: "hi2_dash", label: "Operasyon paneli" },
+        { id: "hi2_demo", label: "Kurulum görüşmesi" },
       ],
     };
   }
   if (t.includes("instagram")) {
     return {
       text:
-        "**Instagram DM** trafiği de aynı panele düşer. Story veya DM’den gelen taleplerde AI, dil ve tonu koruyarak hızlı yanıt verir; doğrudan rezervasyona giden yolu kısaltır ve ekibe özet bırakır.",
+        "**Instagram DM** trafiği aynı **Digital Hotel Operating System** kuyruğuna düşer. Dil ve ton korunur; talep **operasyon katmanı** tarafından işlenir, **direkt rezervasyon** yoluna bağlanır ve panele özet düşer.",
       chips: [
         { id: "hi2_wa", label: "WhatsApp örneği" },
-        { id: "hi2_dash", label: "Dashboard'u göster" },
-        { id: "hi2_demo", label: "Görüşme talep et" },
+        { id: "hi2_dash", label: "Operasyon paneli" },
+        { id: "hi2_demo", label: "Kurulum görüşmesi" },
       ],
     };
   }
   if (t.includes("web")) {
     return {
       text:
-        "**Web sitenizdeki chat** üzerinden gelen talepler de aynı akışa bağlanır. Misafir tarayıcıdan yazdığında AI, sitenizin kuralları ve fiyat çerçevesinde yanıtlar; operasyon ekibi tek yerden takip eder.",
+        "**Web kanalı** üzerinden gelen talepler de aynı **operasyon omurgasına** bağlanır. Misafir tarayıcıdan yazdığında kurallarınız uygulanır; ekip **operasyonel görünürlük** ile tek yerden izler.",
       chips: [
         { id: "hi2_wa", label: "WhatsApp örneği" },
-        { id: "hi2_dash", label: "Dashboard'u göster" },
-        { id: "hi2_demo", label: "Görüşme talep et" },
+        { id: "hi2_dash", label: "Operasyon paneli" },
+        { id: "hi2_demo", label: "Kurulum görüşmesi" },
       ],
     };
   }
   if (t.includes("insan") || t.includes("devral")) {
     return {
       text:
-        "**İnsan devralma** ile AI yanıtı durur; resepsiyon veya satış ekibi görüşmeyi aynı bağlamla devralır. Tugobo AI konuşma özetini ve son misafir taleplerini panele düşürür — hem hız hem kontrol sizde kalır.",
+        "**İnsan devralma** ile AI operasyon katmanı durur; resepsiyon veya satış aynı bağlamı görür. Tugobo konuşma özetini ve son iş kalemlerini panele düşürür — hız ve kontrol birlikte.",
       chips: [
-        { id: "hi2_dash", label: "Dashboard'u göster" },
-        { id: "hi2_demo", label: "Görüşme talep et" },
+        { id: "hi2_dash", label: "Operasyon paneli" },
+        { id: "hi2_demo", label: "Kurulum görüşmesi" },
       ],
     };
   }
   return {
     text:
-      "Özetle Tugobo AI; **çok kanallı talepleri** toplar, **7/24** yanıtlar, **operasyon ve doğrudan satış** ritmini güçlendirir ve **OTA bağımlılığını azaltmaya** uygun bir işletim katmanıdır. İsterseniz bir kanalı veya dashboard’u seçerek devam edelim.",
+      "Özetle Tugobo; **çok kanallı talepleri** tek kuyrukta toplar, **7/24 AI operasyon katmanı** ile işler, **direkt rezervasyon** ve **operasyonel görünürlük** sağlar. Bir kanalı veya **operasyon panelini** seçerek devam edebilirsiniz.",
     chips: [
-      { id: "hi2_wa", label: "WhatsApp akışı" },
-      { id: "hi2_dash", label: "Dashboard'u göster" },
-      { id: "hi2_demo", label: "Görüşme talep et" },
+      { id: "hi2_wa", label: "WhatsApp operasyonu" },
+      { id: "hi2_dash", label: "Operasyon paneli" },
+      { id: "hi2_demo", label: "Kurulum görüşmesi" },
     ],
   };
 }
@@ -193,10 +198,10 @@ export function advanceScenario(
           next: { flow: "fit", step: 1 },
           reply: {
             text:
-              "Bu profilde Tugobo AI ile **mesaj trafiğini tek merkezden** yönetmek ve **doğrudan rezervasyon** oranını artırmak çoğu işletme için hızlı bir kazanım olur. Bir sonraki adım olarak canlı paneli inceleyebilir veya kısa bir **ürün görüşmesi** planlayabilirsiniz.",
+              "Bu profilde Tugobo ile **operasyon kuyruğunu tekilleştirmek** ve **direkt rezervasyon** oranını artırmak tipik olarak en hızlı ROI’dır. Sıradaki adım **canlı operasyon paneli** veya **kurulum görüşmesi** olabilir.",
             chips: [
-              { id: "fit2_demo", label: "Görüşme talep et" },
-              { id: "fit2_dash", label: "Dashboard'u göster" },
+              { id: "fit2_demo", label: "Kurulum görüşmesi" },
+              { id: "fit2_dash", label: "Operasyon paneli" },
             ],
           },
         };

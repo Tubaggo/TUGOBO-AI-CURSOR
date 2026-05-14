@@ -13,7 +13,10 @@ import {
   UserRound,
   CreditCard,
   FileText,
+  Sparkles,
 } from "lucide-react";
+import type { HotelIntelligenceInsights, IntelligenceChatRequest } from "@tugobo/shared";
+import { fetchIntelligenceChat } from "@/lib/intelligence-chat-client";
 import type { FlowId, FlowState, ScenarioAssistantPayload } from "./concierge-web-chat-scenarios";
 import {
   advanceScenario,
@@ -22,6 +25,15 @@ import {
   randomAssistantDelayMs,
 } from "./concierge-web-chat-scenarios";
 import { useOpenDemoModal } from "./demo-modal";
+import {
+  SALES_DEMO_CONFIRMED,
+  SALES_DEMO_OPENING_SCRIPT,
+  SALES_DEMO_PAYMENT_PENDING,
+  TUGOBO_SALES_DEMO_EVENT,
+  detectSalesDemoIntent,
+  salesDemoMetricsPayload,
+  type SalesDemoScriptLine,
+} from "./sales-demo-scenario-engine";
 
 /** Message roles for the conversation model */
 type ChatRole = "visitor" | "assistant" | "system";
@@ -77,29 +89,86 @@ type ChatMessage = {
   pricePreview?: PricePreview;
   reservationPreview?: ReservationPreview;
   conversion?: ConversionSurface;
+  /** Visitor bubble attribution (e.g. simulated guest in sales demo) */
+  visitorAttribution?: string;
+  /** Structured signals from Hotel Operating Intelligence (DeepSeek layer) */
+  hotelInsights?: HotelIntelligenceInsights | null;
 };
 
 type QuickAction = {
-  id: "how_it_works" | "dashboard" | "fit" | "demo";
+  id: "how_it_works" | "dashboard" | "fit" | "demo" | "sales_live_demo";
   label: string;
 };
+
+type SalesDemoPhase = "idle" | "opening" | "await_pay" | "await_confirm" | "done";
+
+function stripBoldMarkers(s: string): string {
+  return s.replace(/\*\*(.+?)\*\*/g, "$1");
+}
+
+function buildIntelligenceRequestMessages(
+  history: ChatMessage[],
+  latestUserLine: string
+): IntelligenceChatRequest["messages"] {
+  const out: IntelligenceChatRequest["messages"] = [];
+  for (const m of history) {
+    if (m.role === "system") continue;
+    if (m.role === "visitor") {
+      out.push({ role: "user", content: stripBoldMarkers(m.text) });
+    }
+    if (m.role === "assistant") {
+      out.push({ role: "assistant", content: stripBoldMarkers(m.text) });
+    }
+  }
+  out.push({ role: "user", content: stripBoldMarkers(latestUserLine) });
+  return out.slice(-32);
+}
+
+function mapInsightsToChipLabels(ins: HotelIntelligenceInsights | null | undefined): string[] {
+  if (!ins) return [];
+  const out: string[] = [];
+  if (ins.leadIntent) {
+    const m: Record<string, string> = {
+      booking: "Niyet: rezervasyon / gelir",
+      information: "Niyet: bilgi talebi",
+      pricing: "Niyet: fiyat / teklif",
+      complaint: "Niyet: şikâyet / risk",
+      other: "Niyet: genel",
+    };
+    out.push(m[ins.leadIntent] ?? "Niyet: analiz");
+  }
+  if (typeof ins.urgencyScore === "number") {
+    out.push(`Aciliyet: ${ins.urgencyScore}/100`);
+  }
+  if (ins.takeoverRecommended === true) {
+    out.push("İnsan devralma önerilir");
+  }
+  if (typeof ins.reservationLikelihood === "number") {
+    out.push(`Direkt rezervasyon olasılığı: ${ins.reservationLikelihood}/100`);
+  }
+  if (ins.nextBestAction) {
+    out.push(`Sonraki adım: ${ins.nextBestAction}`);
+  }
+  return out.slice(0, 6);
+}
 
 function nowId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: "how_it_works", label: "Tugobo AI nasıl çalışır?" },
-  { id: "dashboard", label: "Dashboard'u göster" },
-  { id: "fit", label: "Otelim için uygun mu?" },
-  { id: "demo", label: "Görüşme talep et" },
+  { id: "how_it_works", label: "Digital Hotel OS nasıl çalışır?" },
+  { id: "sales_live_demo", label: "Canlı rezervasyon & operasyon demosu" },
+  { id: "dashboard", label: "Operasyon panelini göster" },
+  { id: "fit", label: "İşletmem için uygunluk" },
+  { id: "demo", label: "Kurulum görüşmesi planla" },
 ];
 
 const WELCOME_MESSAGES: ChatMessage[] = [
   {
     id: "sys_welcome",
     role: "system",
-    text: "Önizleme modu · Canlı kurulumda kanallar, kurallar ve verileriniz bağlanır.",
+    text: "Önizleme ortamı · Canlı kurulumda kanallar, politikalar ve rezervasyon veriniz bu Digital Hotel Operating System’e bağlanır.",
     ts: Date.now(),
     systemTone: "banner",
   },
@@ -107,28 +176,28 @@ const WELCOME_MESSAGES: ChatMessage[] = [
     id: "ai_welcome",
     role: "assistant",
     text:
-      "Tugobo AI, otelinizin **WhatsApp**, **Instagram** ve **web sitesi** üzerinden gelen iletişimi tek operasyon katmanında toplar.\n\nAI destekli yanıt akışı, rezervasyon yönetimi ve **canlı dashboard** görünürlüğü ile işletmenizin dijital operasyonunu güçlendirir.",
+      "**Hotel Operating Intelligence** katmanı; **WhatsApp**, **Instagram DM** ve **web** üzerindeki misafir iletişimini tek operasyon kuyruğunda toplar.\n\n**AI destekli operasyon** ile politika ve fiyat kurallarınız uygulanır; **direkt rezervasyon altyapısı** ve **operasyonel görünürlük** (canlı panel) aynı çatı altında çalışır — yalnızca bir chatbot değil, otelinizin dijital işletim sistemi.",
     ts: Date.now(),
   },
 ];
 
 /** Landing: same ids; only `ai_welcome` may differ when pristine on `/`. */
 const LANDING_WELCOME_TEXT: Record<string, string> = {
-  sys_welcome: "Önizleme modu · Canlı kurulumda kanallar, kurallar ve verileriniz bağlanır.",
+  sys_welcome: "Önizleme ortamı · Canlı kurulumda kanallar, politikalar ve rezervasyon veriniz bu Digital Hotel Operating System’e bağlanır.",
   ai_welcome:
-    "Tugobo AI, otelinizin **WhatsApp**, **Instagram** ve **web sitesi** üzerinden gelen iletişimi tek operasyon katmanında toplar.\n\nAI destekli yanıt akışı, rezervasyon yönetimi ve **canlı dashboard** görünürlüğü ile işletmenizin dijital operasyonunu güçlendirir.",
+    "**Hotel Operating Intelligence** katmanı; **WhatsApp**, **Instagram DM** ve **web** üzerindeki misafir iletişimini tek operasyon kuyruğunda toplar.\n\n**AI destekli operasyon** ile politika ve fiyat kurallarınız uygulanır; **direkt rezervasyon altyapısı** ve **operasyonel görünürlük** (canlı panel) aynı çatı altında çalışır — yalnızca bir chatbot değil, otelinizin dijital işletim sistemi.",
 };
 
 const OPERATIONAL_TEASERS = [
-  "Canlı panelde misafir iletişimi, operasyon ve satış akışlarını aynı görünümde takip edebilirsiniz.",
-  "Dashboard üzerinden kanal trafiği, AI katmanı ve ekip devralmasını işletmenize göre değerlendirebilirsiniz.",
+  "Canlı panelde birleşik misafir iletişimi, operasyon sinyalleri ve direkt rezervasyon hattını aynı görünümde izleyebilirsiniz.",
+  "Dashboard üzerinden kanal trafiği, AI operasyon katmanı ve ekip devralmasını Hotel Operating Intelligence perspektifinde değerlendirebilirsiniz.",
 ] as const;
 
 const ESCALATION_AFTER_3 =
-  "Ürün turu veya canlı dashboard üzerinden kurulumu birlikte adım adım planlayabiliriz.";
+  "Digital Hotel Operating System kurulumunu canlı panel üzerinden adım adım planlayabiliriz.";
 
 const ESCALATION_AFTER_5 =
-  "Taahhüt istemeyen kısa bir görüşmede operasyon trafiğinizi ve OTA bağımlılığını azaltma senaryolarını netleştirebiliriz.";
+  "Taahhüt istemeyen kısa bir görüşmede operasyon trafiğinizi, direkt rezervasyon hedeflerinizi ve OTA bağımlılığını azaltma senaryolarını netleştirebiliriz.";
 
 function isDefaultWelcome(msgs: ChatMessage[]): boolean {
   if (msgs.length !== WELCOME_MESSAGES.length) return false;
@@ -165,19 +234,19 @@ function enrichConversion(
   if (opts.isLanding && opts.visitorActions >= 2) {
     out.navigatorChips = [
       { label: "Hero'ya dön", href: "/#tugobo-hero" },
-      { label: "Görüşme talep", href: "/#tugobo-demo-talep" },
-      { label: "Önizleme linki", href: "/#tugobo-dashboard-cta" },
+      { label: "Kurulum görüşmesi", href: "/#tugobo-demo-talep" },
+      { label: "Operasyon paneli", href: "/#tugobo-dashboard-cta" },
     ];
   }
 
   if (opts.visitorActions >= 4) {
     const proof = [
-      "7/24 yanıt",
-      "WhatsApp + Instagram + web chat",
-      "Doğrudan satış ve rezervasyon odaklı",
-      "OTA bağımlılığını azaltma",
-      "İnsan devralma destekli",
-      "Türkçe doğal iletişim",
+      "7/24 operasyon katmanı",
+      "Birleşik misafir iletişimi",
+      "Direkt rezervasyon altyapısı",
+      "Operasyonel görünürlük",
+      "İnsan devralma",
+      "Türkçe + çok dilli",
     ];
     for (const p of proof) {
       if (!insights.includes(p)) insights.push(p);
@@ -200,43 +269,43 @@ function enrichConversion(
 }
 
 const TRUST_INSIGHTS = [
-  "7/24 yanıt",
-  "WhatsApp + Instagram + web chat",
-  "Doğrudan satış ve rezervasyon odaklı",
-  "OTA bağımlılığını azaltma",
-  "İnsan devralma destekli",
-  "Türkçe doğal iletişim",
+  "7/24 operasyon katmanı",
+  "Birleşik misafir iletişimi",
+  "Direkt rezervasyon altyapısı",
+  "Operasyonel görünürlük",
+  "İnsan devralma",
+  "Türkçe + çok dilli",
 ] as const;
 
 function dashboardSalesLinks(): DashboardCtaLink[] {
   return [
-    { label: "Dashboard'u incele", href: "/dashboard" },
-    { label: "Conversations ekranı", href: "/dashboard/conversations" },
-    { label: "Rezervasyon akışı", href: "/dashboard/reservations" },
+    { label: "Operasyon paneli", href: "/dashboard" },
+    { label: "Konuşma operasyonu", href: "/dashboard/conversations" },
+    { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
   ];
 }
 
 function consultLineForEntryFlow(flow: FlowId): string | undefined {
   switch (flow) {
     case "how_it_works":
-      return "Misafir tarafındaki deneyim, otelinizin politikalarına ve kanal kurallarına göre şekillenir.";
+      return "Misafir tarafındaki deneyim, otelinizin politikalarına ve kanal kurallarına göre Digital Hotel Operating System içinde şekillenir.";
     case "dashboard":
-      return "Panel; konuşma hacmi, fırsatlar ve devralma akışını tek bakışta toparlar.";
+      return "Panel; konuşma hacmi, pipeline ve devralma akışını Hotel Operating Intelligence ile tek bakışta toparlar.";
     case "fit":
-      return "İşletme profilinize göre kurulum kapsamı ve eğitim planı netleştirilebilir.";
+      return "İşletme profilinize göre kurulum kapsamı, entegrasyonlar ve ekip eğitimi netleştirilebilir.";
     case "demo":
       return undefined;
   }
 }
 
 const GENERIC_FREE_TEXT_REPLY =
-  "Talebinizi aldım. Tugobo AI, otelinizin **misafir iletişimini**, **operasyon görünürlüğünü** ve **doğrudan rezervasyon altyapısını** tek dijital katmanda birleştirir. İsterseniz **çalışma modelini** veya **dashboard** üzerinden nasıl yönetileceğini özetleyebilirim.";
+  "Talebinizi aldım. Tugobo AI, **birleşik misafir iletişimini**, **operasyonel görünürlüğü** ve **direkt rezervasyon altyapısını** tek Digital Hotel Operating System katmanında birleştirir. İsterseniz **platform akışını** veya **operasyon panelini** nasıl kullanacağınızı özetleyebilirim.";
 
 const DEMO_MAIL_HREF =
   "mailto:hello@tugobo.ai?subject=" +
-  encodeURIComponent("Tugobo AI — görüşme talebi") +
+  encodeURIComponent("Tugobo AI — Digital Hotel Operating System kurulum görüşmesi") +
   "&body=" +
-  encodeURIComponent("Merhaba,\n\nTugobo AI için kısa bir ürün görüşmesi talep ediyorum.\n\nTeşekkürler,\n");
+  encodeURIComponent("Merhaba,\n\nTugobo AI Digital Hotel Operating System için kurulum / operasyon turu talep ediyorum.\n\nTeşekkürler,\n");
 
 /** Same asset as marketing nav / homepage (`nav.tsx`, `page.tsx`). */
 const FULL_LOGO_SRC = "/Logo.png";
@@ -296,26 +365,36 @@ export function ConciergeWebChat() {
   const scrollEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const timersRef = useRef<number[]>([]);
+  const demoTimersRef = useRef<number[]>([]);
   const visitorActionsRef = useRef(0);
   const flowContextRef = useRef<FlowState | null>(null);
+  const salesDemoPhaseRef = useRef<SalesDemoPhase>("idle");
+  const salesDemoSeqRef = useRef(0);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const intelRequestIdRef = useRef(0);
+  const intelligenceAbortRef = useRef<AbortController | null>(null);
 
   const lastAssistantLabel = useMemo(() => "Tugobo AI", []);
   const isVisibleRoute = pathname === "/" || pathname.startsWith("/dashboard");
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const openDemoModal = useOpenDemoModal();
 
   const getDashboardLinks = useCallback((): DashboardCtaLink[] => {
     if (pathname.startsWith("/dashboard")) {
       return [
-        { label: "Panel özeti", href: "/dashboard" },
-        { label: "Konuşmalar", href: "/dashboard/conversations" },
-        { label: "Rezervasyon akışı", href: "/dashboard/reservations" },
+        { label: "Operasyon özeti", href: "/dashboard" },
+        { label: "Konuşma operasyonu", href: "/dashboard/conversations" },
+        { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
       ];
     }
     return [
-      { label: "Canlı Dashboard'u incele", href: "/dashboard" },
-      { label: "Rezervasyon akışını gör", href: "/dashboard/reservations" },
-      { label: "AI operasyon merkezini keşfet", href: "/dashboard/conversations" },
+      { label: "Canlı operasyon paneli", href: "/dashboard" },
+      { label: "Direkt rezervasyon akışı", href: "/dashboard/reservations" },
+      { label: "Konuşma operasyonu", href: "/dashboard/conversations" },
     ];
   }, [pathname]);
 
@@ -367,12 +446,18 @@ export function ConciergeWebChat() {
   useEffect(() => {
     return () => {
       timersRef.current.forEach((id) => window.clearTimeout(id));
+      demoTimersRef.current.forEach((id) => window.clearTimeout(id));
     };
   }, []);
 
   const resetTimers = useCallback(() => {
     timersRef.current.forEach((id) => window.clearTimeout(id));
     timersRef.current = [];
+  }, []);
+
+  const clearDemoTimers = useCallback(() => {
+    demoTimersRef.current.forEach((id) => window.clearTimeout(id));
+    demoTimersRef.current = [];
   }, []);
 
   const pushTimer = useCallback((id: number) => {
@@ -394,13 +479,25 @@ export function ConciergeWebChat() {
     [pushTimer, resetTimers]
   );
 
-  const appendVisitor = useCallback((text: string) => {
+  const appendVisitor = useCallback((text: string, opts?: { visitorAttribution?: string }) => {
     visitorActionsRef.current += 1;
     const msg: ChatMessage = {
       id: nowId("visitor"),
       role: "visitor",
       text,
       ts: Date.now(),
+      ...(opts?.visitorAttribution ? { visitorAttribution: opts.visitorAttribution } : {}),
+    };
+    setMessages((m) => [...m, msg]);
+  }, []);
+
+  const appendSystemEventLine = useCallback((text: string, tone: SystemTone = "event") => {
+    const msg: ChatMessage = {
+      id: nowId("system"),
+      role: "system",
+      text,
+      ts: Date.now(),
+      systemTone: tone,
     };
     setMessages((m) => [...m, msg]);
   }, []);
@@ -442,13 +539,158 @@ export function ConciergeWebChat() {
     [appendAssistant, getDashboardLinks, wrapConversion]
   );
 
+  const runSalesDemoLines = useCallback(
+    (lines: SalesDemoScriptLine[], startIndex: number, onComplete?: () => void) => {
+      const runNext = (idx: number) => {
+        if (idx >= lines.length) {
+          onComplete?.();
+          return;
+        }
+        const line = lines[idx]!;
+        if (line.kind === "system") {
+          appendSystemEventLine(line.text, line.tone);
+          const t = window.setTimeout(() => runNext(idx + 1), line.delayAfterMs);
+          demoTimersRef.current.push(t);
+          return;
+        }
+        if (line.kind === "visitor") {
+          appendVisitor(line.text, { visitorAttribution: "Misafir (örnek)" });
+          const t = window.setTimeout(() => runNext(idx + 1), line.delayAfterMs);
+          demoTimersRef.current.push(t);
+          return;
+        }
+        setAssistantTyping(true);
+        const d = randomAssistantDelayMs();
+        const t1 = window.setTimeout(() => {
+          setAssistantTyping(false);
+          appendAssistant({
+            text: line.text,
+            chips: line.chips,
+            pricePreview: line.pricePreview,
+            reservationPreview: line.reservationPreview,
+            conversion: line.reservationPreview
+              ? wrapConversion({
+                  consultativeLine:
+                    "Bu özet kartı, operasyon panelindeki **rezervasyon bandı** ve **tahsilat satırı** ile aynı çizelgede görünür.",
+                  insights: ["Pipeline", "Ödeme bandı", "İnsan devralma", "Doğrudan kanal"],
+                  dashboardLinks: dashboardSalesLinks(),
+                  demoMailCta: false,
+                })
+              : wrapConversion({
+                  consultativeLine: "Önizleme ortamı — tarih, tutar ve misafir satırları gösterim amaçlıdır.",
+                  insights: [...TRUST_INSIGHTS].slice(0, 4),
+                  dashboardLinks: getDashboardLinks(),
+                  demoMailCta: false,
+                }),
+          });
+          const t2 = window.setTimeout(() => runNext(idx + 1), line.delayAfterMs);
+          demoTimersRef.current.push(t2);
+        }, d);
+        demoTimersRef.current.push(t1);
+      };
+      runNext(startIndex);
+    },
+    [appendAssistant, appendSystemEventLine, appendVisitor, getDashboardLinks, wrapConversion]
+  );
+
+  const handleReservationCta = useCallback(
+    (id: string) => {
+      if (id === "demo_dash") {
+        window.location.href = "/dashboard";
+        return;
+      }
+      if (id === "demo_pay_pending" && salesDemoPhaseRef.current === "await_pay") {
+        salesDemoPhaseRef.current = "await_confirm";
+        clearDemoTimers();
+        runSalesDemoLines(SALES_DEMO_PAYMENT_PENDING, 0, () => {});
+        return;
+      }
+    },
+    [clearDemoTimers, runSalesDemoLines]
+  );
+
+  const runHotelIntelligence = useCallback(
+    async (prebuiltMessages: IntelligenceChatRequest["messages"]) => {
+      const reqId = ++intelRequestIdRef.current;
+      intelligenceAbortRef.current?.abort();
+      const ctrl = new AbortController();
+      intelligenceAbortRef.current = ctrl;
+      resetTimers();
+      setAssistantTyping(true);
+      try {
+        const result = await fetchIntelligenceChat(prebuiltMessages, ctrl.signal);
+        if (reqId !== intelRequestIdRef.current) return;
+        if (result.ok && result.data.enabled && result.data.reply) {
+          const insightChips = mapInsightsToChipLabels(result.data.insights ?? undefined);
+          appendAssistant({
+            text: result.data.reply,
+            hotelInsights: result.data.insights ?? undefined,
+            conversion: wrapConversion({
+              consultativeLine:
+                "Yanıt **Hotel Operating Intelligence** katmanı (DeepSeek) ile üretildi; canlı kurulumda politika ve veri bağlantılarınız eklenir.",
+              insights: insightChips.length > 0 ? insightChips : [...TRUST_INSIGHTS].slice(0, 3),
+              dashboardLinks: getDashboardLinks(),
+              demoMailCta: true,
+            }),
+          });
+          return;
+        }
+        appendAssistant({
+          text: GENERIC_FREE_TEXT_REPLY,
+          conversion: wrapConversion({
+            consultativeLine:
+              "Canlı AI katmanı için **DEEPSEEK_API_KEY** sunucu ortamında tanımlı olmalıdır; anahtar tarayıcıya verilmez.",
+            insights: [...TRUST_INSIGHTS],
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          }),
+        });
+      } catch {
+        if (reqId !== intelRequestIdRef.current) return;
+        appendAssistant({
+          text: GENERIC_FREE_TEXT_REPLY,
+          conversion: wrapConversion({
+            consultativeLine:
+              "Şu an canlı AI katmanına ulaşılamadı. Önizleme akışları veya kurulum görüşmesi ile devam edebilirsiniz.",
+            insights: [...TRUST_INSIGHTS],
+            dashboardLinks: getDashboardLinks(),
+            demoMailCta: true,
+          }),
+        });
+      } finally {
+        if (reqId === intelRequestIdRef.current) {
+          setAssistantTyping(false);
+        }
+      }
+    },
+    [appendAssistant, getDashboardLinks, resetTimers, wrapConversion]
+  );
+
   const sendFreeText = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (!trimmed) return;
+      intelligenceAbortRef.current?.abort();
+      if (salesDemoPhaseRef.current !== "idle" && !detectSalesDemoIntent(trimmed)) {
+        clearDemoTimers();
+        salesDemoPhaseRef.current = "idle";
+      }
+
       setInput("");
       resetTimers();
       setAssistantTyping(false);
+
+      if (detectSalesDemoIntent(trimmed)) {
+        appendVisitor(trimmed);
+        flowContextRef.current = null;
+        clearDemoTimers();
+        salesDemoPhaseRef.current = "opening";
+        runSalesDemoLines(SALES_DEMO_OPENING_SCRIPT, 0, () => {
+          salesDemoPhaseRef.current = "await_pay";
+        });
+        return;
+      }
+
       appendVisitor(trimmed);
 
       const routed = detectFlowFromUserText(trimmed);
@@ -463,8 +705,8 @@ export function ConciergeWebChat() {
                 insights: [...TRUST_INSIGHTS],
                 dashboardLinks: getDashboardLinks(),
                 navigatorChips: [
-                  { label: "Görüşme formu (sayfa)", href: "/#tugobo-demo-talep" },
-                  { label: "Dashboard", href: "/dashboard" },
+                  { label: "Kurulum formu (sayfa)", href: "/#tugobo-demo-talep" },
+                  { label: "Operasyon paneli", href: "/dashboard" },
                 ],
                 demoMailCta: true,
               })
@@ -520,26 +762,20 @@ export function ConciergeWebChat() {
         flowContextRef.current = null;
       }
 
-      withTyping(() => {
-        appendAssistant({
-          text: GENERIC_FREE_TEXT_REPLY,
-          conversion: wrapConversion({
-            consultativeLine:
-              "Kurulum sonrası yanıtlar işletmenizin kurallarına göre kişiselleşir; ekibiniz için özet ve öncelik önerileri üretilir.",
-            insights: [...TRUST_INSIGHTS],
-            dashboardLinks: getDashboardLinks(),
-            demoMailCta: true,
-          }),
-        });
-      });
+      const prebuilt = buildIntelligenceRequestMessages(messagesRef.current, trimmed);
+      void runHotelIntelligence(prebuilt);
+      return;
     },
     [
       appendAssistant,
       appendScenarioAssistant,
       appendVisitor,
+      clearDemoTimers,
       getDashboardLinks,
       openDemoModal,
       resetTimers,
+      runHotelIntelligence,
+      runSalesDemoLines,
       withTyping,
       wrapConversion,
     ]
@@ -548,12 +784,39 @@ export function ConciergeWebChat() {
   const handleScenarioChip = useCallback(
     (label: string) => {
       resetTimers();
+      intelligenceAbortRef.current?.abort();
       setAssistantTyping(false);
       appendVisitor(label);
       const low = label.toLocaleLowerCase("tr-TR");
 
       if (
-        low.includes("demo formunu") ||
+        salesDemoPhaseRef.current === "await_pay" &&
+        (low.includes("ödeme beklemede") || low.includes("odeme beklemede"))
+      ) {
+        clearDemoTimers();
+        salesDemoPhaseRef.current = "await_confirm";
+        runSalesDemoLines(SALES_DEMO_PAYMENT_PENDING, 0, () => {});
+        return;
+      }
+      if (
+        salesDemoPhaseRef.current === "await_confirm" &&
+        (low.includes("resepsiyon onayı") || low.includes("resepsiyon onayi"))
+      ) {
+        clearDemoTimers();
+        runSalesDemoLines(SALES_DEMO_CONFIRMED, 0, () => {
+          salesDemoPhaseRef.current = "done";
+          salesDemoSeqRef.current += 1;
+          window.dispatchEvent(
+            new CustomEvent(TUGOBO_SALES_DEMO_EVENT, {
+              detail: salesDemoMetricsPayload(salesDemoSeqRef.current),
+            })
+          );
+        });
+        return;
+      }
+
+      if (
+        low.includes("kurulum formunu") ||
         low.includes("görüşme formunu") ||
         low.includes("gorusme formunu") ||
         low.includes("ücretsiz görüşme formu") ||
@@ -565,7 +828,7 @@ export function ConciergeWebChat() {
       ) {
         withTyping(() => {
           appendAssistant({
-            text: "Harika — **görüşme formunu** açıyorum. Kısa bilgilerinizi iletmeniz yeterli; ekibimiz size geri döner.",
+            text: "Tamam — **kurulum görüşmesi formunu** açıyorum. Kısa bilgilerinizi iletmeniz yeterli; ekibimiz operasyon turu için size döner.",
             conversion: wrapConversion({
               insights: [...TRUST_INSIGHTS],
               dashboardLinks: getDashboardLinks(),
@@ -579,8 +842,8 @@ export function ConciergeWebChat() {
       }
 
       if (
-        low.includes("önce dashboard") ||
-        low.includes("once dashboard") ||
+        low.includes("önce operasyon") ||
+        low.includes("once operasyon") ||
         low.includes("paneli göster") ||
         low.includes("paneli goster") ||
         (low.includes("dashboard") && !low.includes("görüşme talep") && !low.includes("gorusme talep"))
@@ -591,7 +854,7 @@ export function ConciergeWebChat() {
           appendScenarioAssistant(
             dash,
             wrapConversion({
-              consultativeLine: "Bu ekranlar satış önizlemesidir; canlı veriler kurulumla gelir.",
+              consultativeLine: "Bu ekranlar operasyon önizlemesidir; canlı veriler kurulumla gelir.",
               insights: [...TRUST_INSIGHTS],
               dashboardLinks: dashboardSalesLinks(),
               demoMailCta: true,
@@ -622,25 +885,19 @@ export function ConciergeWebChat() {
         }
       }
 
-      withTyping(() => {
-        appendAssistant({
-          text:
-            "Anladım. İsterseniz **Tugobo AI nasıl çalışır?** ile başlayabilir veya **Dashboard** linklerinden canlı önizlemeye geçebilirsiniz.",
-          conversion: wrapConversion({
-            insights: [...TRUST_INSIGHTS],
-            dashboardLinks: getDashboardLinks(),
-            demoMailCta: true,
-          }),
-        });
-      });
+      const prebuilt = buildIntelligenceRequestMessages(messagesRef.current, label);
+      void runHotelIntelligence(prebuilt);
     },
     [
       appendAssistant,
       appendScenarioAssistant,
       appendVisitor,
+      clearDemoTimers,
       getDashboardLinks,
       openDemoModal,
       resetTimers,
+      runHotelIntelligence,
+      runSalesDemoLines,
       withTyping,
       wrapConversion,
     ]
@@ -649,18 +906,33 @@ export function ConciergeWebChat() {
   const runQuickAction = useCallback(
     (action: QuickAction["id"]) => {
       resetTimers();
+      clearDemoTimers();
+      intelligenceAbortRef.current?.abort();
       setAssistantTyping(false);
+
+      if (action === "sales_live_demo") {
+        flowContextRef.current = null;
+        appendVisitor("Canlı rezervasyon ve operasyon demosunu başlatmak istiyorum.");
+        salesDemoPhaseRef.current = "opening";
+        runSalesDemoLines(SALES_DEMO_OPENING_SCRIPT, 0, () => {
+          salesDemoPhaseRef.current = "await_pay";
+        });
+        return;
+      }
+
+      salesDemoPhaseRef.current = "idle";
+
       flowContextRef.current =
         action === "demo" ? { flow: "demo", step: 0 } : { flow: action, step: 0 };
 
       const visitorLine =
         action === "how_it_works"
-          ? "Tugobo AI nasıl çalışır?"
+          ? "Digital Hotel Operating System nasıl çalışır?"
           : action === "dashboard"
-            ? "Dashboard'u görmek istiyorum."
+            ? "Operasyon panelini görmek istiyorum."
             : action === "fit"
-              ? "Otelim için Tugobo AI uygun mu?"
-              : "Görüşme talep etmek istiyorum.";
+              ? "İşletmem için Tugobo uygunluğunu değerlendirmek istiyorum."
+              : "Kurulum görüşmesi planlamak istiyorum.";
       appendVisitor(visitorLine);
 
       if (action === "demo") {
@@ -672,9 +944,9 @@ export function ConciergeWebChat() {
               insights: [...TRUST_INSIGHTS],
               dashboardLinks: getDashboardLinks(),
               navigatorChips: [
-                { label: "Görüşme formu (sayfa)", href: "/#tugobo-demo-talep" },
-                { label: "Dashboard", href: "/dashboard" },
-              ],
+                  { label: "Kurulum formu (sayfa)", href: "/#tugobo-demo-talep" },
+                  { label: "Operasyon paneli", href: "/dashboard" },
+                ],
               demoMailCta: true,
             })
           );
@@ -716,9 +988,11 @@ export function ConciergeWebChat() {
     [
       appendScenarioAssistant,
       appendVisitor,
+      clearDemoTimers,
       getDashboardLinks,
       openDemoModal,
       resetTimers,
+      runSalesDemoLines,
       withTyping,
       wrapConversion,
     ]
@@ -743,12 +1017,12 @@ export function ConciergeWebChat() {
         <button
           type="button"
           onClick={handleToggleOpen}
-          aria-label={open ? "Sohbeti kapat" : "Tugobo AI ile sohbet et"}
+          aria-label={open ? "Paneli kapat" : "Tugobo operasyon rehberini aç"}
           className={[
             "group relative",
             "flex items-center gap-3",
-            "rounded-2xl",
-            "px-4 py-3",
+            "rounded-xl",
+            "px-3 py-2.5 sm:px-4 sm:py-3",
             "border border-white/[0.10]",
             "bg-zinc-950/65 backdrop-blur-xl",
             "shadow-2xl shadow-black/60",
@@ -767,13 +1041,10 @@ export function ConciergeWebChat() {
             <span className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-emerald-500 animate-live-pulse" />
           </span>
 
-          <span className="relative flex min-w-0 flex-col items-start gap-1 leading-tight">
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/[0.20] bg-emerald-500/[0.10] px-2 py-0.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 animate-live-pulse" />
-              <span className="text-[10px] font-semibold text-emerald-300/90">Online</span>
-            </span>
+          <span className="relative flex min-w-0 flex-col items-start gap-0.5 leading-tight">
+            <span className="text-[13px] font-semibold tracking-tight text-white/90">Tugobo AI</span>
             <span className="max-w-[14rem] truncate text-[11px] text-white/40 sm:max-w-[16rem]">
-              Dijital Otel İşletim Sistemi
+              Hotel Operating Intelligence
             </span>
           </span>
 
@@ -793,7 +1064,7 @@ export function ConciergeWebChat() {
           open ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-3 scale-[0.985] pointer-events-none",
         ].join(" ")}
         role="dialog"
-        aria-label="Tugobo AI sohbet penceresi"
+        aria-label="Tugobo operasyon rehberi"
       >
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-white/[0.14] bg-zinc-950/90 backdrop-blur-3xl shadow-[0_32px_70px_-14px_rgba(0,0,0,0.78),0_16px_32px_-8px_rgba(0,0,0,0.55)]">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_30%_0%,rgba(59,130,246,0.10),transparent_55%)]" />
@@ -813,7 +1084,7 @@ export function ConciergeWebChat() {
 
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
                   <span className="truncate text-[13px] font-semibold leading-snug text-white/90">Tugobo AI</span>
-                  <span className="truncate text-[11px] leading-snug text-white/40">Dijital Otel İşletim Sistemi</span>
+                  <span className="truncate text-[11px] leading-snug text-white/40">Hotel Operating Intelligence</span>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
@@ -867,13 +1138,15 @@ export function ConciergeWebChat() {
                       meta={
                         m.role === "assistant"
                           ? `${lastAssistantLabel} · ${formatTime(m.ts)}`
-                          : `Siz · ${formatTime(m.ts)}`
+                          : `${m.visitorAttribution ?? "Siz"} · ${formatTime(m.ts)}`
                       }
                       chips={m.chips}
                       pricePreview={m.pricePreview}
                       reservationPreview={m.reservationPreview}
                       conversion={m.conversion}
+                      hotelInsights={m.hotelInsights}
                       onChipPick={handleScenarioChip}
+                      onReservationCta={handleReservationCta}
                     />
                   );
                 })}
@@ -899,7 +1172,7 @@ export function ConciergeWebChat() {
             </div>
 
             <p className="px-5 pt-2 pb-1 text-center text-[10px] leading-snug text-white/28">
-              Önizleme modu · Canlı kurulumda tam entegrasyon ve veri bağlantısı aktifleşir.
+              Önizleme ortamı · Canlı kurulumda tam entegrasyon ve veri bağlantısı aktifleşir.
             </p>
             <form
               onSubmit={onSubmit}
@@ -1116,7 +1389,7 @@ function InsightStrip({ items }: { items: string[] }) {
 function DashboardPreviewStrip({ links }: { links: DashboardCtaLink[] }) {
   return (
     <div className="rounded-2xl border border-white/[0.09] bg-zinc-950/50 px-3 py-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-white/32 mb-2">Önerilen adımlar</p>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-white/32 mb-2">Operasyon adımları</p>
       <div className="flex flex-col gap-1.5">
         {links.map((l) => (
           <Link
@@ -1140,8 +1413,54 @@ function DemoSoftEscalation() {
         href={DEMO_MAIL_HREF}
         className="text-[12px] leading-snug text-blue-200/72 transition-colors duration-200 hover:text-blue-100/90 underline-offset-4 hover:underline"
       >
-        Uygun olduğunuz bir zaman için kısa bir ürün görüşmesi planlamak isterseniz buradan yazabilirsiniz.
+        Uygun olduğunuz bir zaman için Digital Hotel Operating System kurulum görüşmesi planlamak isterseniz buradan yazabilirsiniz.
       </a>
+    </div>
+  );
+}
+
+function IntelligenceInsightPanel({ insights }: { insights: HotelIntelligenceInsights }) {
+  const rows: { label: string; value: string }[] = [];
+  if (insights.leadIntent) {
+    const labels: Record<string, string> = {
+      booking: "Rezervasyon / gelir",
+      information: "Bilgi",
+      pricing: "Fiyat / teklif",
+      complaint: "Şikâyet / risk",
+      other: "Genel",
+    };
+    rows.push({ label: "Niyet", value: labels[insights.leadIntent] ?? insights.leadIntent });
+  }
+  if (typeof insights.urgencyScore === "number") {
+    rows.push({ label: "Aciliyet skoru", value: `${insights.urgencyScore}/100` });
+  }
+  if (insights.takeoverRecommended === true) {
+    rows.push({ label: "İnsan devralma", value: "Önerilir" });
+  }
+  if (typeof insights.reservationLikelihood === "number") {
+    rows.push({ label: "Direkt rezervasyon olasılığı", value: `${insights.reservationLikelihood}/100` });
+  }
+  if (insights.nextBestAction) {
+    rows.push({ label: "Sonraki en iyi aksiyon", value: insights.nextBestAction });
+  }
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-2.5 rounded-2xl border border-blue-500/25 bg-gradient-to-br from-blue-500/[0.08] to-violet-500/[0.05] px-3 py-2.5 shadow-[0_0_24px_-8px_rgba(59,130,246,0.25)]">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-200/70 mb-2 flex items-center gap-1.5">
+        <Sparkles className="w-3 h-3 shrink-0" aria-hidden />
+        Operasyon içgörüsü (AI)
+      </p>
+      <dl className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3">
+            <dt className="text-[10px] font-medium text-white/35 shrink-0">{r.label}</dt>
+            <dd className="text-[11px] text-white/78 leading-snug sm:text-right">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-[9px] text-white/28 mt-2 leading-snug">
+        Tahmine dayalı sinyaller; canlı kurulumda PMS ve politika verisiyle keskinleşir.
+      </p>
     </div>
   );
 }
@@ -1154,6 +1473,7 @@ function MessageBubble({
   pricePreview,
   reservationPreview,
   conversion,
+  hotelInsights,
   onChipPick,
   onReservationCta,
 }: {
@@ -1164,6 +1484,7 @@ function MessageBubble({
   pricePreview?: PricePreview;
   reservationPreview?: ReservationPreview;
   conversion?: ConversionSurface;
+  hotelInsights?: HotelIntelligenceInsights | null;
   onChipPick: (label: string) => void;
   onReservationCta?: (id: string) => void;
 }) {
@@ -1213,6 +1534,8 @@ function MessageBubble({
             ))}
           </div>
         )}
+
+        {isAI && hotelInsights ? <IntelligenceInsightPanel insights={hotelInsights} /> : null}
 
         {isAI && conversion ? <ConversionAttachments surface={conversion} /> : null}
 

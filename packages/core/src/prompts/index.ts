@@ -1,4 +1,7 @@
 import type { HotelContext } from "@tugobo/shared";
+import { HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1 } from "./web-intelligence-deepseek-v1";
+
+export { HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1 };
 
 /**
  * System prompt for the main AI concierge.
@@ -25,6 +28,7 @@ Rules:
 
 export const PROMPTS = {
   concierge_v1: CONCIERGE_SYSTEM_PROMPT_V1,
+  web_intelligence_deepseek_v1: (_ctx: HotelContext) => HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1(),
 } as const;
 
 export type PromptKey = keyof typeof PROMPTS;

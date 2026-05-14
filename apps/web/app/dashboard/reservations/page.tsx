@@ -9,6 +9,9 @@ import {
   TrendingUp,
   ExternalLink,
   Moon,
+  ChevronRight,
+  PiggyBank,
+  Clock,
 } from "lucide-react";
 import { RESERVATIONS, type ReservationStatus } from "../_components/mock-data";
 import { ResBadge } from "../_components/badges";
@@ -17,20 +20,28 @@ import { cn } from "@/lib/utils";
 type Tab = "all" | ReservationStatus;
 
 const tabs: { id: Tab; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "new", label: "New Leads" },
-  { id: "quoted", label: "Quoted" },
-  { id: "pending_payment", label: "Pending Payment" },
+  { id: "all", label: "All stages" },
+  { id: "new", label: "Inquiry" },
+  { id: "quoted", label: "Offer sent" },
+  { id: "pending_payment", label: "Payment pending" },
   { id: "confirmed", label: "Confirmed" },
   { id: "lost", label: "Lost" },
 ];
 
 const summaryCards = [
-  { label: "Total Leads", value: "6", icon: TrendingUp, iconColor: "text-violet-400", bg: "bg-violet-500/10" },
-  { label: "Confirmed", value: "3", icon: CalendarDays, iconColor: "text-emerald-400", bg: "bg-emerald-500/10" },
-  { label: "Pending Payment", value: "1", icon: DollarSign, iconColor: "text-amber-400", bg: "bg-amber-500/10" },
-  { label: "Total Revenue", value: "$2,900", icon: DollarSign, iconColor: "text-blue-400", bg: "bg-blue-500/10" },
+  { label: "Pipeline volume", value: "6", icon: TrendingUp, iconColor: "text-violet-400", bg: "bg-violet-500/10" },
+  { label: "Direct revenue", value: "$2,900", icon: DollarSign, iconColor: "text-emerald-400", bg: "bg-emerald-500/10" },
+  { label: "OTA avoided (est.)", value: "$435", icon: PiggyBank, iconColor: "text-amber-400", bg: "bg-amber-500/10" },
+  { label: "Avg. cycle time", value: "2.4d", icon: Clock, iconColor: "text-blue-400", bg: "bg-blue-500/10" },
 ];
+
+const PIPELINE_OVERVIEW = [
+  { en: "Inquiry", tr: "Talep", n: 2 },
+  { en: "Qualified", tr: "Niteli", n: 1 },
+  { en: "Offer sent", tr: "Teklif", n: 1 },
+  { en: "Payment", tr: "Ödeme", n: 1 },
+  { en: "Confirmed", tr: "Onay", n: 3 },
+] as const;
 
 export default function ReservationsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("all");
@@ -51,8 +62,11 @@ export default function ReservationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 className="text-xl font-semibold text-white">Reservations</h1>
-          <p className="text-sm text-white/40 mt-0.5">Track every lead from first message to confirmed booking</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/25 mb-1">Booking pipeline</p>
+          <h1 className="text-xl font-semibold text-white">Reservation operations</h1>
+          <p className="text-sm text-white/40 mt-0.5">
+            Inquiry → confirmed with revenue, OTA avoidance, and staff checkpoints in one surface
+          </p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium text-white transition-colors">
           + New reservation
@@ -73,6 +87,30 @@ export default function ReservationsPage() {
             <p className="text-xs text-white/40 mt-0.5">{card.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Stage visibility strip */}
+      <div className="mb-7 rounded-xl border border-white/[0.06] bg-zinc-900/80 px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <p className="text-[11px] font-semibold text-white/45 uppercase tracking-wider">Stage mix (demo)</p>
+          <p className="text-[11px] text-white/28">Aligned with ops command · same taxonomy as dashboard</p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1">
+          {PIPELINE_OVERVIEW.map((s, i) => (
+            <div key={s.en} className="flex min-w-0 flex-1 flex-row items-center gap-1">
+              <div className="flex min-w-0 flex-1 flex-row items-center justify-between gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 sm:flex-col sm:items-start sm:justify-start">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/22">{s.en}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold tabular-nums text-white/90">{s.n}</span>
+                  <span className="text-[10px] text-white/30">{s.tr}</span>
+                </div>
+              </div>
+              {i < PIPELINE_OVERVIEW.length - 1 ? (
+                <ChevronRight className="mx-0.5 hidden h-4 w-4 shrink-0 text-white/10 sm:block" aria-hidden />
+              ) : null}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Table card */}
@@ -118,7 +156,7 @@ export default function ReservationsPage() {
                   { label: "Check-out", w: "" },
                   { label: "Nights", w: "text-center" },
                   { label: "Guests", w: "text-center" },
-                  { label: "Status", w: "" },
+                  { label: "Stage", w: "" },
                   { label: "Amount", w: "text-right" },
                   { label: "Booked", w: "" },
                   { label: "", w: "" },

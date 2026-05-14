@@ -158,7 +158,7 @@ const METRIC_DEFS = [
   {
     icon: CalendarCheck,
     key: "bookings" as const,
-    label: "Bookings today",
+    label: "Direct bookings today",
     color: "text-emerald-400",
     iconBg: "bg-emerald-500/[0.12]",
     borderColor: "border-emerald-500/[0.10]",
@@ -166,7 +166,7 @@ const METRIC_DEFS = [
   {
     icon: TrendingUp,
     key: "revenue" as const,
-    label: "AI-generated revenue",
+    label: "Revenue recovered (direct)",
     color: "text-blue-400",
     iconBg: "bg-blue-500/[0.12]",
     borderColor: "border-blue-500/[0.10]",
@@ -182,7 +182,7 @@ const METRIC_DEFS = [
   {
     icon: Zap,
     key: "response" as const,
-    label: "Avg AI response time",
+    label: "Avg response time",
     color: "text-violet-400",
     iconBg: "bg-violet-500/[0.12]",
     borderColor: "border-violet-500/[0.10]",
@@ -190,7 +190,7 @@ const METRIC_DEFS = [
   {
     icon: ShieldCheck,
     key: "leads" as const,
-    label: "Missed bookings prevented",
+    label: "Missed leads prevented",
     color: "text-cyan-400",
     iconBg: "bg-cyan-500/[0.12]",
     borderColor: "border-cyan-500/[0.10]",
@@ -736,7 +736,7 @@ export default function ConversationsPage() {
         <div className="flex items-center gap-2 text-[11px] text-white/20">
           <span>Grand Hotel Demo</span>
           <span className="text-white/10">·</span>
-          <span>Sales Preview</span>
+          <span>Operations preview</span>
           {demoMode && (
             <span className="flex items-center gap-1 text-blue-400/60 ml-1">
               <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
@@ -1086,7 +1086,7 @@ function MetricsBar({
           </span>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-white/18">
-          <span className="hidden sm:inline">AI signals are simulated</span>
+          <span className="hidden sm:inline">Ops signals are simulated</span>
           <span className="h-3 w-px bg-white/10" />
           <span className="font-medium text-white/22">demo</span>
         </div>
@@ -1210,11 +1210,11 @@ function ConvList({
       <div className="border-b border-white/[0.03] px-4 pb-5 pt-6">
         <div className="mb-1.5 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-sm font-semibold tracking-tight text-white">Conversations</h1>
+            <h1 className="text-sm font-semibold tracking-tight text-white">Guest threads</h1>
             <p className="mt-1 text-[11px] leading-relaxed text-white/30">
               Grand Hotel Demo
               <span className="mx-1.5 text-white/12">·</span>
-              <span className="text-blue-400/75">Mia AI active</span>
+              <span className="text-blue-400/75">Ops layer active</span>
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -1232,7 +1232,7 @@ function ConvList({
         {/* KPI stats */}
         <div className="mb-4 mt-5 grid grid-cols-3 gap-2.5">
           {[
-            { label: "AI Active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
+            { label: "Ops active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
             { label: "Pipeline", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.06] border-amber-500/[0.1]" },
             { label: "Confirmed", value: "3", color: "text-emerald-400", bg: "bg-emerald-500/[0.06] border-emerald-500/[0.1]" },
           ].map((stat) => (
@@ -1697,7 +1697,7 @@ function GuestSidebar({
               )}
             >
               {effectiveStatus === "ai_active" ? (
-                <><Bot className="w-3 h-3" />Mia AI</>
+                <><Bot className="w-3 h-3" />Tugobo ops</>
               ) : effectiveStatus === "human_takeover" ? (
                 <><User className="w-3 h-3" />Staff</>
               ) : (
@@ -1937,7 +1937,7 @@ function ReplyBar({
             <Bot className="w-3.5 h-3.5 text-blue-400" />
           </div>
           <p className="text-[13px] text-blue-300/60 flex-1">
-            Mia (AI) is responding. Click{" "}
+            The Tugobo operations layer is handling this thread. Click{" "}
             <button
               onClick={onTakeover}
               className="text-amber-400 font-medium hover:text-amber-300 transition-colors"

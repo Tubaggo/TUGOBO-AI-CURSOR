@@ -18,47 +18,75 @@ import {
   Layers,
   Users,
   Sparkles,
+  Inbox,
+  Share2,
+  Monitor,
+  FileText,
 } from "lucide-react";
 import { Nav } from "./_components/nav";
 import { DemoButton } from "./_components/demo-modal";
+import { LandingHeroMetrics } from "./_components/landing-hero-metrics";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
+const HERO_FEATURE_STRIP = [
+  {
+    icon: MessageSquare,
+    title: "Tüm kanallar tek panelde",
+    subtitle: "WhatsApp, Instagram, Web Chat",
+  },
+  {
+    icon: TrendingUp,
+    title: "Daha fazla direkt rezervasyon",
+    subtitle: "OTA komisyonlarını azaltın",
+  },
+  {
+    icon: Sparkles,
+    title: "AI destekli operasyon katmanı",
+    subtitle: "7/24 yanıt, akıllı yönlendirme",
+  },
+  {
+    icon: BarChart3,
+    title: "Operasyonel görünürlük",
+    subtitle: "Anlık metrikler ve ileri analiz",
+  },
+] as const;
+
 const CAPABILITIES = [
   {
-    icon: Bot,
-    title: "Akıllı Rezervasyon Motoru",
-    desc: "Misafir sorularını anında yanıtlar, fiyat verir, uygun oda önerir. 38 saniyede, siz yokken bile.",
+    icon: Layers,
+    title: "Direkt rezervasyon altyapısı",
+    desc: "Teklif, müsaitlik ve ödeme adımları operasyon kurallarınıza bağlı çalışır; doğrudan kanal gelirini güçlendirir, OTA bağımlılığını azaltır.",
     accent: "blue",
   },
   {
     icon: TrendingUp,
-    title: "Gelir Optimizasyonu",
-    desc: "Boş geceleri azaltır, doğru teklifi doğru anda sunar. OTA komisyonunu değil, kendi cekinizi doldurun.",
+    title: "Pipeline & gelir görünürlüğü",
+    desc: "Fırsatlar, teyitler ve kayıplar tek panelde. Boş geceleri azaltmak için doğru teklifi doğru anda operasyon ritminize göre sunarsınız.",
     accent: "emerald",
   },
   {
-    icon: Layers,
-    title: "Çoklu Kanal Yönetimi",
-    desc: "WhatsApp, Instagram ve web sitesi talepleri tek panelde. Kanal fark etmez, hiçbir mesaj kaybolmaz.",
+    icon: MessageSquare,
+    title: "Birleşik misafir iletişimi",
+    desc: "WhatsApp, Instagram DM ve web üzerindeki talepler aynı operasyon kuyruğuna düşer; kanal fark etmez, hiçbir iş kalemi kaybolmaz.",
     accent: "violet",
   },
   {
     icon: Sparkles,
-    title: "Misafir Bilgilendirme",
-    desc: "Konum, check-in saati, kurallar ve özel talepler otomatik karşılanır. Tekrar tekrar aynı soruya yanıt vermek yok.",
+    title: "AI destekli operasyon katmanı",
+    desc: "Politika, fiyat ve bilgilendirme akışları otomatik işlenir; ekip tekrarlayan sorulara takılmadan sahaya odaklanır.",
     accent: "amber",
   },
   {
     icon: BarChart3,
-    title: "Canlı Analitik",
-    desc: "Kaç mesaj geldi, kaçı satışa döndü, kaçı kaçtı — gerçek zamanlı görün. Kararlarınızı veriye dayandırın.",
+    title: "Operasyonel görünürlük",
+    desc: "Hacim, dönüşüm, devralma ve SLA sinyalleri canlı. Kararlarınızı sezgisel değil, paneldeki operasyon verisine dayandırın.",
     accent: "blue",
   },
   {
     icon: Shield,
-    title: "İnsan Müdahalesi",
-    desc: "Hassas durumları siz devralırsınız. İstediğiniz anda konuşmaya girin, yapay zeka bekler.",
+    title: "Kontrollü insan devralma",
+    desc: "Hassas vakalarda AI katmanı durur; resepsiyon veya satış aynı bağlamla devreye girer, sistem bekler.",
     accent: "emerald",
   },
 ];
@@ -72,7 +100,7 @@ const CHANNELS = [
 
 const METRICS = [
   { icon: CalendarCheck, iconBg: "bg-emerald-500/[0.10]", iconColor: "text-emerald-400", color: "text-emerald-400", value: "47",       label: "Bugün kapanan rezervasyon", trend: "+12 dünden" },
-  { icon: TrendingUp,    iconBg: "bg-blue-500/[0.10]",    iconColor: "text-blue-400",    color: "text-blue-400",    value: "₺68.400",  label: "AI kaynaklı gelir",          trend: "+₺9.200 geçen hafta" },
+  { icon: TrendingUp,    iconBg: "bg-blue-500/[0.10]",    iconColor: "text-blue-400",    color: "text-blue-400",    value: "₺68.400",  label: "Doğrudan kanal geliri",      trend: "+₺9.200 geçen hafta" },
   { icon: Banknote,      iconBg: "bg-amber-500/[0.10]",   iconColor: "text-amber-400",   color: "text-amber-400",   value: "₺10.260",  label: "OTA komisyonu önlendi",      trend: "+₺1.380 bu hafta" },
   { icon: Clock,         iconBg: "bg-violet-500/[0.10]",  iconColor: "text-violet-400",  color: "text-violet-400",  value: "38s",      label: "Ort. yanıt süresi",          trend: "↓ 12sn hızlı" },
   { icon: ShieldCheck,   iconBg: "bg-cyan-500/[0.10]",    iconColor: "text-cyan-400",    color: "text-cyan-400",    value: "183",      label: "Önlenen kayıp",             trend: "100% yakalama" },
@@ -81,21 +109,21 @@ const METRICS = [
 const STEPS = [
   {
     n: "01", icon: MessageSquare, color: "text-blue-400", bg: "bg-blue-500/[0.08]",
-    title: "Misafir yazar",
-    desc: "WhatsApp, Instagram veya web sitenizden talep gelir. Oda, fiyat, müsaitlik — her mesaj anında işleme alınır.",
-    tag: "WhatsApp · Instagram · Web",
+    title: "Talep operasyon kuyruğuna girer",
+    desc: "WhatsApp, Instagram veya web sitenizden gelen her iş kalemi aynı Hotel Operating Intelligence akışına düşer; öncelik ve kanal tek yerden okunur.",
+    tag: "Birleşik misafir iletişimi",
   },
   {
     n: "02", icon: Bot, color: "text-violet-400", bg: "bg-violet-500/[0.08]",
-    title: "Tugobo AI cevaplar",
-    desc: "Fiyat verir, uygunluk kontrol eder, soruları yanıtlar. Güvenli ödeme linki gönderir. Saniyeler içinde.",
-    tag: "7/24 · Çok dilli · Sıfır gecikme",
+    title: "AI operasyon katmanı işler",
+    desc: "Politika, müsaitlik ve fiyat kurallarınız uygulanır; teklif ve ödeme adımları direkt rezervasyon altyapınız üzerinden yürür.",
+    tag: "7/24 · Çok dilli · Kontrollü otomasyon",
   },
   {
     n: "03", icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/[0.08]",
-    title: "Rezervasyona dönüşür",
-    desc: "Ödeme linki, teklif veya rezervasyon tamamlanır. Siz uyurken bile satış sisteminiz çalışmaya devam eder.",
-    tag: "Komisyon %0 · Direkt gelir",
+    title: "Rezervasyon ve gelir kapanır",
+    desc: "Ödeme linki veya onaylı rezervasyon operasyon panelinize işlenir; ekip uyurken bile doğrudan kanal geliri üretmeye devam edersiniz.",
+    tag: "Komisyon %0 · Operasyonel görünürlük",
   },
 ];
 
@@ -112,81 +140,219 @@ const TESTIMONIALS = [
     initials: "HK", color: "bg-violet-700",
   },
   {
-    quote: "Almanca, Rusça ve Arapça bilen personelimiş yoktu. Şimdi Mia herkese kendi dilinde anlık cevap veriyor. Rezervasyon dönüşümümüz ikiye katlandı.",
+    quote: "Almanca, Rusça ve Arapça bilen personelimiş yoktu. Tugobo’nun operasyon katmanı herkese kendi dilinde anlık yanıt veriyor; panelden pipeline’ı takip ediyoruz. Rezervasyon dönüşümümüz ikiye katlandı.",
     name: "Selin Aydın", role: "Genel Müdür · Boutique Hotel Kapadokya",
     initials: "SA", color: "bg-rose-700",
   },
   {
-    quote: "Gece 02:00'de gelen bir rezervasyon talebi bile kaçmıyor. Mia hallediyor, sabah kalktığımda onaylı rezervasyon görüyorum.",
+    quote: "Gece 02:00'de gelen bir talep bile operasyon kuyruğundan düşmüyor. Sabah kalktığımda onaylı rezervasyon ve özet zaten panelde.",
     name: "Mehmet Kaya", role: "Sahip · Villa Bodrum",
     initials: "MK", color: "bg-emerald-700",
   },
 ];
 
+const UNIFIED_SURFACE_CHANNELS = [
+  {
+    icon: MessageSquare,
+    title: "WhatsApp",
+    desc: "Rezervasyon ve ön sorularınızı işletme hattınız üzerinden operasyon kuyruğuna düşürür; SLA ve öncelik kuralları tek omurgada.",
+    accent: "emerald",
+  },
+  {
+    icon: Share2,
+    title: "Instagram DM",
+    desc: "Story ve DM trafiği aynı gelen kutuya bağlanır; kampanya ve organik talepler pipeline’da kaybolmaz.",
+    accent: "rose",
+  },
+  {
+    icon: Monitor,
+    title: "Web chat",
+    desc: "Sitenizden gelen talepler doğrudan rezervasyon motoruna bağlanır; kanal etiketi ve kaynak bilgisi panelde saklı kalır.",
+    accent: "blue",
+  },
+  {
+    icon: Inbox,
+    title: "Tek operasyon gelen kutusu",
+    desc: "Tüm kanallar tek sıra, tek öncelik modeli ve tek devralma çizgisi. Ekip WhatsApp ile web arasında bağlam kaybetmez.",
+    accent: "violet",
+  },
+] as const;
+
+const RESERVATION_STAGES = [
+  {
+    stageEn: "Inquiry",
+    title: "Talep",
+    desc: "İlk temas, tarih ve kişi sayısı; otomatik etiketleme ve öncelik skoru.",
+    icon: MessageSquare,
+    color: "text-slate-300",
+    bg: "bg-white/[0.04] border-white/[0.08]",
+  },
+  {
+    stageEn: "Qualified",
+    title: "Nitelendirildi",
+    desc: "Politika, müsaitlik ve risk kontrolleri tamam; satışa hazır fırsat olarak işaretlenir.",
+    icon: Sparkles,
+    color: "text-violet-300",
+    bg: "bg-violet-500/[0.07] border-violet-500/[0.18]",
+  },
+  {
+    stageEn: "Offer Sent",
+    title: "Teklif gönderildi",
+    desc: "Fiyat, oda tipi ve koşullar kayıt altında; süre ve hatırlatma kuralları devreye girer.",
+    icon: FileText,
+    color: "text-blue-300",
+    bg: "bg-blue-500/[0.07] border-blue-500/[0.18]",
+  },
+  {
+    stageEn: "Payment Pending",
+    title: "Ödeme bekleniyor",
+    desc: "Güvenli ödeme linki veya provizyon adımı; tahsilat durumu canlı izlenir.",
+    icon: Banknote,
+    color: "text-amber-300",
+    bg: "bg-amber-500/[0.07] border-amber-500/[0.18]",
+  },
+  {
+    stageEn: "Confirmed",
+    title: "Onaylı rezervasyon",
+    desc: "Konfirme kayıt, referans ve gelir satırı; CRM ve muhasebe entegrasyonlarına hazır çıktı.",
+    icon: CalendarCheck,
+    color: "text-emerald-300",
+    bg: "bg-emerald-500/[0.08] border-emerald-500/[0.22]",
+  },
+] as const;
+
+const OPS_VISIBILITY = [
+  {
+    icon: ShieldCheck,
+    title: "Kaçırılmayan talepler",
+    desc: "Gece ve yoğun saatlerde düşen iş kalemleri kuyrukta tutulur; sessiz kayıplar için erken uyarı.",
+  },
+  {
+    icon: BarChart3,
+    title: "Dönüşüm görünürlüğü",
+    desc: "Aşama bazlı huni ve kanal kırılımı; hangi kaynak gerçekten odaya dönüşüyor tek ekranda.",
+  },
+  {
+    icon: Bot,
+    title: "AI ile yürütülen konuşmalar",
+    desc: "Otomasyon katmanının üstlendiği hacim, müdahale gerektiren vakalar ve ortalama çözüm süresi.",
+  },
+  {
+    icon: Users,
+    title: "İnsan devralma izi",
+    desc: "Kim, ne zaman devraldı; çözüm notları ve misafir memnuniyeti aynı zaman çizelgesinde.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Gelir görünürlüğü",
+    desc: "Doğrudan kanal cirosu, tahsilat bekleyen tutarlar ve OTA’dan kaçınan komisyon tahmini.",
+  },
+] as const;
+
+const OTA_INDEPENDENCE = [
+  {
+    title: "OTA bağımlılığını azaltın",
+    desc: "Misafiri kendi kanallarınızda karşılayın; komisyon yükünü büyüme yerine marjınıza çevirin.",
+  },
+  {
+    title: "Direkt rezervasyonu artırın",
+    desc: "Tekliften ödemeye standart rezervasyon akışı; markanız üzerinden kapanan her gece için net iz.",
+  },
+  {
+    title: "Reklam trafiğini rezervasyona bağlayın",
+    desc: "Meta ve arama reklamlarından gelen DM ve form taleplerini pipeline’da ölçün; ROAS’i oda bazında görün.",
+  },
+  {
+    title: "Misafir ilişkisini sahiplenin",
+    desc: "Veri ve iletişim geçmişi otelde kalır; tekrar konaklama ve upsell için doğrudan erişim.",
+  },
+] as const;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white antialiased selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#030712] bg-gradient-to-b from-[#020617] via-[#050a18] to-[#030712] text-white antialiased selection:bg-blue-500/30">
 
       {/* ── Nav ─────────────────────────────────────────────────────────────── */}
       <Nav />
 
       {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section id="tugobo-hero" className="relative pt-32 pb-16 overflow-hidden">
-        {/* Dot grid */}
-        <div className="absolute inset-0 lp-grid opacity-100 pointer-events-none" />
-        {/* Radial fade over grid */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,transparent_30%,#09090b_80%)] pointer-events-none" />
-        {/* Top glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-500/[0.06] rounded-full blur-3xl pointer-events-none" />
+      <section id="tugobo-hero" className="relative overflow-hidden pb-12 pt-[5.5rem] sm:pt-28 md:pt-32">
+        <div className="absolute inset-0 lp-grid opacity-[0.65] pointer-events-none" />
+        <div className="absolute inset-0 lp-noise pointer-events-none mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(59,130,246,0.14),transparent_55%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(99,102,241,0.06),transparent_50%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_35%,transparent_25%,#030712_88%)] pointer-events-none" />
 
-        <div className="relative max-w-4xl mx-auto px-6 text-center">
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.09] text-[12px] text-white/50 font-medium mb-7 backdrop-blur-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
-            Türkiye&apos;deki oteller için özel kurulum · 30 dakika
+        <div className="relative mx-auto flex max-w-[1400px] flex-col px-4 sm:px-6">
+          <div className="flex min-h-[min(72vh,calc(100dvh-10rem))] flex-col justify-center py-10 md:py-14">
+            <div className="mx-auto max-w-[900px] text-center">
+              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset] backdrop-blur-md sm:text-[13px]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.7)]" />
+                Hotel Operating Intelligence • Dijital Otel İşletim Sistemi
+              </div>
+
+              <h1 className="text-balance text-[2.35rem] font-extrabold leading-[1.05] tracking-[-0.035em] sm:text-5xl md:text-6xl lg:text-[4.25rem] lg:leading-[1.02]">
+                <span className="text-white">Misafir iletişimini</span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 bg-clip-text text-transparent">
+                  operasyon ve direkt
+                  <br />
+                  rezervasyon
+                </span>{" "}
+                <span className="text-white">sisteminde birleştirin.</span>
+              </h1>
+
+              <p className="mx-auto mt-8 max-w-[760px] text-pretty text-[15px] leading-[1.7] text-white/45 md:text-[17px]">
+                Tugobo AI bir sohbet botu değil; birleşik misafir iletişimi, AI destekli operasyon katmanı ve direkt
+                rezervasyon altyapısı sunan Dijital Otel İşletim Sistemi&apos;dir. Canlı panel ile operasyonel görünürlük;
+                OTA bağımlılığını azaltan doğrudan kanal geliri.
+              </p>
+
+              <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                <DemoButton
+                  id="tugobo-demo-talep"
+                  className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl px-8 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_40px_-8px_rgba(99,102,241,0.55)] transition-all active:scale-[0.98] sm:min-w-[240px]"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 transition-[filter] duration-300 group-hover:brightness-110" />
+                  <span className="absolute inset-0 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-40 bg-gradient-to-r from-blue-400 to-violet-500" />
+                  <Zap className="relative h-4 w-4 shrink-0" />
+                  <span className="relative">Operasyon turu planlayın</span>
+                </DemoButton>
+                <Link
+                  id="tugobo-dashboard-cta"
+                  href="/dashboard"
+                  className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.03] px-8 py-3.5 text-[15px] font-medium text-white/65 backdrop-blur-sm transition-all hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-white/90 active:scale-[0.98] sm:min-w-[220px]"
+                >
+                  Canlı operasyon paneli
+                  <ArrowRight className="h-4 w-4 shrink-0 opacity-70" />
+                </Link>
+              </div>
+              <p className="mt-4 text-[12px] text-white/25">30 dakikada sistem turu · Taahhüt yok · Türkçe destek</p>
+            </div>
+
+            <div className="mx-auto mt-14 grid max-w-[1100px] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {HERO_FEATURE_STRIP.map(({ icon: Icon, title, subtitle }) => (
+                <div
+                  key={title}
+                  className="flex gap-3 rounded-xl border border-white/[0.07] bg-zinc-950/50 px-5 py-5 backdrop-blur-sm"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.03]">
+                    <Icon className="h-4 w-4 text-white/35" aria-hidden />
+                  </div>
+                  <div className="min-w-0 text-left">
+                    <p className="text-[14px] font-semibold tracking-tight text-white/90">{title}</p>
+                    <p className="mt-1 text-[12px] leading-snug text-white/38">{subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* Headline */}
-          <h1 className="text-[52px] md:text-[72px] font-bold leading-[1.03] tracking-[-0.03em] mb-6">
-            Gece gelen mesajları sabaha
-            <br />
-            <span className="bg-gradient-to-r from-blue-400 via-violet-400 to-blue-400 bg-clip-text text-transparent">
-              bırakmadan rezervasyona çevirin.
-            </span>
-          </h1>
-
-          {/* Sub */}
-          <p className="text-[17px] text-white/45 leading-relaxed mb-9 max-w-2xl mx-auto">
-            WhatsApp, Instagram ve web sitenize gelen talepleri Tugobo AI saniyeler içinde yanıtlar,
-            fiyat sunar ve rezervasyona dönüştürür.
-            <span className="text-white/65"> 7/24 çalışır, komisyonu azaltır, satış fırsatlarını kaçırmazsınız.</span>
-          </p>
-
-          {/* CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-4">
-            <DemoButton
-              id="tugobo-demo-talep"
-              className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-[15px] transition-all active:scale-[0.97] shadow-lg shadow-blue-500/20"
-            >
-              <Zap className="w-4 h-4" />
-              Ücretsiz Demo Talep Et
-            </DemoButton>
-            <Link
-              id="tugobo-dashboard-cta"
-              href="/dashboard"
-              className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.18] text-[15px] font-medium transition-all"
-            >
-              Canlı Dashboard&apos;u İncele
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <p className="text-[12px] text-white/20">30 dakikada canlı demo · Taahhüt yok · Türkçe destek</p>
         </div>
 
         {/* ── Dashboard preview (hero image) ────────────────────────────────── */}
-        <div className="relative max-w-5xl mx-auto px-6 mt-14">
+        <div className="relative mx-auto mt-4 max-w-[1400px] px-4 sm:px-6 lg:mt-8">
           {/* Glow border wrapper */}
           <div className="lp-glow-border animate-lp-float">
             <div className="rounded-[17px] overflow-hidden bg-zinc-950 shadow-2xl shadow-black/60">
@@ -212,31 +378,16 @@ export default function LandingPage() {
                 <div className="flex items-center gap-2 text-white/20">
                   <span>Grand Hotel Demo</span>
                   <span className="text-white/10">·</span>
-                  <span>Sales Preview</span>
+                  <span>Operations preview</span>
                 </div>
                 <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.07] text-white/35">
                   <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  Demo Mode OFF
+                  Preview data
                 </div>
               </div>
 
-              {/* Metrics bar */}
-              <div className="grid grid-cols-5 border-b border-white/[0.06] bg-zinc-950/60">
-                {METRICS.map((m, i) => (
-                  <div key={i} className="flex items-center gap-2.5 px-4 py-3 border-r border-white/[0.04] last:border-r-0">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${m.iconBg}`}>
-                      <m.icon className={`w-3 h-3 ${m.iconColor}`} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-baseline gap-1 flex-wrap">
-                        <span className={`text-[14px] font-bold tabular-nums ${m.color}`}>{m.value}</span>
-                        <span className="text-[9px] text-emerald-400/50">↑ {m.trend}</span>
-                      </div>
-                      <p className="text-[9px] text-white/30 truncate">{m.label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Metrics bar — syncs with ConciergeWebChat sales demo (client) */}
+              <LandingHeroMetrics />
 
               {/* Main area: 2 column */}
               <div className="flex h-[280px] overflow-hidden">
@@ -303,7 +454,7 @@ export default function LandingPage() {
                         <span className="text-[10px]">🇹🇷</span>
                         <span className="flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400"><Bot className="w-2 h-2" />AI aktif</span>
                       </div>
-                      <p className="text-[10px] text-white/30">+90 532 123 4567 · 7 mesaj</p>
+                      <p className="text-[10px] text-white/30">Misafir kanalı · 7 mesaj</p>
                     </div>
                     <div className="ml-auto">
                       <button className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
@@ -327,7 +478,7 @@ export default function LandingPage() {
                         </div>
                         <div className="flex items-center justify-end gap-1 mt-0.5 mr-0.5">
                           <Bot className="w-2 h-2 text-white/20" />
-                          <p className="text-[9px] text-white/25">Mia · AI · 08:15</p>
+                          <p className="text-[9px] text-white/25">Tugobo · ops layer · 08:15</p>
                         </div>
                       </div>
                       <div className="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0 mb-3">
@@ -344,7 +495,7 @@ export default function LandingPage() {
                   </div>
                   {/* Reply bar hint */}
                   <div className="px-4 py-2.5 border-t border-white/[0.05] flex items-center gap-2 bg-zinc-950/30">
-                    <div className="flex-1 px-3 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-lg text-[10px] text-white/20">Mia AI yanıt veriyor…</div>
+                    <div className="flex-1 px-3 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-lg text-[10px] text-white/20">Operasyon katmanı işliyor…</div>
                     <div className="flex gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:0ms]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:250ms]" />
@@ -371,7 +522,7 @@ export default function LandingPage() {
 
       {/* ── Thin stats strip ────────────────────────────────────────────────── */}
       <div className="border-y border-white/[0.05] bg-zinc-900/40 mt-12">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
           {[
             ["3.200+", "Onaylı rezervasyon", "bu yıl"],
             ["₺42M", "Üretilen gelir", "doğrudan"],
@@ -389,15 +540,15 @@ export default function LandingPage() {
       </div>
 
       {/* ── Platform capabilities ────────────────────────────────────────────── */}
-      <section id="platform" className="max-w-6xl mx-auto px-6 py-24">
+      <section id="platform" className="max-w-[1400px] mx-auto px-6 py-24">
         <div className="text-center mb-14">
-          <span className="text-[11px] font-semibold text-blue-400/60 uppercase tracking-widest">Platform</span>
+          <span className="text-[11px] font-semibold text-blue-400/60 uppercase tracking-widest">Digital Hotel Operating System</span>
           <h2 className="text-[36px] font-bold tracking-tight mt-3 mb-4">
-            Tek panelden tüm rezervasyon trafiğini yönetin.
+            Operasyonu, iletişimi ve direkt rezervasyonu tek panelden yönetin.
           </h2>
           <p className="text-white/40 max-w-xl mx-auto text-[15px] leading-relaxed">
-            WhatsApp, Instagram DM, web chat ve manuel görüşmeleri tek ekranda yönetin.
-            Hiçbir talep gözden kaçmaz.
+            Hotel Operating Intelligence; kanal trafiği, AI katmanı ve ekip devralmasını aynı görünür akışta toplar.
+            Operasyonel görünürlük ve birleşik misafir iletişimi bir arada.
           </p>
         </div>
 
@@ -431,18 +582,67 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Channels section ────────────────────────────────────────────────── */}
-      <section id="kanallar" className="border-t border-white/[0.05] bg-zinc-900/25">
-        <div className="max-w-6xl mx-auto px-6 py-20">
-          <div className="grid lg:grid-cols-2 gap-14 items-center">
+      {/* ── Unified Communication (enterprise layer) ───────────────────────── */}
+      <section id="birlesik-iletisim" className="border-t border-white/[0.05] bg-zinc-900/25">
+        <div className="max-w-[1400px] mx-auto px-6 py-24">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-[11px] font-semibold text-blue-400/70 uppercase tracking-widest">
+              Unified Communication
+            </span>
+            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
+              WhatsApp, Instagram DM ve web chat — tek operasyon gelen kutusu.
+            </h2>
+            <p className="text-white/40 text-[15px] leading-relaxed">
+              Kanal sayısı arttıkça operasyon karmaşıklığı artar. Tugobo, tüm misafir yüzeylerini{" "}
+              <span className="text-white/55">Hotel Operating Intelligence</span> omurgasında birleştirir;
+              öncelik, etiket ve devralma tek çizelgede kalır.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
+            {UNIFIED_SURFACE_CHANNELS.map((ch) => {
+              const ring =
+                ch.accent === "emerald"
+                  ? "border-emerald-500/[0.18] bg-emerald-500/[0.06]"
+                  : ch.accent === "rose"
+                    ? "border-rose-500/[0.18] bg-rose-500/[0.06]"
+                    : ch.accent === "blue"
+                      ? "border-blue-500/[0.18] bg-blue-500/[0.06]"
+                      : "border-violet-500/[0.18] bg-violet-500/[0.06]";
+              const ic =
+                ch.accent === "emerald"
+                  ? "text-emerald-400"
+                  : ch.accent === "rose"
+                    ? "text-rose-400"
+                    : ch.accent === "blue"
+                      ? "text-blue-400"
+                      : "text-violet-400";
+              return (
+                <div
+                  key={ch.title}
+                  className={`rounded-2xl border p-6 transition-colors duration-300 hover:bg-zinc-900/60 ${ring}`}
+                >
+                  <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-zinc-950/50`}>
+                    <ch.icon className={`h-5 w-5 ${ic}`} />
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-white mb-2">{ch.title}</h3>
+                  <p className="text-[13px] text-white/38 leading-relaxed">{ch.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-14 items-start">
             <div>
-              <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Kanallar</span>
-              <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
-                Her kanalı tek<br />panelden yönetin.
-              </h2>
-              <p className="text-white/40 text-[15px] leading-relaxed mb-8">
-                Misafirler WhatsApp&apos;ta, Instagram&apos;da ve web sitenizde yazıyor.
-                Tugobo AI hepsini aynı anda, aynı hızda ve kalitede karşılar.
+              <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">
+                Kanal hacmi (örnek dağılım)
+              </span>
+              <h3 className="text-[22px] font-bold tracking-tight text-white mt-3 mb-4">
+                Operasyon ekibi için tek sıra
+              </h3>
+              <p className="text-white/40 text-[14px] leading-relaxed mb-8">
+                Aşağıdaki dağılım gösterim amaçlıdır; canlı kurulumda kendi kanal kırılımınız raporlanır.
+                Önemli olan: hangi kanaldan gelirse gelsin aynı rezervasyon motoruna ve aynı SLA kurallarına bağlanmasıdır.
               </p>
 
               <div className="space-y-3">
@@ -453,7 +653,7 @@ export default function LandingPage() {
                       <span className={`text-[14px] font-medium ${ch.color}`}>{ch.label}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px] text-white/30">Türkiye&apos;deki payı:</span>
+                      <span className="text-[12px] text-white/30">Türkiye örneği:</span>
                       <span className={`text-[13px] font-bold tabular-nums ${ch.color}`}>{ch.share}</span>
                     </div>
                   </div>
@@ -461,22 +661,21 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Channel visual */}
             <div className="relative">
               <div className="rounded-2xl border border-white/[0.08] bg-zinc-900/80 overflow-hidden">
                 <div className="px-4 py-3.5 border-b border-white/[0.06] bg-zinc-950/40 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-white/60">Unified Inbox</span>
+                  <span className="text-[12px] font-semibold text-white/60">Operational Inbox</span>
                   <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/70">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    4 aktif kanal
+                    4 aktif yüzey · tek kuyruk
                   </div>
                 </div>
                 <div className="p-4 space-y-3">
                   {[
-                    { ch: "WhatsApp", flag: "🇹🇷", name: "Mehmet B.", msg: "Bungalov arıyorum, Temmuz için...", dot: "bg-emerald-400", time: "şimdi", unread: 2, sts: "AI", stc: "bg-blue-500/10 text-blue-400" },
-                    { ch: "Instagram DM", flag: "🇫🇷", name: "Claire D.", msg: "Je cherche une chambre pour 2...", dot: "bg-rose-400", time: "1m", unread: 1, sts: "AI", stc: "bg-blue-500/10 text-blue-400" },
+                    { ch: "WhatsApp", flag: "🇹🇷", name: "Mehmet B.", msg: "Bungalov arıyorum, Temmuz için...", dot: "bg-emerald-400", time: "şimdi", unread: 2, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
+                    { ch: "Instagram DM", flag: "🇫🇷", name: "Claire D.", msg: "Je cherche une chambre pour 2...", dot: "bg-rose-400", time: "1m", unread: 1, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
                     { ch: "Web Chat", flag: "🇩🇪", name: "Klaus W.", msg: "Haben Sie ein Doppelzimmer?", dot: "bg-blue-400", time: "8m", unread: 0, sts: "Onaylı", stc: "bg-emerald-500/10 text-emerald-400" },
-                    { ch: "WhatsApp", flag: "🇸🇦", name: "Ahmed R.", msg: "هل لديك غرفة متاحة في أغسطس؟", dot: "bg-emerald-400", time: "14m", unread: 0, sts: "AI", stc: "bg-blue-500/10 text-blue-400" },
+                    { ch: "WhatsApp", flag: "🇸🇦", name: "Ahmed R.", msg: "هل لديك غرفة متاحة في أغسطس؟", dot: "bg-emerald-400", time: "14m", unread: 0, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
                   ].map((row, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
                       <div className="flex flex-col items-center gap-1.5 shrink-0 pt-0.5">
@@ -510,11 +709,115 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Reservation flow (pipeline stages) ─────────────────────────────── */}
+      <section id="rezervasyon-akisi" className="border-t border-white/[0.05] bg-zinc-950">
+        <div className="max-w-[1400px] mx-auto px-6 py-24">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-[11px] font-semibold text-violet-400/70 uppercase tracking-widest">
+              Reservation Flow
+            </span>
+            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
+              Talepten onaya standart rezervasyon bandı.
+            </h2>
+            <p className="text-white/40 text-[15px] leading-relaxed">
+              Her konuşma aşamalara ayrılır; ekip hangi misafirin hangi aşamada beklediğini panelden okur.
+              Bu model, direkt kanal ve OTA dışı büyümeyi ölçülebilir kılar.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-2">
+            {RESERVATION_STAGES.map((st, i) => (
+              <div key={st.stageEn} className="flex flex-1 min-w-0 flex-col md:flex-row md:items-stretch">
+                <div
+                  className={`flex flex-1 flex-col rounded-2xl border p-5 transition-colors duration-300 hover:border-white/[0.12] ${st.bg}`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <st.icon className={`h-5 w-5 shrink-0 ${st.color}`} />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/25">{st.stageEn}</span>
+                  </div>
+                  <h3 className={`text-[15px] font-semibold leading-snug mb-2 ${st.color}`}>{st.title}</h3>
+                  <p className="text-[12px] text-white/38 leading-relaxed">{st.desc}</p>
+                </div>
+                {i < RESERVATION_STAGES.length - 1 ? (
+                  <div className="hidden md:flex items-center justify-center px-1 shrink-0">
+                    <ArrowRight className="h-4 w-4 text-white/12" aria-hidden />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Operations visibility ───────────────────────────────────────────── */}
+      <section id="operasyon-gorunurlugu" className="border-t border-white/[0.05] bg-zinc-900/20">
+        <div className="max-w-[1400px] mx-auto px-6 py-24">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-[11px] font-semibold text-emerald-400/65 uppercase tracking-widest">
+              Operations Visibility
+            </span>
+            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
+              Otelin operasyonu için kurumsal düzeyde görünürlük.
+            </h2>
+            <p className="text-white/40 text-[15px] leading-relaxed">
+              Kararlar tahmine değil; konuşma hacmi, aşama geçişleri, devralma ve gelir sinyallerine dayanır.
+              Aşağıdaki başlıklar canlı panelde modül olarak sunulur.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {OPS_VISIBILITY.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-2xl border border-white/[0.07] bg-zinc-950/50 p-6 flex flex-col hover:border-white/[0.11] hover:bg-zinc-900/40 transition-all duration-300"
+              >
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03]">
+                  <item.icon className="h-5 w-5 text-white/45" />
+                </div>
+                <h3 className="text-[14px] font-semibold text-white mb-2 leading-snug">{item.title}</h3>
+                <p className="text-[12px] text-white/35 leading-relaxed flex-1">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── OTA independence & direct channel ───────────────────────────────── */}
+      <section id="ota-bagimsizlik" className="border-t border-white/[0.06] bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(16,185,129,0.08),transparent_55%)] bg-zinc-950">
+        <div className="max-w-[1400px] mx-auto px-6 py-24">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-widest">
+              Direct channel & guest ownership
+            </span>
+            <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
+              OTA&apos;ya ödenen marjı, kendi operasyonunuza geri alın.
+            </h2>
+            <p className="text-white/40 text-[15px] leading-relaxed">
+              Tugobo; reklam ve organik trafiği tek rezervasyon bandına bağlayarak{" "}
+              <span className="text-white/55">direkt konaklama gelirini</span> artırır ve{" "}
+              <span className="text-white/55">misafir ilişkisini otelde tutmanızı</span> sağlar.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 lg:grid-cols-4">
+            {OTA_INDEPENDENCE.map((p) => (
+              <div
+                key={p.title}
+                className="rounded-2xl border border-emerald-500/[0.12] bg-emerald-500/[0.03] p-6 hover:border-emerald-500/[0.2] transition-colors duration-300"
+              >
+                <h3 className="text-[15px] font-semibold text-emerald-100/95 mb-2 leading-snug">{p.title}</h3>
+                <p className="text-[13px] text-white/40 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── How it works ────────────────────────────────────────────────────── */}
-      <section id="nasil" className="max-w-6xl mx-auto px-6 py-24">
+      <section id="nasil" className="max-w-[1400px] mx-auto px-6 py-24">
         <div className="text-center mb-14">
           <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Süreç</span>
-          <h2 className="text-[32px] font-bold tracking-tight mt-3">3 adımda satış sisteminizi kurun.</h2>
+          <h2 className="text-[32px] font-bold tracking-tight mt-3">Üç adımda Digital Hotel Operating System kurulumu.</h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5 relative">
@@ -539,9 +842,9 @@ export default function LandingPage() {
 
       {/* ── Revenue impact ──────────────────────────────────────────────────── */}
       <section className="border-y border-white/[0.05] bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-[1400px] mx-auto px-6">
           <div className="text-center py-6 border-b border-white/[0.04]">
-            <span className="text-[11px] font-medium text-white/20 uppercase tracking-widest">Tugobo AI kullanan otellerde · bu hafta</span>
+            <span className="text-[11px] font-medium text-white/20 uppercase tracking-widest">Tugobo kullanan işletmelerde · bu hafta (örnek)</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-5">
             {METRICS.map((m, i) => (
@@ -563,7 +866,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Property types ──────────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
+      <section className="max-w-[1400px] mx-auto px-6 py-20">
         <div className="text-center mb-10">
           <h2 className="text-[26px] font-bold tracking-tight mb-3">
             Her format için tasarlandı.
@@ -582,12 +885,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── Testimonials ────────────────────────────────────────────────────── */}
-      <section className="border-t border-white/[0.05] bg-zinc-900/20">
-        <div className="max-w-6xl mx-auto px-6 py-20">
+      <section id="referanslar" className="border-t border-white/[0.05] bg-zinc-900/20">
+        <div className="max-w-[1400px] mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Referanslar</span>
             <h2 className="text-[28px] font-bold tracking-tight mt-3">
-              Oteller neden Tugobo AI kullanıyor?
+              Neden Digital Hotel Operating System?
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -616,7 +919,7 @@ export default function LandingPage() {
 
       {/* ── Pricing ─────────────────────────────────────────────────────────── */}
       <section id="fiyat" className="border-t border-white/[0.05] bg-zinc-900/20">
-        <div className="max-w-6xl mx-auto px-6 py-24">
+        <div className="max-w-[1400px] mx-auto px-6 py-24">
           <div className="text-center mb-14">
             <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Fiyatlar</span>
             <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
@@ -639,9 +942,9 @@ export default function LandingPage() {
               <ul className="space-y-2.5 mb-8">
                 {[
                   "WhatsApp entegrasyonu",
-                  "Mia AI asistan",
+                  "Hotel Operating Intelligence",
                   "Türkçe + 1 dil",
-                  "Temel analitik",
+                  "Operasyonel görünürlük",
                   "E-posta destek",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/55">
@@ -651,7 +954,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <DemoButton className="block w-full text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all">
-                Demo talep et
+                Operasyon turu talep et
               </DemoButton>
             </div>
 
@@ -671,11 +974,11 @@ export default function LandingPage() {
               <ul className="space-y-2.5 mb-8">
                 {[
                   "WhatsApp + Instagram DM",
-                  "Mia AI asistan",
+                  "Hotel Operating Intelligence",
                   "7 dil desteği",
-                  "Gelişmiş analitik",
+                  "Gelişmiş operasyon analitiği",
                   "OTA komisyon takibi",
-                  "Rezervasyon entegrasyonu",
+                  "Direkt rezervasyon entegrasyonu",
                   "Öncelikli destek",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/70">
@@ -685,7 +988,7 @@ export default function LandingPage() {
                 ))}
               </ul>
               <DemoButton className="block w-full text-center py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[13px] font-semibold transition-all">
-                Demo talep et
+                Operasyon turu talep et
               </DemoButton>
             </div>
 
@@ -737,18 +1040,18 @@ export default function LandingPage() {
           </div>
 
           <h2 className="text-[44px] font-bold leading-[1.1] tracking-[-0.02em] mb-5">
-            Bu hafta kaç rezervasyon<br />kaçırdığınızı görün.
+            Bu hafta hangi taleplerin<br />operasyon kuyruğunda beklediğini görün.
           </h2>
 
           <p className="text-white/40 text-[16px] leading-relaxed mb-10 max-w-lg mx-auto">
-            30 dakikalık canlı demoda işletmenize özel satış akışını gösterelim.
+            30 dakikalık sistem turunda işletmenize özel Digital Hotel Operating System akışını birlikte çizeriz.
             Taahhüt yok. Sözleşme yok.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
             <DemoButton className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[15px] transition-all active:scale-[0.97] shadow-xl shadow-blue-500/20">
               <Zap className="w-4 h-4" />
-              Ücretsiz Demo Talep Et
+              Operasyon turu planlayın
             </DemoButton>
             <a
               href="https://wa.me/905000000000"
@@ -770,7 +1073,7 @@ export default function LandingPage() {
 
       {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.06] bg-gradient-to-b from-zinc-950 to-[#070709]">
-        <div className="max-w-6xl mx-auto px-6 pt-14 pb-8">
+        <div className="max-w-[1400px] mx-auto px-6 pt-14 pb-8">
 
           {/* 4-column grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
@@ -787,7 +1090,7 @@ export default function LandingPage() {
                 />
               </Link>
               <p className="text-[13px] text-white/30 leading-relaxed mt-1 max-w-[220px]">
-                Tugobo AI, otellerin rezervasyon süreçlerini otomatikleştirir ve doğrudan gelirini artırır.
+                Digital Hotel Operating System: birleşik misafir iletişimi, AI operasyon katmanı ve direkt rezervasyon altyapısı — Hotel Operating Intelligence ile tek çatı altında.
               </p>
             </div>
 
@@ -798,10 +1101,13 @@ export default function LandingPage() {
               </p>
               <ul className="space-y-3">
                 {[
-                  { label: "Platform",       href: "#platform" },
-                  { label: "Dashboard Demo", href: "/dashboard" },
-                  { label: "Fiyatlar",       href: "#fiyat" },
-                  { label: "Kanallar",       href: "#kanallar" },
+                  { label: "Platform", href: "#platform" },
+                  { label: "Birleşik iletişim", href: "#birlesik-iletisim" },
+                  { label: "Rezervasyon bandı", href: "#rezervasyon-akisi" },
+                  { label: "Operasyon görünürlüğü", href: "#operasyon-gorunurlugu" },
+                  { label: "Direkt kanal & OTA", href: "#ota-bagimsizlik" },
+                  { label: "Operasyon paneli", href: "/dashboard" },
+                  { label: "Fiyatlar", href: "#fiyat" },
                 ].map(({ label, href }) => (
                   <li key={label}>
                     <Link
@@ -816,13 +1122,13 @@ export default function LandingPage() {
             </div>
 
             {/* Col 3 — Şirket */}
-            <div>
+            <div id="hakkimizda">
               <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
                 Şirket
               </p>
               <ul className="space-y-3">
                 {[
-                  { label: "Hakkımızda", href: "#" },
+                  { label: "Hakkımızda", href: "#hakkimizda" },
                   { label: "İletişim",   href: "mailto:hello@tugobo.ai" },
                   { label: "WhatsApp",   href: "https://wa.me/905000000000" },
                   { label: "E-posta",    href: "mailto:hello@tugobo.ai" },

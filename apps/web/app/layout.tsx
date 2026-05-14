@@ -8,18 +8,19 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    default: "Tugobo AI — Oteller için AI Rezervasyon ve Dijital İşletim Sistemi",
+    default: "Tugobo AI — Digital Hotel Operating System & Hotel Operating Intelligence",
     template: "%s | Tugobo AI",
   },
   description:
-    "WhatsApp, Instagram DM ve web sitenizden gelen tüm rezervasyon taleplerini Mia AI 7/24 karşılar, fiyatlar ve onaylar. OTA komisyonu olmadan. Türkiye'deki butik oteller, villalar ve bungalovlar için.",
+    "Digital Hotel Operating System: unified guest communication, AI-powered operations layer, direct booking infrastructure, and real-time operational visibility for hotels in Turkey and beyond.",
   keywords: [
-    "AI otel rezervasyon",
-    "WhatsApp otel",
-    "otel yapay zeka",
-    "Tugobo AI",
-    "Mia AI concierge",
     "digital hotel operating system",
+    "hotel operating intelligence",
+    "AI-powered operations layer",
+    "direct booking infrastructure",
+    "unified guest communication",
+    "Tugobo AI",
+    "WhatsApp otel operasyonu",
     "OTA komisyon azalt",
     "butik otel yazılım",
   ],
@@ -31,23 +32,23 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     url: "https://tugobo.ai",
     siteName: "Tugobo AI",
-    title: "Tugobo AI — Otelinizin AI Katmanı",
+    title: "Tugobo AI — Digital Hotel Operating System",
     description:
-      "WhatsApp'tan gelen her rezervasyon talebini 38 saniyede karşıla. OTA komisyonu olmadan, 7/24.",
+      "Hotel Operating Intelligence: unified channels, operational visibility, and direct booking infrastructure—not a bolt-on chatbot.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Tugobo AI — AI-Powered Hotel Operating System",
+        alt: "Tugobo AI — Digital Hotel Operating System",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tugobo AI — Otelinizin AI Katmanı",
+    title: "Tugobo AI — Hotel Operating Intelligence",
     description:
-      "WhatsApp'tan gelen her rezervasyon talebini 38 saniyede karşıla. OTA komisyonu olmadan, 7/24.",
+      "Run guest communication, pipeline, and direct bookings from one AI-powered operations layer with full dashboard visibility.",
     images: ["/og-image.png"],
   },
   robots: {
