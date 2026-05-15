@@ -15,7 +15,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { Conversation } from "@/lib/types/conversations";
 import { AiInsightsCard } from "./ai-insights-card";
+import { OperationalEventsPanel } from "./operational-events-panel";
 import { ReservationContextCard } from "./reservation-context-card";
+import { useAIRuntimeStore, useRuntimeConversation, useRuntimeEntityStatuses } from "@/lib/runtime";
+import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
 import {
   assignStaffAction,
   stubSuggestedAction,
@@ -29,6 +32,10 @@ type GuestSidebarProps = {
 export function GuestSidebar({ detail }: GuestSidebarProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const dispatch = useAIRuntimeStore((s) => s.dispatch);
+  const storedConversation = useRuntimeConversation(detail.id);
+  const liveDetail = storedConversation ?? detail;
+  const runtimeStatuses = useRuntimeEntityStatuses(detail.id);
 
   function run(label: string, fn: () => Promise<void>) {
     if (pending) return;
@@ -38,7 +45,7 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
     });
   }
 
-  const g = detail.guest;
+  const g = liveDetail.guest;
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-white/[0.06] bg-zinc-950/90 md:max-w-[340px] md:shrink-0">
@@ -95,23 +102,33 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
           ) : null}
         </section>
 
-        <ReservationContextCard reservation={detail.reservation} />
-        <AiInsightsCard insight={detail.aiInsight} />
+        {runtimeStatuses.length > 0 ? (
+          <RuntimeStatusBadgeGroup statuses={runtimeStatuses} className="px-0.5" />
+        ) : null}
+
+        <ReservationContextCard reservation={liveDetail.reservation} />
+        <AiInsightsCard insight={liveDetail.aiInsight} />
+
+        <OperationalEventsPanel detail={liveDetail} />
 
         <section className="rounded-xl border border-white/[0.07] bg-zinc-900/40 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
             Suggested actions
           </p>
-          <p className="mt-1 text-[11px] text-white/32">Stubbed — wire to tools + Inngest later.</p>
+          <p className="mt-1 text-[11px] text-white/32">
+            Quick ops — propagates across reservations, guests, AI Brain, escalations, audit.
+          </p>
           <div className="mt-2.5 grid grid-cols-1 gap-1.5">
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
-                run("payment", async () => {
-                  await stubSuggestedAction(detail.id);
-                })
-              }
+              onClick={() => {
+                dispatch("PAYMENT_LINK_FAILED", {
+                  conversationId: detail.id,
+                  reservationId: detail.reservationId ?? undefined,
+                  guestId: detail.guestId,
+                });
+              }}
               className="flex items-center justify-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.07] py-2 text-[12px] font-semibold text-emerald-100/95 transition hover:bg-emerald-500/15 disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
@@ -133,14 +150,19 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                dispatch("HUMAN_TAKEOVER", {
+                  conversationId: detail.id,
+                  reservationId: detail.reservationId ?? undefined,
+                  guestId: detail.guestId,
+                });
                 run("human", async () => {
                   await assignStaffAction({
                     conversationId: detail.id,
                     staffName: "Front desk",
                   });
-                })
-              }
+                });
+              }}
               className="flex items-center justify-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/[0.07] py-2 text-[12px] font-semibold text-amber-100/95 transition hover:bg-amber-500/15 disabled:opacity-50"
             >
               <Users className="h-4 w-4" />

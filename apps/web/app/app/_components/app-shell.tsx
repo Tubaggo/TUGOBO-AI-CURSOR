@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import type { Organization, User as AppUser } from "@/app/app/_types";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
+import { RuntimeProvider } from "./runtime-provider";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ export function AppShell({
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   return (
+    <RuntimeProvider>
     <div className="flex h-dvh bg-zinc-950 text-white">
       <AppSidebar
         organization={activeOrganization}
@@ -47,5 +49,6 @@ export function AppShell({
         <main className="min-h-0 flex-1 overflow-y-auto bg-zinc-950">{children}</main>
       </div>
     </div>
+    </RuntimeProvider>
   );
 }

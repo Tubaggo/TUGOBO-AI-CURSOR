@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Bell, ChevronRight, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConversationPriority, ConversationSummary } from "@/lib/types/conversations";
+import { useRuntimeEntityStatuses } from "@/lib/runtime";
+import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
 import { ChannelBadge } from "./channel-badge";
 
 const PRIORITY_META: Record<
@@ -29,6 +33,7 @@ type ConversationListItemProps = {
 };
 
 export function ConversationListItem({ row, active, onNavigate }: ConversationListItemProps) {
+  const runtimeStatuses = useRuntimeEntityStatuses(row.id);
   const time = new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "short",
@@ -88,6 +93,9 @@ export function ConversationListItem({ row, active, onNavigate }: ConversationLi
             ) : null}
           </div>
           <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-white/42">{row.lastMessagePreview}</p>
+          {runtimeStatuses.length > 0 ? (
+            <RuntimeStatusBadgeGroup statuses={runtimeStatuses} max={2} className="mt-1.5" />
+          ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span className="rounded-md border border-white/[0.06] bg-black/30 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-white/40">
               {STATUS_COPY[row.status]}

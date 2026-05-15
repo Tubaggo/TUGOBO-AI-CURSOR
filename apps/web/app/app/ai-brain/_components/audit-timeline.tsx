@@ -22,7 +22,14 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
   return (
     <ol className="relative space-y-0 border-l border-white/[0.08] pl-6">
       {events.map((e, i) => (
-        <li key={e.id} className={cn("relative pb-8", i === events.length - 1 && "pb-0")}>
+        <li
+          key={e.id}
+          className={cn(
+            "relative pb-8 transition-all duration-500",
+            i === 0 && "motion-safe:animate-pulse",
+            i === events.length - 1 && "pb-0"
+          )}
+        >
           <span
             className="absolute -left-[25px] top-1 flex h-3 w-3 rounded-full border-2 border-cyan-400/60 bg-zinc-950 ring-4 ring-zinc-950"
             aria-hidden

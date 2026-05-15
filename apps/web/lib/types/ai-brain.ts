@@ -187,7 +187,14 @@ export type AuditEvent = {
   guestId?: string;
 };
 
-export type AIWorkflowStatus = "running" | "paused" | "completed" | "awaiting_human";
+export type AIWorkflowStatus =
+  | "running"
+  | "paused"
+  | "completed"
+  | "awaiting_human"
+  | "escalated"
+  | "blocked"
+  | "resolved";
 
 export type AIActiveWorkflow = {
   id: string;

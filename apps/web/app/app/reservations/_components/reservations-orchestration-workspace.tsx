@@ -17,6 +17,7 @@ import {
   getReservationOrchestrationMetrics,
   updateReservationStage,
 } from "@/lib/data/reservations";
+import { useAIRuntimeStore } from "@/lib/runtime";
 import { formatMoney } from "./reservation-formatters";
 import { ReservationPipeline } from "./reservation-pipeline";
 import { ReservationTable } from "./reservation-table";
@@ -28,7 +29,13 @@ type ReservationsOrchestrationWorkspaceProps = {
 export function ReservationsOrchestrationWorkspace({
   initialReservations,
 }: ReservationsOrchestrationWorkspaceProps) {
-  const [reservations, setReservations] = useState<Reservation[]>(initialReservations);
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const storeReservations = useAIRuntimeStore((s) => s.reservations);
+  const setReservationStage = useAIRuntimeStore((s) => s.setReservationStage);
+  const assignReservationStaff = useAIRuntimeStore((s) => s.assignReservationStaff);
+  const lastPulse = useAIRuntimeStore((s) => s.lastPulseAt);
+  const [localReservations, setLocalReservations] = useState<Reservation[]>(initialReservations);
+  const reservations = hydrated ? storeReservations : localReservations;
   const [mode, setMode] = useState<"pipeline" | "table">("pipeline");
   const [toast, setToast] = useState<string | null>(null);
 
@@ -40,8 +47,12 @@ export function ReservationsOrchestrationWorkspace({
   }
 
   function handleStageChange(id: string, stage: ReservationPipelineStage) {
-    setReservations((prev) => updateReservationStage(prev, id, stage));
-    showToast("Stage updated (in-memory mock).");
+    if (hydrated) {
+      setReservationStage(id, stage);
+    } else {
+      setLocalReservations((prev) => updateReservationStage(prev, id, stage));
+    }
+    showToast("Stage updated — orchestration layer synced.");
   }
 
   function handleQuickAssign() {
@@ -50,12 +61,19 @@ export function ReservationsOrchestrationWorkspace({
       showToast("No unassigned high-urgency card found.");
       return;
     }
-    setReservations((prev) => assignReservation(prev, target.id, "Ops Lead"));
+    if (hydrated) {
+      assignReservationStaff(target.id, "Ops Lead");
+    } else {
+      setLocalReservations((prev) => assignReservation(prev, target.id, "Ops Lead"));
+    }
     showToast(`Assigned ${target.code} to Ops Lead (mock).`);
   }
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col px-4 py-6 md:px-6 md:py-8">
+    <div
+      className="mx-auto flex max-w-[1600px] flex-col px-4 py-6 md:px-6 md:py-8"
+      data-runtime-pulse={lastPulse > 0 ? String(lastPulse) : undefined}
+    >
       <header className="mb-6 border-b border-white/[0.07] pb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-300/85">
           Reservation orchestration

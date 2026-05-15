@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -11,7 +12,8 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import type { AIBrainOverview } from "@/lib/types/ai-brain";
+import type { AIBrainOverview, AIWorkflowStatus } from "@/lib/types/ai-brain";
+import { useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { AIBrainPageHeader } from "./ai-brain-page-header";
 import { AIRuntimeCard } from "./ai-runtime-card";
@@ -35,7 +37,27 @@ const OUTCOME_TONE: Record<string, string> = {
   escalated: "text-rose-300/90",
 };
 
-export function AIBrainOverviewWorkspace({ overview }: AIBrainOverviewWorkspaceProps) {
+const WORKFLOW_STATUS_TONE: Record<AIWorkflowStatus, string> = {
+  running: "text-cyan-200/80",
+  paused: "text-white/40",
+  completed: "text-emerald-300/80",
+  awaiting_human: "text-amber-200/85",
+  escalated: "text-rose-200/90",
+  blocked: "text-white/35",
+  resolved: "text-emerald-300/70",
+};
+
+export function AIBrainOverviewWorkspace({ overview: serverOverview }: AIBrainOverviewWorkspaceProps) {
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const storeOverview = useAIRuntimeStore((s) => s.overview);
+  const lastPulse = useAIRuntimeStore((s) => s.lastPulseAt);
+  const overview = hydrated ? storeOverview : serverOverview;
+  const [animKey, setAnimKey] = useState(0);
+
+  useEffect(() => {
+    if (lastPulse > 0) setAnimKey((k) => k + 1);
+  }, [lastPulse]);
+
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
       <AIBrainPageHeader
@@ -107,19 +129,33 @@ export function AIBrainOverviewWorkspace({ overview }: AIBrainOverviewWorkspaceP
           <ul className="space-y-2">
             {overview.activeWorkflows.map((wf) => (
               <li
-                key={wf.id}
-                className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2.5"
+                key={`${wf.id}-${animKey}`}
+                className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2.5 transition-all duration-500"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-[12px] font-semibold text-white/85">{wf.name}</p>
-                    <p className="mt-0.5 text-[10px] capitalize text-white/35">{wf.status.replace(/_/g, " ")}</p>
+                    <p
+                      className={cn(
+                        "mt-0.5 text-[10px] capitalize",
+                        WORKFLOW_STATUS_TONE[wf.status]
+                      )}
+                    >
+                      {wf.status.replace(/_/g, " ")}
+                    </p>
                   </div>
                   <span className="text-[11px] tabular-nums text-cyan-200/80">{wf.progressPct}%</span>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
                   <div
-                    className="h-full rounded-full bg-cyan-500/70"
+                    className={cn(
+                      "h-full rounded-full transition-all duration-700 ease-out",
+                      wf.status === "escalated" && "bg-rose-500/70",
+                      wf.status === "blocked" && "bg-white/25",
+                      wf.status === "resolved" && "bg-emerald-500/70",
+                      wf.status === "paused" && "bg-amber-500/50",
+                      (wf.status === "running" || wf.status === "awaiting_human") && "bg-cyan-500/70"
+                    )}
                     style={{ width: `${wf.progressPct}%` }}
                   />
                 </div>

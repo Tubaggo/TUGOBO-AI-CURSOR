@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { EscalationEvent } from "@/lib/types/ai-brain";
+import { useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { AIBrainPageHeader } from "./ai-brain-page-header";
 import { EscalationFeed } from "./escalation-feed";
@@ -12,14 +13,20 @@ type EscalationsWorkspaceProps = {
 
 type Filter = "all" | "active" | "unresolved";
 
-export function EscalationsWorkspace({ all }: EscalationsWorkspaceProps) {
+export function EscalationsWorkspace({ all: serverAll }: EscalationsWorkspaceProps) {
   const [filter, setFilter] = useState<Filter>("active");
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const storeEscalations = useAIRuntimeStore((s) => s.escalations);
+  const lastPulse = useAIRuntimeStore((s) => s.lastPulseAt);
+  const all = hydrated ? storeEscalations : serverAll;
 
-  const events =
-    filter === "all" ? all : all.filter((e) => !e.resolved);
+  const events = filter === "all" ? all : all.filter((e) => !e.resolved);
 
   return (
-    <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
+    <div
+      className="mx-auto max-w-[1600px] px-4 py-6 md:px-6 md:py-8"
+      data-runtime-pulse={lastPulse > 0 ? String(lastPulse) : undefined}
+    >
       <AIBrainPageHeader
         eyebrow="AI Brain · Escalations"
         title="AI safety & operational supervision"

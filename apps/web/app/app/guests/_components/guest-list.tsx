@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { Guest, GuestIntelligenceMetrics, GuestIntelligenceSegment } from "@/lib/types/guests";
 import { GUEST_INTELLIGENCE_SEGMENTS } from "@/lib/types/guests";
 import { getGuests } from "@/lib/data/guests";
+import { useAIRuntimeStore } from "@/lib/runtime";
 import { GuestTable } from "./guest-table";
 
 type GuestListProps = {
@@ -38,14 +39,21 @@ const SEGMENT_LABELS: Record<GuestIntelligenceSegment, string> = {
 
 export function GuestList({ initialGuests, metrics }: GuestListProps) {
   const [segment, setSegment] = useState<GuestIntelligenceSegment>("all");
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const storeGuests = useAIRuntimeStore((s) => s.guests);
+  const lastPulse = useAIRuntimeStore((s) => s.lastPulseAt);
+  const baseGuests = hydrated ? storeGuests : initialGuests;
 
   const guests = useMemo(() => {
-    if (segment === "all") return initialGuests;
-    return getGuests(segment);
-  }, [segment, initialGuests]);
+    if (segment === "all") return baseGuests;
+    return getGuests(segment).map((g) => baseGuests.find((b) => b.id === g.id) ?? g);
+  }, [segment, baseGuests]);
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col px-4 py-6 md:px-6 md:py-8">
+    <div
+      className="mx-auto flex max-w-[1600px] flex-col px-4 py-6 md:px-6 md:py-8"
+      data-runtime-pulse={lastPulse > 0 ? String(lastPulse) : undefined}
+    >
       <header className="mb-6 border-b border-white/[0.07] pb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-violet-300/85">
           Guest intelligence

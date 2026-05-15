@@ -1,4 +1,8 @@
+"use client";
+
 import { Bot, Shield, User } from "lucide-react";
+import { useRuntimeEntityStatuses } from "@/lib/runtime";
+import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
 import { cn } from "@/lib/utils";
 import type { AiHandlingState, Conversation, ConversationStatus } from "@/lib/types/conversations";
 import { MessageBubble } from "./message-bubble";
@@ -36,6 +40,7 @@ type ConversationThreadProps = {
 };
 
 export function ConversationThread({ detail }: ConversationThreadProps) {
+  const runtimeStatuses = useRuntimeEntityStatuses(detail.id);
   const escalation = detail.status === "escalated" || detail.escalationFlag;
 
   return (
@@ -72,6 +77,7 @@ export function ConversationThread({ detail }: ConversationThreadProps) {
                 Escalation
               </span>
             ) : null}
+            <RuntimeStatusBadgeGroup statuses={runtimeStatuses} max={3} />
           </div>
         </div>
       </header>
