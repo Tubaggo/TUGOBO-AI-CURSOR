@@ -1,10 +1,7 @@
-import { ModulePlaceholder } from "../_components/module-placeholder";
+import { getAIBrainOverview } from "@/lib/data/ai-brain";
+import { AIBrainOverviewWorkspace } from "./_components/ai-brain-overview-workspace";
 
-export default function AiBrainPlaceholderPage() {
-  return (
-    <ModulePlaceholder
-      title="AI Brain"
-      description="Policies, prompts, knowledge grounding, and safe tool orchestration will surface here for operators — not in this sprint."
-    />
-  );
+export default function AIBrainPage() {
+  const overview = getAIBrainOverview();
+  return <AIBrainOverviewWorkspace overview={overview} />;
 }
