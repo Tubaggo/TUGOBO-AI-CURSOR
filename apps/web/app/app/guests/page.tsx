@@ -1,10 +1,8 @@
-import { ModulePlaceholder } from "../_components/module-placeholder";
+import { getGuestIntelligenceMetrics, getGuests } from "@/lib/data/guests";
+import { GuestList } from "./_components/guest-list";
 
-export default function GuestsPlaceholderPage() {
-  return (
-    <ModulePlaceholder
-      title="Guests"
-      description="Guest profiles, stay history, and preferences will connect to CRM-style tooling in an upcoming iteration."
-    />
-  );
+export default function GuestsPage() {
+  const initialGuests = getGuests();
+  const metrics = getGuestIntelligenceMetrics();
+  return <GuestList initialGuests={initialGuests} metrics={metrics} />;
 }
