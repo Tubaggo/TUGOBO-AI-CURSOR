@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "clean:web": "node scripts/clean-web-next.cjs",
+    "dev:clean": "pnpm run clean:web && pnpm run dev",
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "lint": "pnpm -r lint",
