@@ -1,6 +1,9 @@
 import type {
+  AiAttentionItem,
+  OperationsFeedItem,
   Organization,
   OverviewStats,
+  TodayArrival,
   User,
 } from "@/app/app/_types";
 
@@ -49,6 +52,102 @@ const MOCK_USER: User = {
   organizationId: MOCK_ORGANIZATIONS[0].id,
 };
 
+const MOCK_OPERATIONS_FEED: OperationsFeedItem[] = [
+  {
+    id: "feed_1",
+    kind: "ai_qualification",
+    headline: "AI qualified a WhatsApp inquiry",
+    detail: "Family of four · sea view preference captured · intent: book within 48h",
+    occurredAtIso: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "feed_2",
+    kind: "payment",
+    headline: "Payment link sent",
+    detail: "Deposit for reservation #RK-2041 · link valid 24h",
+    occurredAtIso: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "feed_3",
+    kind: "guest_request",
+    headline: "Guest requested sea view room",
+    detail: "Thread linked to arrival 14 May · upsell offer drafted",
+    occurredAtIso: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "feed_4",
+    kind: "reservation",
+    headline: "Reservation awaiting confirmation",
+    detail: "Direct booking · 3 nights deluxe · policy check pending",
+    occurredAtIso: new Date(Date.now() - 51 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "feed_5",
+    kind: "system",
+    headline: "OTA rate parity check completed",
+    detail: "No drift on primary room types for next 7 nights",
+    occurredAtIso: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+const MOCK_TODAY_ARRIVALS: TodayArrival[] = [
+  {
+    id: "arr_1",
+    guestName: "Elena V.",
+    roomType: "Deluxe sea view",
+    checkInTime: "14:00",
+    status: "confirmed",
+  },
+  {
+    id: "arr_2",
+    guestName: "Marcus & Jo K.",
+    roomType: "Junior suite",
+    checkInTime: "15:30",
+    status: "in_transit",
+  },
+  {
+    id: "arr_3",
+    guestName: "Ayşe Yılmaz",
+    roomType: "Standard twin",
+    checkInTime: "16:00",
+    status: "pending_docs",
+  },
+  {
+    id: "arr_4",
+    guestName: "Thomas B.",
+    roomType: "Garden villa",
+    checkInTime: "17:00",
+    status: "confirmed",
+  },
+];
+
+const MOCK_AI_ATTENTION: AiAttentionItem[] = [
+  {
+    id: "att_1",
+    severity: "warning",
+    title: "Low confidence response",
+    detail: "Policy edge case on late checkout · model suggested human review",
+  },
+  {
+    id: "att_2",
+    severity: "critical",
+    title: "Human takeover suggested",
+    detail: "Guest escalated billing dispute · thread paused for staff",
+  },
+  {
+    id: "att_3",
+    severity: "info",
+    title: "Payment pending",
+    detail: "Invoice link opened twice · no capture yet",
+  },
+  {
+    id: "att_4",
+    severity: "warning",
+    title: "Guest asked custom discount",
+    detail: "Non-standard rate request · outside approved band",
+  },
+];
+
 export function getOrganizations(): Organization[] {
   return MOCK_ORGANIZATIONS;
 }
@@ -76,4 +175,16 @@ export function getOverviewStats(): OverviewStats {
       { id: "ota_saved", label: "OTA Commission Saved", value: "€4.2k", hint: "Estimated 30d" },
     ],
   };
+}
+
+export function getOperationsFeed(): OperationsFeedItem[] {
+  return MOCK_OPERATIONS_FEED;
+}
+
+export function getTodaysArrivalFocus(): TodayArrival[] {
+  return MOCK_TODAY_ARRIVALS;
+}
+
+export function getAiAttentionItems(): AiAttentionItem[] {
+  return MOCK_AI_ATTENTION;
 }

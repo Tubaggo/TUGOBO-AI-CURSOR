@@ -62,3 +62,44 @@ export type OverviewStats = {
   stats: OverviewStat[];
   asOf: string;
 };
+
+export const OPERATIONS_FEED_KINDS = [
+  "ai_qualification",
+  "payment",
+  "guest_request",
+  "reservation",
+  "system",
+] as const;
+
+export type OperationsFeedKind = (typeof OPERATIONS_FEED_KINDS)[number];
+
+export type OperationsFeedItem = {
+  id: string;
+  kind: OperationsFeedKind;
+  headline: string;
+  detail: string;
+  occurredAtIso: string;
+};
+
+export const ARRIVAL_STATUSES = ["confirmed", "in_transit", "pending_docs"] as const;
+
+export type ArrivalStatus = (typeof ARRIVAL_STATUSES)[number];
+
+export type TodayArrival = {
+  id: string;
+  guestName: string;
+  roomType: string;
+  checkInTime: string;
+  status: ArrivalStatus;
+};
+
+export const AI_ATTENTION_SEVERITIES = ["info", "warning", "critical"] as const;
+
+export type AiAttentionSeverity = (typeof AI_ATTENTION_SEVERITIES)[number];
+
+export type AiAttentionItem = {
+  id: string;
+  severity: AiAttentionSeverity;
+  title: string;
+  detail: string;
+};
