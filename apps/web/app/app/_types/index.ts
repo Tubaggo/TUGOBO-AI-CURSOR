@@ -103,3 +103,30 @@ export type AiAttentionItem = {
   title: string;
   detail: string;
 };
+
+export type {
+  AIReservationInsight,
+  CreateReservationFromConversationInput,
+  GuestStayProfile,
+  PaymentState,
+  PaymentStatus,
+  Reservation,
+  ReservationAiState,
+  ReservationDetailPayload,
+  ReservationPipelineStage,
+  ReservationSource,
+  ReservationTimelineEvent,
+  ReservationTimelineEventType,
+  TimelineActorType,
+  UrgencyLevel,
+} from "./reservations";
+
+export {
+  PAYMENT_STATUSES,
+  RESERVATION_AI_STATES,
+  RESERVATION_PIPELINE_STAGES,
+  RESERVATION_SOURCES,
+  TIMELINE_ACTOR_TYPES,
+  TIMELINE_EVENT_TYPES,
+  URGENCY_LEVELS,
+} from "./reservations";

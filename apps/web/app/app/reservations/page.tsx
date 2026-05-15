@@ -1,10 +1,7 @@
-import { ModulePlaceholder } from "../_components/module-placeholder";
+import { getReservations } from "@/lib/data/reservations";
+import { ReservationsOrchestrationWorkspace } from "./_components/reservations-orchestration-workspace";
 
-export default function ReservationsPlaceholderPage() {
-  return (
-    <ModulePlaceholder
-      title="Reservations"
-      description="Pipeline, confirmations, and calendar sync will be wired to your property data model after the foundation ships."
-    />
-  );
+export default function ReservationsPage() {
+  const initialReservations = getReservations();
+  return <ReservationsOrchestrationWorkspace initialReservations={initialReservations} />;
 }
