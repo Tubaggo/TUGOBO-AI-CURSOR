@@ -22,6 +22,8 @@ export function buildRuntimeSeed(): AIRuntimeState {
     guests: getGuests(),
     escalations: getEscalations("all"),
     auditEvents: getAuditEvents(50),
+    aiActionMemory: [],
+    operationalFocusLabel: "Monitoring operational signals",
     overview: getAIBrainOverview(),
     conversationMeta: {},
     entityStatuses: {},

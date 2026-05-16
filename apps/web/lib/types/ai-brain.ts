@@ -143,6 +143,17 @@ export const ESCALATION_REASONS = [
 
 export type EscalationReason = (typeof ESCALATION_REASONS)[number];
 
+/** Named operational agents — surfaced across Brain, audit, and live streams (mock runtime). */
+export const AI_OPERATIONAL_AGENT_ROLES = [
+  "reservation_agent",
+  "guest_memory_agent",
+  "payment_recovery_agent",
+  "escalation_supervisor",
+  "revenue_optimization_agent",
+] as const;
+
+export type AIOperationalAgentRole = (typeof AI_OPERATIONAL_AGENT_ROLES)[number];
+
 export type EscalationEvent = {
   id: string;
   reason: EscalationReason;
@@ -158,6 +169,7 @@ export type EscalationEvent = {
   conversationId?: string;
   reservationId?: string;
   guestId?: string;
+  agentRole?: AIOperationalAgentRole;
 };
 
 export const AUDIT_EVENT_TYPES = [
@@ -185,6 +197,14 @@ export type AuditEvent = {
   conversationId?: string;
   reservationId?: string;
   guestId?: string;
+  agentRole?: AIOperationalAgentRole;
+  /** Model confidence prior to this trace (runtime simulations). */
+  confidenceBefore?: number;
+  confidenceDelta?: number;
+  actionOutcome?: "success" | "pending" | "blocked" | "escalated";
+  escalationId?: string;
+  /** Short operational rationale — complements explanation for audit density. */
+  rationale?: string;
 };
 
 export type AIWorkflowStatus =
@@ -222,6 +242,7 @@ export type AIActionFeedItem = {
   reservationId?: string;
   conversationId?: string;
   guestId?: string;
+  agentRole?: AIOperationalAgentRole;
 };
 
 export type ConfidenceBucket = {

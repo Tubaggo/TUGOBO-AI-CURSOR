@@ -1,4 +1,6 @@
 import type { EscalationEvent } from "@/lib/types/ai-brain";
+import Link from "next/link";
+import { OPERATIONAL_AGENT_LABEL } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { AIExplanationCard } from "./ai-explanation-card";
 import { AIBrainLinkedRefs } from "./ai-brain-linked-refs";
@@ -39,6 +41,7 @@ export function EscalationFeed({ events }: EscalationFeedProps) {
       {events.map((e) => (
         <li
           key={e.id}
+          id={`esc-${e.id}`}
           className={cn(
             "rounded-xl border bg-zinc-900/50 p-4",
             e.resolved ? "border-white/[0.06] opacity-80" : "border-rose-500/20"
@@ -48,6 +51,11 @@ export function EscalationFeed({ events }: EscalationFeedProps) {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-white/35">
                 {REASON_LABEL[e.reason]}
+                {e.agentRole ? (
+                  <span className="ml-2 rounded border border-white/[0.08] px-1.5 py-px text-[9px] font-medium text-white/35">
+                    {OPERATIONAL_AGENT_LABEL[e.agentRole]}
+                  </span>
+                ) : null}
               </p>
               <h3 className="text-sm font-semibold text-white">{e.title}</h3>
             </div>
@@ -86,12 +94,20 @@ export function EscalationFeed({ events }: EscalationFeedProps) {
               minute: "2-digit",
             })}
           </p>
-          <AIBrainLinkedRefs
-            conversationId={e.conversationId}
-            reservationId={e.reservationId}
-            guestId={e.guestId}
-            compact
-          />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <AIBrainLinkedRefs
+              conversationId={e.conversationId}
+              reservationId={e.reservationId}
+              guestId={e.guestId}
+              compact
+            />
+            <Link
+              href="/app/ai-brain/audit"
+              className="inline-flex items-center text-[10px] font-semibold text-cyan-300/75 hover:text-cyan-200"
+            >
+              Audit trace →
+            </Link>
+          </div>
           <div className="mt-3">
             <AIExplanationCard compact explanation={e.explanation} confidence={e.aiConfidenceBefore} />
           </div>

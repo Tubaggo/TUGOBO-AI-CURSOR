@@ -17,6 +17,7 @@ import type { Conversation } from "@/lib/types/conversations";
 import { AiInsightsCard } from "./ai-insights-card";
 import { OperationalEventsPanel } from "./operational-events-panel";
 import { ReservationContextCard } from "./reservation-context-card";
+import { AiActionMemoryStrip } from "@/app/app/_components/ai-action-memory-strip";
 import { useAIRuntimeStore, useRuntimeConversation, useRuntimeEntityStatuses } from "@/lib/runtime";
 import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
 import {
@@ -111,6 +112,13 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
 
         <OperationalEventsPanel detail={liveDetail} />
 
+        <AiActionMemoryStrip
+          conversationId={detail.id}
+          reservationId={detail.reservationId ?? undefined}
+          guestId={detail.guestId}
+          title="Thread AI memory"
+        />
+
         <section className="rounded-xl border border-white/[0.07] bg-zinc-900/40 p-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
             Suggested actions
@@ -123,7 +131,7 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
               type="button"
               disabled={pending}
               onClick={() => {
-                dispatch("PAYMENT_LINK_FAILED", {
+                dispatch("PAYMENT_LINK_SENT", {
                   conversationId: detail.id,
                   reservationId: detail.reservationId ?? undefined,
                   guestId: detail.guestId,
@@ -137,11 +145,16 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
+              onClick={() => {
+                dispatch("UPGRADE_OFFERED", {
+                  conversationId: detail.id,
+                  reservationId: detail.reservationId ?? undefined,
+                  guestId: detail.guestId,
+                });
                 run("upgrade", async () => {
                   await stubSuggestedAction(detail.id);
-                })
-              }
+                });
+              }}
               className="flex items-center justify-center gap-2 rounded-lg border border-violet-500/25 bg-violet-500/[0.07] py-2 text-[12px] font-semibold text-violet-100/95 transition hover:bg-violet-500/15 disabled:opacity-50"
             >
               <ArrowUpCircle className="h-4 w-4" />

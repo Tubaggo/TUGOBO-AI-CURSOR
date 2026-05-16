@@ -1,8 +1,10 @@
 import type { RuntimeEntityRef } from "./types";
 
 export const RUNTIME_EVENT_TYPES = [
+  "PAYMENT_LINK_SENT",
   "PAYMENT_LINK_FAILED",
   "PAYMENT_COMPLETED",
+  "UPGRADE_OFFERED",
   "NEGATIVE_SENTIMENT",
   "LOW_CONFIDENCE_QUOTE",
   "VIP_GUEST_DETECTED",

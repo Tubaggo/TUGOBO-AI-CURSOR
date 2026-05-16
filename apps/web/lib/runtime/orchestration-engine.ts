@@ -9,10 +9,11 @@ import type {
 import type { Conversation, ConversationSummary } from "@/lib/types/conversations";
 import type { Guest, GuestRiskFlag, GuestSentiment } from "@/lib/types/guests";
 import type { Reservation, ReservationPipelineStage, UrgencyLevel } from "@/app/app/_types";
+import { agentRoleForEscalationReason, agentRoleForRuntimeEvent } from "./agent-role-map";
 import { recalculateConversationConfidence } from "./confidence-engine";
-import { appendLiveEvent, createLiveEventFromRuntime } from "./live-events";
+import { appendLiveEvent, createLiveEventFromRuntime, LIVE_EVENT_CATALOG } from "./live-events";
 import type { RuntimeEvent } from "./runtime-events";
-import type { AIRuntimeState, ConversationRuntimeMeta, RuntimeOperationalStatus } from "./types";
+import type { AIRuntimeState, AIActionMemoryEntry, ConversationRuntimeMeta, RuntimeOperationalStatus } from "./types";
 
 function isoNow(): string {
   return new Date().toISOString();
@@ -82,6 +83,34 @@ function appendFeed(
   item: Omit<AIActionFeedItem, "id" | "createdAt">
 ): AIActionFeedItem[] {
   return [{ id: newId("feed"), createdAt: isoNow(), ...item }, ...feed].slice(0, 12);
+}
+
+const MEMORY_CAP = 48;
+
+function appendMemory(
+  memory: AIActionMemoryEntry[],
+  partial: Omit<AIActionMemoryEntry, "id" | "createdAt">
+): AIActionMemoryEntry[] {
+  return [{ id: newId("mem"), createdAt: isoNow(), ...partial }, ...memory].slice(0, MEMORY_CAP);
+}
+
+function escalationMetricsFrom(
+  escalations: EscalationEvent[]
+): AIBrainOverview["escalationActivity"] {
+  const now = Date.now();
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const active = escalations.filter((e) => !e.resolved).length;
+  const unresolved24h = escalations.filter(
+    (e) => !e.resolved && now - new Date(e.createdAt).getTime() < 86_400_000
+  ).length;
+  const resolvedToday = escalations.filter(
+    (e) =>
+      e.resolved &&
+      e.resolvedAt !== null &&
+      new Date(e.resolvedAt).getTime() >= dayStart.getTime()
+  ).length;
+  return { active, unresolved24h, resolvedToday };
 }
 
 function patchWorkflows(
@@ -172,16 +201,100 @@ export function applyRuntimeEvent(
     operationalStatuses: [],
   };
 
+  const agent = agentRoleForRuntimeEvent(type);
+
   switch (type) {
+    case "PAYMENT_LINK_SENT": {
+      if (conversationId) {
+        next = {
+          ...next,
+          ...updateConversationInState(next, conversationId, (c) => ({
+            ...c,
+            status: "awaiting_payment",
+            aiInsight: { ...c.aiInsight, escalationSuggested: false },
+          })),
+          conversationMeta: {
+            ...next.conversationMeta,
+            [metaKey]: {
+              ...meta,
+              lastEventAt: isoNow(),
+              operationalStatuses: meta.operationalStatuses,
+            },
+          },
+        };
+      }
+
+      if (res) {
+        next = {
+          ...next,
+          reservations: next.reservations.map((r) =>
+            r.id === res.id
+              ? {
+                  ...r,
+                  status: "payment_pending" as ReservationPipelineStage,
+                  paymentStatus: "awaiting_payment",
+                  aiState: "ai_active",
+                  urgency: "normal",
+                }
+              : r
+          ),
+        };
+      }
+
+      next = {
+        ...next,
+        overview: {
+          ...next.overview,
+          actionFeed: appendFeed(next.overview.actionFeed, {
+            actionName: "Send payment link",
+            outcome: "success",
+            confidence: 0.88,
+            explanation:
+              "Hosted checkout surfaced on-thread — PSP handshake armed with expiry watchdog.",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+          }),
+        },
+        auditEvents: appendAudit(next.auditEvents, {
+          type: "action",
+          title: "Payment link dispatched",
+          explanation:
+            "Hosted checkout surfaced with reservation linkage intact — Payment Recovery Agent supervising capture.",
+          confidence: 0.88,
+          knowledgeReferences: ["kn_payment_hold"],
+          policyReferences: ["psp_checkout_policy"],
+          humanOverride: false,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+          agentRole: agent,
+          confidenceBefore: conv?.aiInsight.confidence,
+          rationale: "Guest qualified above gate — autonomous PSP send permitted.",
+          actionOutcome: "success",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "payment_link_sent",
+          summary: "Payment link issued · PSP watchdog armed",
+          agentRole: agent,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+        }),
+      };
+      break;
+    }
+
     case "PAYMENT_LINK_FAILED": {
+      const confidenceBeforeConv = conv?.aiInsight.confidence ?? 0.72;
       const failures = meta.paymentFailureCount + 1;
+      const confidenceAfterConv = Math.max(0.35, confidenceBeforeConv - 0.06 * failures);
       const updatedMeta: ConversationRuntimeMeta = {
         ...meta,
         paymentFailureCount: failures,
         lastEventAt: isoNow(),
-        operationalStatuses: [
-          ...new Set([...meta.operationalStatuses, "payment_risk" as const]),
-        ],
+        operationalStatuses: [...new Set([...meta.operationalStatuses, "payment_risk" as const])],
       };
 
       if (conversationId) {
@@ -191,9 +304,10 @@ export function applyRuntimeEvent(
             ...c,
             status: "awaiting_payment",
             aiState: "paused",
-            escalationFlag: failures >= 2,
+            escalationFlag: true,
             aiInsight: {
               ...c.aiInsight,
+              confidence: confidenceAfterConv,
               escalationSuggested: true,
               sentiment: c.aiInsight.sentiment === "positive" ? "mixed" : c.aiInsight.sentiment,
             },
@@ -202,6 +316,7 @@ export function applyRuntimeEvent(
           entityStatuses: upsertStatuses(next.entityStatuses, conversationId, [
             "payment_risk",
             "workflow_paused",
+            "escalated",
           ]),
         };
       }
@@ -243,78 +358,213 @@ export function applyRuntimeEvent(
         };
       }
 
-      next = {
-        ...next,
-        overview: {
-          ...bumpPolicyTrigger(next.overview, "Payment hold expiry"),
-          activeWorkflows: patchWorkflows(next.overview.activeWorkflows, "wf_payment_recovery", {
-            status: "paused",
-            progressPct: Math.max(0, 72 - failures * 8),
-          }),
-          runtime: {
-            ...next.overview.runtime,
-            status: failures >= 2 ? "attention" : "degraded",
+      const paymentSupervisor = agentRoleForEscalationReason("payment_friction");
+      const existingPaymentEscIdx =
+        conversationId != null
+          ? next.escalations.findIndex(
+              (e) =>
+                !e.resolved &&
+                e.reason === "payment_friction" &&
+                e.conversationId === conversationId
+            )
+          : -1;
+
+      if (conversationId && existingPaymentEscIdx >= 0) {
+        next = {
+          ...next,
+          escalations: next.escalations.map((e, i) =>
+            i === existingPaymentEscIdx
+              ? {
+                  ...e,
+                  severity: failures >= 2 ? "high" : "medium",
+                  title: failures >= 2 ? "Payment link stalled" : "Payment friction — recovery mode",
+                  guestImpact:
+                    failures >= 2
+                      ? "Guest cannot complete booking — revenue at risk"
+                      : "Checkout friction — assisted recovery recommended",
+                  explanation:
+                    failures >= 2
+                      ? "Repeated PSP declines — supervisor loop engaged."
+                      : "Checkout friction — alternate PSP path and human assist recommended.",
+                  agentRole: paymentSupervisor,
+                }
+              : e
+          ),
+          overview: {
+            ...bumpPolicyTrigger(next.overview, "Payment hold expiry"),
+            activeWorkflows: patchWorkflows(next.overview.activeWorkflows, "wf_payment_recovery", {
+              status: failures >= 2 ? "escalated" : "paused",
+              progressPct: Math.max(0, 72 - failures * 8),
+            }),
+            runtime: {
+              ...next.overview.runtime,
+              status: failures >= 2 ? "attention" : "degraded",
+            },
+            actionFeed: appendFeed(next.overview.actionFeed, {
+              actionName: "Payment link delivery",
+              outcome: "blocked",
+              confidence: 0.62,
+              explanation: `Payment link failed (attempt ${failures}). Pipeline held; AI paused.`,
+              conversationId,
+              reservationId: res?.id,
+              guestId,
+              agentRole: agent,
+            }),
           },
-          actionFeed: appendFeed(next.overview.actionFeed, {
-            actionName: "Payment link delivery",
-            outcome: "blocked",
-            confidence: 0.62,
-            explanation: `Payment link failed (attempt ${failures}). Pipeline held; AI paused.`,
+          auditEvents: appendAudit(next.auditEvents, {
+            type: "policy_trigger",
+            title: "Payment friction — hold extended",
+            explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
+            confidence: 0.71,
+            knowledgeReferences: ["kn_payment_hold"],
+            policyReferences: ["payment_hold_escalation"],
+            humanOverride: false,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+            confidenceBefore: confidenceBeforeConv,
+            confidenceDelta: confidenceAfterConv - confidenceBeforeConv,
+            actionOutcome: "blocked",
+            rationale:
+              "PSP friction breached policy threshold — autonomous path paused pending recovery.",
+          }),
+          aiActionMemory: appendMemory(next.aiActionMemory, {
+            kind: "payment_failed",
+            summary: `Payment capture failed · attempt ${failures}`,
+            agentRole: agent,
             conversationId,
             reservationId: res?.id,
             guestId,
           }),
-        },
-        auditEvents: appendAudit(next.auditEvents, {
-          type: "policy_trigger",
-          title: "Payment friction — hold extended",
-          explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
-          confidence: 0.71,
-          knowledgeReferences: ["kn_payment_hold"],
-          policyReferences: ["payment_hold_escalation"],
-          humanOverride: false,
-          conversationId,
-          reservationId: res?.id,
-          guestId,
-        }),
-      };
-
-      if (failures >= 2) {
+        };
+      } else if (conversationId) {
         next = {
           ...next,
           escalations: appendEscalation(next.escalations, {
             reason: "payment_friction" as EscalationReason,
-            severity: "high",
-            title: "Payment link stalled",
-            guestImpact: "Guest cannot complete booking — revenue at risk",
-            aiConfidenceBefore: conv?.aiInsight.confidence ?? 0.75,
+            severity: failures >= 2 ? "high" : "medium",
+            title: failures >= 2 ? "Payment link stalled" : "Payment friction — recovery mode",
+            guestImpact:
+              failures >= 2
+                ? "Guest cannot complete booking — revenue at risk"
+                : "Checkout friction — assisted recovery recommended",
+            aiConfidenceBefore: confidenceBeforeConv,
             aiConfidenceAfter: null,
             explanation:
-              "Two consecutive payment link failures. Supervisor review and alternate PSP path suggested.",
+              failures >= 2
+                ? "Repeated PSP declines — supervisor loop engaged."
+                : "Checkout friction — alternate PSP path and human assist recommended.",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: paymentSupervisor,
+          }),
+          overview: {
+            ...bumpPolicyTrigger(next.overview, "Payment hold expiry"),
+            activeWorkflows: patchWorkflows(next.overview.activeWorkflows, "wf_payment_recovery", {
+              status: failures >= 2 ? "escalated" : "paused",
+              progressPct: Math.max(0, 72 - failures * 8),
+            }),
+            runtime: {
+              ...next.overview.runtime,
+              status: failures >= 2 ? "attention" : "degraded",
+            },
+            actionFeed: appendFeed(next.overview.actionFeed, {
+              actionName: "Payment link delivery",
+              outcome: "blocked",
+              confidence: 0.62,
+              explanation: `Payment link failed (attempt ${failures}). Pipeline held; AI paused.`,
+              conversationId,
+              reservationId: res?.id,
+              guestId,
+              agentRole: agent,
+            }),
+          },
+          auditEvents: appendAudit(next.auditEvents, {
+            type: "policy_trigger",
+            title: "Payment friction — hold extended",
+            explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
+            confidence: 0.71,
+            knowledgeReferences: ["kn_payment_hold"],
+            policyReferences: ["payment_hold_escalation"],
+            humanOverride: false,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+            confidenceBefore: confidenceBeforeConv,
+            confidenceDelta: confidenceAfterConv - confidenceBeforeConv,
+            actionOutcome: "blocked",
+            rationale:
+              "PSP friction breached policy threshold — autonomous path paused pending recovery.",
+          }),
+          aiActionMemory: appendMemory(next.aiActionMemory, {
+            kind: "payment_failed",
+            summary: `Payment capture failed · attempt ${failures}`,
+            agentRole: agent,
             conversationId,
             reservationId: res?.id,
             guestId,
           }),
+        };
+      } else {
+        next = {
+          ...next,
           overview: {
-            ...next.overview,
-            escalationActivity: {
-              ...next.overview.escalationActivity,
-              active: next.overview.escalationActivity.active + 1,
-              unresolved24h: next.overview.escalationActivity.unresolved24h + 1,
-            },
+            ...bumpPolicyTrigger(next.overview, "Payment hold expiry"),
             activeWorkflows: patchWorkflows(next.overview.activeWorkflows, "wf_payment_recovery", {
-              status: "escalated",
+              status: "paused",
+              progressPct: Math.max(0, 72 - failures * 8),
+            }),
+            runtime: {
+              ...next.overview.runtime,
+              status: failures >= 2 ? "attention" : "degraded",
+            },
+            actionFeed: appendFeed(next.overview.actionFeed, {
+              actionName: "Payment link delivery",
+              outcome: "blocked",
+              confidence: 0.62,
+              explanation: `Payment link failed (attempt ${failures}). Pipeline held; AI paused.`,
+              conversationId,
+              reservationId: res?.id,
+              guestId,
+              agentRole: agent,
             }),
           },
-          entityStatuses: conversationId
-            ? upsertStatuses(next.entityStatuses, conversationId, ["escalated"])
-            : next.entityStatuses,
+          auditEvents: appendAudit(next.auditEvents, {
+            type: "policy_trigger",
+            title: "Payment friction — hold extended",
+            explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
+            confidence: 0.71,
+            knowledgeReferences: ["kn_payment_hold"],
+            policyReferences: ["payment_hold_escalation"],
+            humanOverride: false,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+            confidenceBefore: confidenceBeforeConv,
+            confidenceDelta: confidenceAfterConv - confidenceBeforeConv,
+            actionOutcome: "blocked",
+            rationale:
+              "PSP friction breached policy threshold — autonomous path paused pending recovery.",
+          }),
+          aiActionMemory: appendMemory(next.aiActionMemory, {
+            kind: "payment_failed",
+            summary: `Payment capture failed · attempt ${failures}`,
+            agentRole: agent,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          }),
         };
       }
       break;
     }
 
     case "PAYMENT_COMPLETED": {
+      const confBeforePay = conv?.aiInsight.confidence ?? 0.7;
       if (conversationId) {
         next = {
           ...next,
@@ -382,13 +632,23 @@ export function applyRuntimeEvent(
         };
       }
 
+      const postPayConv = conversationId
+        ? next.conversations.find((c) => c.id === conversationId)
+        : undefined;
+
       next = {
         ...next,
         escalations: next.escalations.map((e) =>
           e.conversationId === conversationId &&
           e.reason === "payment_friction" &&
           !e.resolved
-            ? { ...e, resolved: true, resolvedAt: isoNow(), aiConfidenceAfter: 0.88 }
+            ? {
+                ...e,
+                resolved: true,
+                resolvedAt: isoNow(),
+                aiConfidenceAfter: 0.88,
+                agentRole: agentRoleForEscalationReason("payment_friction"),
+              }
             : e
         ),
         overview: {
@@ -406,24 +666,101 @@ export function applyRuntimeEvent(
             conversationId,
             reservationId: res?.id,
             guestId,
+            agentRole: agent,
           }),
-          escalationActivity: {
-            active: Math.max(0, next.escalations.filter((e) => !e.resolved).length),
-            unresolved24h: next.escalations.filter(
-              (e) => !e.resolved && Date.now() - new Date(e.createdAt).getTime() < 86_400_000
-            ).length,
-            resolvedToday: next.escalations.filter((e) => e.resolved).length,
-          },
         },
         auditEvents: appendAudit(next.auditEvents, {
           type: "decision",
           title: "Reservation confirmed — payment captured",
           explanation:
-            "Payment completed event propagated. Pipeline moved to confirmed; escalations cleared.",
+            "Payment completed event propagated. Pipeline moved to confirmed; payment escalations cleared.",
           confidence: 0.91,
           knowledgeReferences: ["kn_payment_hold"],
           policyReferences: ["payment_capture_confirm"],
           humanOverride: false,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+          agentRole: agent,
+          confidenceBefore: confBeforePay,
+          confidenceDelta: (postPayConv?.aiInsight.confidence ?? 0.91) - confBeforePay,
+          actionOutcome: "success",
+          rationale:
+            "PSP settlement confirmed — Reservation Agent closed the workflow and released holds.",
+        }),
+        aiActionMemory: appendMemory(
+          appendMemory(next.aiActionMemory, {
+            kind: "payment_success",
+            summary: "Payment captured · ledger reconciled",
+            agentRole: agent,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          }),
+          {
+            kind: "reservation_confirmed",
+            summary: "Reservation confirmed post-capture",
+            agentRole: "reservation_agent",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          }
+        ),
+      };
+      break;
+    }
+
+    case "UPGRADE_OFFERED": {
+      if (guestId && guest) {
+        next = {
+          ...next,
+          guests: next.guests.map((g) =>
+            g.id === guestId
+              ? {
+                  ...g,
+                  upsellPotential: Math.min(1, g.upsellPotential + 0.08),
+                }
+              : g
+          ),
+        };
+      }
+
+      next = {
+        ...next,
+        overview: {
+          ...next.overview,
+          actionFeed: appendFeed(next.overview.actionFeed, {
+            actionName: "Surface upgrade offer",
+            outcome: "pending",
+            confidence: 0.84,
+            explanation:
+              "Availability-aware upgrade packaged — acceptance tracked against guest risk posture.",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+          }),
+        },
+        auditEvents: appendAudit(next.auditEvents, {
+          type: "action",
+          title: "Upgrade offer orchestrated",
+          explanation:
+            "Revenue Optimization Agent issued a bounded upsell within policy guardrails.",
+          confidence: 0.84,
+          knowledgeReferences: ["kn_upgrade_eligibility"],
+          policyReferences: ["upsell_margin_floor"],
+          humanOverride: false,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+          agentRole: agent,
+          rationale: "Guest fit and inventory headroom exceeded upsell threshold.",
+          actionOutcome: "pending",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "upgrade_offered",
+          summary: "Upgrade offer surfaced · revenue guardrails applied",
+          agentRole: agent,
           conversationId,
           reservationId: res?.id,
           guestId,
@@ -505,6 +842,7 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agentRoleForEscalationReason("sentiment_warning"),
         }),
         auditEvents: appendAudit(next.auditEvents, {
           type: "escalation",
@@ -517,7 +855,29 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agent,
+          confidenceBefore: conv?.aiInsight.confidence ?? 0.72,
+          rationale: "Guest tone collapsed below supervised messaging threshold.",
+          actionOutcome: "escalated",
         }),
+        aiActionMemory: appendMemory(
+          appendMemory(next.aiActionMemory, {
+            kind: "guest_risk_updated",
+            summary: "Guest sentiment shifted negative · risk posture tightened",
+            agentRole: agent,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          }),
+          {
+            kind: "escalation_opened",
+            summary: "Escalation supervisor engaged sentiment guard",
+            agentRole: "escalation_supervisor",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          }
+        ),
       };
       next = {
         ...next,
@@ -530,17 +890,9 @@ export function applyRuntimeEvent(
             explanation: "Sentiment below threshold — supervisor queue.",
             conversationId,
             guestId,
+            reservationId: res?.id,
+            agentRole: agent,
           }),
-        },
-      };
-      next.overview = {
-        ...next.overview,
-        escalationActivity: {
-          active: next.escalations.filter((e) => !e.resolved).length,
-          unresolved24h: next.escalations.filter(
-            (e) => !e.resolved && Date.now() - new Date(e.createdAt).getTime() < 86_400_000
-          ).length,
-          resolvedToday: next.escalations.filter((e) => e.resolved).length,
         },
       };
       break;
@@ -576,6 +928,7 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agentRoleForEscalationReason("low_confidence_quote"),
         }),
         auditEvents: appendAudit(next.auditEvents, {
           type: "decision",
@@ -588,13 +941,36 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agent,
+          confidenceBefore: conv?.aiInsight.confidence ?? 0.65,
+          confidenceDelta: delta,
+          rationale: "Confidence gate suppresses autonomous pricing without supervisor clearance.",
+          actionOutcome: "blocked",
         }),
         overview: {
           ...next.overview,
           activeWorkflows: next.overview.activeWorkflows.map((w) =>
             w.linkedId === conversationId ? { ...w, status: "blocked", progressPct: w.progressPct } : w
           ),
+          actionFeed: appendFeed(next.overview.actionFeed, {
+            actionName: "Hold quote — confidence gate",
+            outcome: "blocked",
+            confidence: Math.max(0.35, (conv?.aiInsight.confidence ?? 0.65) + delta),
+            explanation: "Low-confidence quote requires human verification.",
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+            agentRole: agent,
+          }),
         },
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "low_confidence_gate",
+          summary: "Quote held · escalation supervisor invoked confidence gate",
+          agentRole: agent,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+        }),
       };
       break;
     }
@@ -638,6 +1014,7 @@ export function applyRuntimeEvent(
             explanation: "VIP signal — white-glove persona and faster human threshold.",
             guestId,
             conversationId,
+            agentRole: agent,
           }),
         },
         auditEvents: appendAudit(next.auditEvents, {
@@ -648,6 +1025,16 @@ export function applyRuntimeEvent(
           knowledgeReferences: ["kn_vip_transfer"],
           policyReferences: ["vip_concierge_routing"],
           humanOverride: false,
+          guestId,
+          conversationId,
+          agentRole: agent,
+          rationale: "Loyalty graph triggered VIP handling playbook.",
+          actionOutcome: "success",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "vip_signal",
+          summary: "VIP concierge routing activated",
+          agentRole: agent,
           guestId,
           conversationId,
         }),
@@ -683,6 +1070,7 @@ export function applyRuntimeEvent(
             reservationId: res?.id,
             conversationId,
             guestId,
+            agentRole: agent,
           }),
         },
         auditEvents: appendAudit(next.auditEvents, {
@@ -696,6 +1084,17 @@ export function applyRuntimeEvent(
           reservationId: res?.id,
           guestId,
           conversationId,
+          agentRole: agent,
+          rationale: "OTA leakage risk exceeded routing threshold.",
+          actionOutcome: "pending",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "ota_recovery",
+          summary: "OTA → direct recovery sequence armed",
+          agentRole: agent,
+          reservationId: res?.id,
+          conversationId,
+          guestId,
         }),
       };
       break;
@@ -739,6 +1138,8 @@ export function applyRuntimeEvent(
             explanation: "Operational control transferred to staff.",
             conversationId,
             guestId,
+            reservationId: res?.id,
+            agentRole: agent,
           }),
         },
         auditEvents: appendAudit(next.auditEvents, {
@@ -749,6 +1150,17 @@ export function applyRuntimeEvent(
           knowledgeReferences: [],
           policyReferences: ["human_takeover_sop"],
           humanOverride: true,
+          conversationId,
+          reservationId: res?.id,
+          guestId,
+          agentRole: agent,
+          rationale: "Human operator requested authoritative control over thread.",
+          actionOutcome: "success",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "human_takeover",
+          summary: "Human operator assumed authoritative control",
+          agentRole: agent,
           conversationId,
           reservationId: res?.id,
           guestId,
@@ -781,6 +1193,7 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agentRoleForEscalationReason("policy_ambiguity"),
         }),
         overview: {
           ...next.overview,
@@ -801,6 +1214,9 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agent,
+          rationale: "Transfer buffer breached minimum SOP guard.",
+          actionOutcome: "blocked",
         }),
       };
       break;
@@ -829,30 +1245,62 @@ export function applyRuntimeEvent(
           conversationId,
           reservationId: res?.id,
           guestId,
+          agentRole: agent,
+          actionOutcome: "success",
+          rationale: "Supervisor clearance received; automation re-enabled.",
         }),
       };
       break;
     }
 
     case "ESCALATION_RESOLVED": {
+      const updatedEscalations = next.escalations.map((e) =>
+        !e.resolved &&
+        (e.conversationId === conversationId || e.reservationId === reservationId)
+          ? { ...e, resolved: true, resolvedAt: isoNow(), aiConfidenceAfter: 0.86 }
+          : e
+      );
       next = {
         ...next,
-        escalations: next.escalations.map((e) =>
-          !e.resolved &&
-          (e.conversationId === conversationId || e.reservationId === reservationId)
-            ? { ...e, resolved: true, resolvedAt: isoNow(), aiConfidenceAfter: 0.86 }
-            : e
-        ),
+        escalations: updatedEscalations,
         overview: {
           ...next.overview,
-          escalationActivity: {
-            active: next.escalations.filter((e) => !e.resolved).length,
-            unresolved24h: next.escalations.filter(
-              (e) => !e.resolved && Date.now() - new Date(e.createdAt).getTime() < 86_400_000
-            ).length,
-            resolvedToday: next.escalations.filter((e) => e.resolved).length + 1,
-          },
+          actionFeed: appendFeed(next.overview.actionFeed, {
+            actionName: "Escalation cleared",
+            outcome: "success",
+            confidence: 0.86,
+            explanation:
+              "Supervision loop released — linked entities recalibrated for autonomous mode.",
+            conversationId,
+            reservationId: res?.id ?? reservationId,
+            guestId,
+            agentRole: agent,
+          }),
         },
+        auditEvents: appendAudit(next.auditEvents, {
+          type: "decision",
+          title: "Escalation resolved — pipeline reopen",
+          explanation:
+            "Escalation supervisor closed the loop; confidence rebound applied to linked conversation context.",
+          confidence: 0.86,
+          knowledgeReferences: [],
+          policyReferences: ["escalation_release_sop"],
+          humanOverride: false,
+          conversationId,
+          reservationId: res?.id ?? reservationId,
+          guestId,
+          agentRole: agent,
+          actionOutcome: "success",
+          rationale: "Human sign-off satisfied policy requirements for reopening automation.",
+        }),
+        aiActionMemory: appendMemory(next.aiActionMemory, {
+          kind: "escalation_resolved",
+          summary: "Escalation cleared · automation path reopened",
+          agentRole: agent,
+          conversationId,
+          reservationId: res?.id ?? reservationId,
+          guestId,
+        }),
       };
       break;
     }
@@ -863,13 +1311,18 @@ export function applyRuntimeEvent(
 
   next = {
     ...next,
+    operationalFocusLabel: LIVE_EVENT_CATALOG[type].title,
     liveEvents: appendLiveEvent(
       next.liveEvents,
-      createLiveEventFromRuntime(type, {
-        conversationId,
-        reservationId: res?.id ?? reservationId,
-        guestId,
-      })
+      createLiveEventFromRuntime(
+        type,
+        {
+          conversationId,
+          reservationId: res?.id ?? reservationId,
+          guestId,
+        },
+        agent
+      )
     ),
   };
 
@@ -880,6 +1333,7 @@ export function applyRuntimeEvent(
       ...next.overview,
       asOfIso: isoNow(),
       confidenceDistribution: buildConfidenceBuckets(next.conversations),
+      escalationActivity: escalationMetricsFrom(next.escalations),
       runtime: {
         ...next.overview.runtime,
         activeWorkflows: next.overview.activeWorkflows.filter(

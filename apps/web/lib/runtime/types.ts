@@ -1,4 +1,4 @@
-import type { AIBrainOverview } from "@/lib/types/ai-brain";
+import type { AIBrainOverview, AIOperationalAgentRole } from "@/lib/types/ai-brain";
 import type { AuditEvent, EscalationEvent } from "@/lib/types/ai-brain";
 import type { Conversation, ConversationSummary } from "@/lib/types/conversations";
 import type { Guest } from "@/lib/types/guests";
@@ -25,9 +25,41 @@ export type ConversationRuntimeMeta = {
   operationalStatuses: RuntimeOperationalStatus[];
 };
 
+export type AIActionMemoryKind =
+  | "payment_link_sent"
+  | "payment_failed"
+  | "payment_success"
+  | "upgrade_offered"
+  | "human_takeover"
+  | "reservation_confirmed"
+  | "guest_risk_updated"
+  | "escalation_opened"
+  | "escalation_resolved"
+  | "sentiment_shift"
+  | "vip_signal"
+  | "ota_recovery"
+  | "low_confidence_gate"
+  | "workflow_pause";
+
+/** Durable simulated AI actions across modules (local runtime cap). */
+export type AIActionMemoryEntry = {
+  id: string;
+  kind: AIActionMemoryKind;
+  summary: string;
+  agentRole: AIOperationalAgentRole;
+  conversationId?: string;
+  reservationId?: string;
+  guestId?: string;
+  auditEventId?: string;
+  escalationId?: string;
+  createdAt: string;
+};
+
 export type AIRuntimeState = {
   hydrated: boolean;
   lastPulseAt: number;
+  /** Short headline for global AI status / topbar focus */
+  operationalFocusLabel: string;
   /** Unified cross-module operational event stream */
   liveEvents: LiveOperationalEvent[];
   conversations: Conversation[];
@@ -36,6 +68,7 @@ export type AIRuntimeState = {
   guests: Guest[];
   escalations: EscalationEvent[];
   auditEvents: AuditEvent[];
+  aiActionMemory: AIActionMemoryEntry[];
   overview: AIBrainOverview;
   conversationMeta: Record<string, ConversationRuntimeMeta>;
   /** Entity → active runtime badges for quick lookup */

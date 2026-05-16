@@ -19,6 +19,7 @@ import { GuestLinkedSection } from "./guest-linked-section";
 import { GuestPreferencesCard } from "./guest-preferences-card";
 import { GuestRevenueCard } from "./guest-revenue-card";
 import { GuestIntelligenceSidebar } from "./guest-intelligence-card";
+import { AiActionMemoryStrip } from "@/app/app/_components/ai-action-memory-strip";
 
 export type GuestProfilePayload = {
   guest: Guest;
@@ -59,6 +60,11 @@ export function GuestProfile({ payload }: GuestProfileProps) {
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="min-w-0 space-y-6">
+          <AiActionMemoryStrip
+            guestId={payload.guest.id}
+            conversationId={payload.primaryConversationId ?? undefined}
+            title="Guest-scoped AI action memory"
+          />
           <GuestTimeline events={timeline} onAddNote={onAddNote} />
           <GuestLinkedSection
             reservations={payload.reservations}

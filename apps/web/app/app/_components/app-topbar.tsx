@@ -1,9 +1,19 @@
 "use client";
 
+import { useMemo } from "react";
 import { Bell, Menu, Search, Sparkles } from "lucide-react";
 import type { Organization, User as AppUser } from "@/app/app/_types";
+import { useOperationalFocusLabel, useRuntimePulse } from "@/lib/runtime";
 import { OrgSwitcher } from "./org-switcher";
 import { UserMenu } from "./user-menu";
+
+const IDLE_FOCUS_HINTS = [
+  "Monitoring payment recovery",
+  "Watching VIP arrivals",
+  "Recalculating guest risk",
+  "Supervising low-confidence quotes",
+  "Syncing reservation context",
+];
 
 type AppTopbarProps = {
   organizations: Organization[];
@@ -20,6 +30,13 @@ export function AppTopbar({
   user,
   onMenuClick,
 }: AppTopbarProps) {
+  const focusLabel = useOperationalFocusLabel();
+  const pulse = useRuntimePulse();
+  const rotatingHint = useMemo(() => {
+    const i = pulse > 0 ? Math.floor(pulse / 14000) % IDLE_FOCUS_HINTS.length : 0;
+    return IDLE_FOCUS_HINTS[i];
+  }, [pulse]);
+
   return (
     <header className="sticky top-0 z-30 flex h-[3.25rem] shrink-0 items-center gap-2 border-b border-white/[0.07] bg-zinc-950/[0.92] px-3 shadow-[0_1px_0_rgba(0,0,0,0.35)] backdrop-blur-md md:h-14 md:gap-3 md:px-4">
       <button
@@ -81,19 +98,24 @@ export function AppTopbar({
           <Bell className="h-4 w-4" />
         </button>
         <div
-          className="hidden items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-950/35 px-2.5 py-1.5 shadow-[0_0_20px_-6px_rgba(16,185,129,0.35)] sm:flex md:px-3"
-          title="AI runtime status"
+          className="hidden max-w-[min(340px,46vw)] shrink flex-col items-end gap-0.5 rounded-xl border border-emerald-500/22 bg-emerald-950/28 px-2.5 py-1.5 text-right shadow-[0_0_24px_-10px_rgba(16,185,129,0.35)] sm:flex md:max-w-[380px] md:px-3"
+          title="AI runtime focus"
+          data-runtime-pulse={pulse > 0 ? String(pulse) : undefined}
         >
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-35" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
+          <div className="flex items-center justify-end gap-2">
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.55)]" />
+            </span>
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-300/90" aria-hidden />
+            <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-emerald-100/95 md:text-[11px]">
+              AI Ops Live
+            </span>
+          </div>
+          <span className="w-full truncate text-[10px] font-medium leading-snug text-emerald-100/55 md:text-[11px]">
+            {focusLabel}
           </span>
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-emerald-300/90" aria-hidden />
-          <span className="hidden text-[10px] font-semibold uppercase tracking-wide text-emerald-100/95 sm:inline md:text-[11px]">
-            AI Operations Live
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-100/95 sm:hidden">
-            AI live
+          <span className="hidden w-full truncate text-[9px] font-medium text-white/28 md:inline">
+            {rotatingHint}
           </span>
         </div>
         <UserMenu user={user} />

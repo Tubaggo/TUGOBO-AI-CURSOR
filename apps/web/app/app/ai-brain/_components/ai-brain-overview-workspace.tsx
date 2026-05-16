@@ -12,13 +12,24 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import type { AIBrainOverview, AIWorkflowStatus } from "@/lib/types/ai-brain";
-import { useAIRuntimeStore } from "@/lib/runtime";
+import type { AIBrainOverview, AIWorkflowStatus, AIOperationalAgentRole } from "@/lib/types/ai-brain";
+import { AI_OPERATIONAL_AGENT_ROLES } from "@/lib/types/ai-brain";
+import { OPERATIONAL_AGENT_LABEL, useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { AIBrainPageHeader } from "./ai-brain-page-header";
 import { AIRuntimeCard } from "./ai-runtime-card";
 import { ConfidenceDistributionChart } from "./confidence-distribution-chart";
 import { AIExplanationCard } from "./ai-explanation-card";
+import { OperationalGraphCard } from "./operational-graph-card";
+import { LiveOperationalEventFeed } from "@/app/app/_components/live-operational-event-feed";
+
+const AGENT_FOCUS: Record<AIOperationalAgentRole, string> = {
+  reservation_agent: "Pipeline integrity · inventory coupling · stage transitions",
+  guest_memory_agent: "Risk posture · sentiment continuity · VIP cues",
+  payment_recovery_agent: "PSP orchestration · retry ladders · ledger alignment",
+  escalation_supervisor: "Safety rails · confidence gates · human bridges",
+  revenue_optimization_agent: "Upsell timing · rate bands · OTA conversion",
+};
 
 type AIBrainOverviewWorkspaceProps = {
   overview: AIBrainOverview;
@@ -118,6 +129,36 @@ export function AIBrainOverviewWorkspace({ overview: serverOverview }: AIBrainOv
         />
       </section>
 
+      <section className="mb-6 grid gap-4 xl:grid-cols-3">
+        <article className="rounded-xl border border-white/[0.07] bg-zinc-900/55 p-4 xl:col-span-2">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
+            <Bot className="h-4 w-4 text-cyan-300/80" aria-hidden />
+            Operational agents
+          </h3>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {AI_OPERATIONAL_AGENT_ROLES.map((role) => (
+              <li
+                key={role}
+                className="rounded-lg border border-white/[0.06] bg-black/22 px-3 py-2.5 transition-colors hover:border-white/[0.09]"
+              >
+                <p className="text-[12px] font-semibold text-white/82">{OPERATIONAL_AGENT_LABEL[role]}</p>
+                <p className="mt-1 text-[10px] leading-snug text-white/38">{AGENT_FOCUS[role]}</p>
+              </li>
+            ))}
+          </ul>
+        </article>
+        <OperationalGraphCard pulse={lastPulse} />
+      </section>
+
+      <section className="mb-6">
+        <LiveOperationalEventFeed
+          compact
+          limit={9}
+          title="Live operational stream"
+          subtitle="Cross-module propagation · agent-attributed signals"
+        />
+      </section>
+
       <section className="mb-6 grid gap-4 lg:grid-cols-2">
         <article className="rounded-xl border border-white/[0.07] bg-zinc-900/55 p-4">
           <header className="mb-4 flex items-center justify-between">
@@ -201,10 +242,47 @@ export function AIBrainOverviewWorkspace({ overview: serverOverview }: AIBrainOv
                     {item.outcome}
                   </span>
                 </div>
+                {item.agentRole ? (
+                  <p className="mt-1 text-[9px] font-medium uppercase tracking-wide text-white/28">
+                    {OPERATIONAL_AGENT_LABEL[item.agentRole]}
+                  </p>
+                ) : null}
                 <p className="mt-1 text-[11px] text-white/40">{item.explanation}</p>
                 <p className="mt-1 text-[10px] tabular-nums text-white/30">
                   {Math.round(item.confidence * 100)}% confidence
                 </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {item.conversationId ? (
+                    <Link
+                      href={`/app/conversations/${item.conversationId}`}
+                      className="text-[10px] font-semibold text-cyan-300/80 hover:text-cyan-200"
+                    >
+                      Conversation →
+                    </Link>
+                  ) : null}
+                  {item.reservationId ? (
+                    <Link
+                      href={`/app/reservations/${item.reservationId}`}
+                      className="text-[10px] font-semibold text-cyan-300/80 hover:text-cyan-200"
+                    >
+                      Reservation →
+                    </Link>
+                  ) : null}
+                  {item.guestId ? (
+                    <Link
+                      href={`/app/guests/${item.guestId}`}
+                      className="text-[10px] font-semibold text-cyan-300/80 hover:text-cyan-200"
+                    >
+                      Guest →
+                    </Link>
+                  ) : null}
+                  <Link
+                    href="/app/ai-brain/audit"
+                    className="text-[10px] font-semibold text-white/28 hover:text-white/45"
+                  >
+                    Audit →
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

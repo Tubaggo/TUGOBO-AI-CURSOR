@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { applyRuntimeEvent } from "./orchestration-engine";
 import type { LiveOperationalEvent } from "./live-events";
 import { deriveOrchestrationPulse, type OrchestrationPulseMetrics } from "./orchestration-pulse";
@@ -9,7 +10,7 @@ import { createRuntimeEvent, type RuntimeEventPayload, type RuntimeEventType } f
 import { assignReservation, updateReservationStage } from "@/lib/data/reservations";
 import { buildRuntimeSeed } from "./seed-runtime";
 import type { Conversation } from "@/lib/types/conversations";
-import type { AIRuntimeState, RuntimeOperationalStatus } from "./types";
+import type { AIRuntimeState, AIActionMemoryEntry, RuntimeOperationalStatus } from "./types";
 
 type AIRuntimeActions = {
   hydrate: () => void;
@@ -26,12 +27,15 @@ export type AIRuntimeStore = AIRuntimeState & AIRuntimeActions;
 const initialState: AIRuntimeState = {
   hydrated: false,
   lastPulseAt: 0,
+  liveEvents: [],
   conversations: [],
   conversationSummaries: [],
   reservations: [],
   guests: [],
   escalations: [],
   auditEvents: [],
+  aiActionMemory: [],
+  operationalFocusLabel: "Monitoring operational signals",
   overview: {
     asOfIso: new Date(0).toISOString(),
     runtime: {
@@ -118,16 +122,22 @@ export function useRuntimePulse(): number {
 const EMPTY_LIVE_EVENTS: LiveOperationalEvent[] = [];
 
 export function useLiveOperationalEvents(limit?: number): LiveOperationalEvent[] {
-  return useAIRuntimeStore((s) => {
-    const events = s.hydrated ? s.liveEvents : EMPTY_LIVE_EVENTS;
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const liveEvents = useAIRuntimeStore((s) => s.liveEvents);
+  return useMemo(() => {
+    const events = hydrated ? liveEvents : EMPTY_LIVE_EVENTS;
     return limit !== undefined ? events.slice(0, limit) : events;
-  });
+  }, [hydrated, liveEvents, limit]);
 }
 
 export function useOrchestrationPulseMetrics(): OrchestrationPulseMetrics {
-  const overview = useAIRuntimeStore((s) => s.overview);
-  const escalations = useAIRuntimeStore((s) => s.escalations);
-  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const { hydrated, overview, escalations } = useAIRuntimeStore(
+    useShallow((s) => ({
+      hydrated: s.hydrated,
+      overview: s.overview,
+      escalations: s.escalations,
+    }))
+  );
 
   return useMemo(() => {
     if (!hydrated) {
@@ -135,4 +145,37 @@ export function useOrchestrationPulseMetrics(): OrchestrationPulseMetrics {
     }
     return deriveOrchestrationPulse(overview, escalations);
   }, [hydrated, overview, escalations]);
+}
+
+export function useOperationalFocusLabel(): string {
+  return useAIRuntimeStore((s) => s.operationalFocusLabel);
+}
+
+export function useAiActionMemorySlice(limit: number): AIActionMemoryEntry[] {
+  const hydrated = useAIRuntimeStore((s) => s.hydrated);
+  const memory = useAIRuntimeStore((s) => s.aiActionMemory);
+  return useMemo(() => {
+    if (!hydrated) return [];
+    return memory.slice(0, limit);
+  }, [hydrated, memory, limit]);
+}
+
+/** Filters memory by entity without unstable store selectors — derive in component via useMemo on slice + ids. */
+export function filterActionMemoryByRefs(
+  memory: AIActionMemoryEntry[],
+  refs: {
+    conversationId?: string;
+    reservationId?: string;
+    guestId?: string;
+  },
+  limit = 12
+): AIActionMemoryEntry[] {
+  return memory
+    .filter((m) => {
+      if (refs.conversationId && m.conversationId === refs.conversationId) return true;
+      if (refs.reservationId && m.reservationId === refs.reservationId) return true;
+      if (refs.guestId && m.guestId === refs.guestId) return true;
+      return false;
+    })
+    .slice(0, limit);
 }

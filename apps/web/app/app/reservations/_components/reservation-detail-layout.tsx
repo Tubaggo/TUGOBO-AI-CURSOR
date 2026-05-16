@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { pipelineStageLabel, formatMoney, sourceLabel } from "./reservation-formatters";
 import { ReservationTimeline } from "./reservation-timeline";
 import { ReservationDetailSidebar } from "./reservation-detail-sidebar";
+import { ReservationOrchestrationBand } from "./reservation-orchestration-band";
 
 type ReservationDetailLayoutProps = {
   detail: ReservationDetailPayload;
@@ -95,6 +96,11 @@ export function ReservationDetailLayout({ detail }: ReservationDetailLayoutProps
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
           <PipelineRail current={r.status} />
+          <ReservationOrchestrationBand
+            reservationId={r.id}
+            guestId={r.guestId}
+            conversationId={r.conversationId}
+          />
           <section className="rounded-xl border border-white/[0.07] bg-zinc-900/35 p-4 md:p-5">
             <header className="mb-3 flex items-center gap-2 border-b border-white/[0.06] pb-2">
               <Bot className="h-4 w-4 text-violet-300/90" aria-hidden />

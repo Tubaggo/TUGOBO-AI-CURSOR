@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LiveEventSeverity, LiveOperationalEvent, OperationalModule } from "@/lib/runtime";
-import { useLiveOperationalEvents, useRuntimePulse } from "@/lib/runtime";
+import { OPERATIONAL_AGENT_LABEL, useLiveOperationalEvents, useRuntimePulse } from "@/lib/runtime";
 
 const MODULE_LABEL: Record<OperationalModule, string> = {
   conversations: "Conversations",
@@ -43,11 +43,13 @@ const SEVERITY_DOT: Record<LiveEventSeverity, string> = {
 
 const EVENT_ICONS: Record<string, LucideIcon> = {
   payment_failed: CreditCard,
+  payment_link_sent: Sparkles,
   payment_success: CheckCircle2,
   sentiment_drop: AlertTriangle,
   confidence_low: Activity,
   vip_detected: Crown,
   ota_recovery: TrendingUp,
+  upgrade_offered: TrendingUp,
   human_takeover: UserCog,
   transfer_risk: AlertTriangle,
   workflow_resumed: Sparkles,
@@ -174,6 +176,11 @@ export function LiveOperationalEventFeed({
                     </p>
                     <span className="text-[9px] font-semibold uppercase tracking-wide text-white/30">
                       {MODULE_LABEL[item.module]}
+                      {item.agentRole ? (
+                        <span className="ml-2 text-[9px] font-medium text-white/22">
+                          · {OPERATIONAL_AGENT_LABEL[item.agentRole]}
+                        </span>
+                      ) : null}
                     </span>
                   </div>
                 </div>

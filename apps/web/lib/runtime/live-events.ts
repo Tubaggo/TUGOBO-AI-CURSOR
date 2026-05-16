@@ -1,4 +1,5 @@
 import type { RuntimeEventType } from "./runtime-events";
+import type { AIOperationalAgentRole } from "@/lib/types/ai-brain";
 
 export const OPERATIONAL_MODULES = [
   "conversations",
@@ -25,6 +26,7 @@ export type LiveOperationalEvent = {
   reservationId?: string;
   guestId?: string;
   runtimeEventType?: RuntimeEventType;
+  agentRole?: AIOperationalAgentRole;
 };
 
 export type LiveEventCatalogEntry = {
@@ -36,6 +38,14 @@ export type LiveEventCatalogEntry = {
 };
 
 export const LIVE_EVENT_CATALOG: Record<RuntimeEventType, LiveEventCatalogEntry> = {
+  PAYMENT_LINK_SENT: {
+    eventType: "payment_link_sent",
+    title: "Payment link dispatched",
+    story:
+      "Secure checkout surfaced to guest — reservation staged for capture with PSP watchdog armed.",
+    module: "conversations",
+    severity: "info",
+  },
   PAYMENT_LINK_FAILED: {
     eventType: "payment_failed",
     title: "Payment link failed",
@@ -49,6 +59,14 @@ export const LIVE_EVENT_CATALOG: Record<RuntimeEventType, LiveEventCatalogEntry>
     story: "Payment cleared — reservation confirmed and confidence restored across the pipeline.",
     module: "reservations",
     severity: "success",
+  },
+  UPGRADE_OFFERED: {
+    eventType: "upgrade_offered",
+    title: "Upgrade offer surfaced",
+    story:
+      "Revenue agent packaged an availability-aware upgrade — acceptance tracked against guest risk.",
+    module: "conversations",
+    severity: "info",
   },
   NEGATIVE_SENTIMENT: {
     eventType: "sentiment_drop",
@@ -115,6 +133,7 @@ const SEED_EVENTS: Omit<LiveOperationalEvent, "id" | "createdAt">[] = [
     story: "AI qualified direct booking — deposit path armed.",
     module: "reservations",
     severity: "success",
+    agentRole: "reservation_agent",
   },
   {
     eventType: "upsell_triggered",
@@ -122,6 +141,7 @@ const SEED_EVENTS: Omit<LiveOperationalEvent, "id" | "createdAt">[] = [
     story: "Room upgrade offer sent based on stay pattern and availability band.",
     module: "conversations",
     severity: "info",
+    agentRole: "revenue_optimization_agent",
   },
   {
     eventType: "ai_active",
@@ -129,6 +149,7 @@ const SEED_EVENTS: Omit<LiveOperationalEvent, "id" | "createdAt">[] = [
     story: "Orchestration heartbeat stable — cross-module context in sync.",
     module: "ai-brain",
     severity: "info",
+    agentRole: "guest_memory_agent",
   },
   {
     eventType: "payment_recovery",
@@ -136,6 +157,7 @@ const SEED_EVENTS: Omit<LiveOperationalEvent, "id" | "createdAt">[] = [
     story: "Payment recovery workflow supervising hold expiry and alternate PSP path.",
     module: "ai-brain",
     severity: "info",
+    agentRole: "payment_recovery_agent",
   },
 ];
 
@@ -154,7 +176,8 @@ export function createLiveEventFromRuntime(
     conversationId?: string;
     reservationId?: string;
     guestId?: string;
-  }
+  },
+  agentRole?: AIOperationalAgentRole
 ): LiveOperationalEvent {
   const catalog = LIVE_EVENT_CATALOG[runtimeType];
   return {
@@ -162,6 +185,7 @@ export function createLiveEventFromRuntime(
     ...catalog,
     createdAt: new Date().toISOString(),
     runtimeEventType: runtimeType,
+    agentRole,
     ...refs,
   };
 }
