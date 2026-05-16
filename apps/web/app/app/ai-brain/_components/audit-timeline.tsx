@@ -6,6 +6,17 @@ import { AIExplanationCard } from "./ai-explanation-card";
 import { AIBrainLinkedRefs } from "./ai-brain-linked-refs";
 import { PolicyReferenceCard } from "./policy-reference-card";
 
+const SEVERITY_CHIP: Record<
+  NonNullable<AuditEvent["severity"]>,
+  { label: string; className: string }
+> = {
+  critical: { label: "Critical", className: "border-rose-500/40 bg-rose-500/12 text-rose-100" },
+  high: { label: "High", className: "border-orange-500/35 bg-orange-500/10 text-orange-100" },
+  medium: { label: "Medium", className: "border-amber-500/30 bg-amber-500/8 text-amber-50" },
+  low: { label: "Low", className: "border-emerald-500/28 bg-emerald-500/8 text-emerald-50" },
+  info: { label: "Info", className: "border-white/15 bg-white/[0.05] text-white/55" },
+};
+
 const TYPE_LABEL: Record<AuditEvent["type"], string> = {
   decision: "AI decision",
   action: "Action trace",
@@ -57,6 +68,36 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                   ) : null}
                 </p>
                 <h3 className="text-sm font-semibold text-white">{e.title}</h3>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {e.severity ? (
+                    <span
+                      className={cn(
+                        "rounded-md border px-1.5 py-px text-[9px] font-bold uppercase tracking-wide",
+                        SEVERITY_CHIP[e.severity].className
+                      )}
+                    >
+                      {SEVERITY_CHIP[e.severity].label}
+                    </span>
+                  ) : null}
+                  <span className="rounded border border-white/[0.06] px-1.5 py-px font-mono text-[9px] text-white/30">
+                    {e.eventId ?? e.id}
+                  </span>
+                </div>
+                {e.propagationTargets && e.propagationTargets.length > 0 ? (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide text-white/28">
+                      Propagation
+                    </span>
+                    {e.propagationTargets.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded border border-white/[0.06] bg-black/35 px-1.5 py-px text-[9px] uppercase tracking-wide text-cyan-100/45"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <span className="text-[11px] tabular-nums text-white/35">
                 {new Date(e.createdAt).toLocaleString("en-GB", {

@@ -2,7 +2,6 @@ import type {
   AIActionFeedItem,
   AIBrainOverview,
   AIActiveWorkflow,
-  AuditEvent,
   EscalationEvent,
   EscalationReason,
 } from "@/lib/types/ai-brain";
@@ -11,6 +10,8 @@ import type { Guest, GuestRiskFlag, GuestSentiment } from "@/lib/types/guests";
 import type { Reservation, ReservationPipelineStage, UrgencyLevel } from "@/app/app/_types";
 import { agentRoleForEscalationReason, agentRoleForRuntimeEvent } from "./agent-role-map";
 import { recalculateConversationConfidence } from "./confidence-engine";
+import { appendAuditPipeline } from "./audit-pipeline";
+import { patchGuestAiMemory } from "@/lib/ai/memory-influence";
 import { appendLiveEvent, createLiveEventFromRuntime, LIVE_EVENT_CATALOG } from "./live-events";
 import type { RuntimeEvent } from "./runtime-events";
 import type { AIRuntimeState, AIActionMemoryEntry, ConversationRuntimeMeta, RuntimeOperationalStatus } from "./types";
@@ -46,20 +47,6 @@ function removeStatuses(
     return rest;
   }
   return { ...map, [key]: next };
-}
-
-function appendAudit(
-  events: AuditEvent[],
-  partial: Omit<AuditEvent, "id" | "createdAt">
-): AuditEvent[] {
-  return [
-    {
-      id: newId("aud"),
-      createdAt: isoNow(),
-      ...partial,
-    },
-    ...events,
-  ];
 }
 
 function appendEscalation(
@@ -257,7 +244,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "action",
           title: "Payment link dispatched",
           explanation:
@@ -411,7 +398,7 @@ export function applyRuntimeEvent(
               agentRole: agent,
             }),
           },
-          auditEvents: appendAudit(next.auditEvents, {
+          auditEvents: appendAuditPipeline(next.auditEvents, {
             type: "policy_trigger",
             title: "Payment friction — hold extended",
             explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
@@ -481,7 +468,7 @@ export function applyRuntimeEvent(
               agentRole: agent,
             }),
           },
-          auditEvents: appendAudit(next.auditEvents, {
+          auditEvents: appendAuditPipeline(next.auditEvents, {
             type: "policy_trigger",
             title: "Payment friction — hold extended",
             explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
@@ -532,7 +519,7 @@ export function applyRuntimeEvent(
               agentRole: agent,
             }),
           },
-          auditEvents: appendAudit(next.auditEvents, {
+          auditEvents: appendAuditPipeline(next.auditEvents, {
             type: "policy_trigger",
             title: "Payment friction — hold extended",
             explanation: `Payment link failed ${failures}×. Reservation staged to payment pending; workflows paused.`,
@@ -560,6 +547,19 @@ export function applyRuntimeEvent(
           }),
         };
       }
+      if (guestId) {
+        next = {
+          ...next,
+          guestAiMemory: patchGuestAiMemory(next.guestAiMemory, guestId, (m) => ({
+            ...m,
+            riskMemory: [
+              ...m.riskMemory,
+              `Payment friction attempt ${failures} · PSP recovery armed`,
+            ],
+            orchestrationWeight: Math.max(0, m.orchestrationWeight - 0.04),
+          })),
+        };
+      }
       break;
     }
 
@@ -571,7 +571,14 @@ export function applyRuntimeEvent(
           ...updateConversationInState(next, conversationId, (c) => {
             const reservation = findReservation(next.reservations, conversationId);
             const g = next.guests.find((x) => x.id === c.guestId) ?? null;
-            const confidence = recalculateConversationConfidence(c, reservation ?? null, g, 0.12);
+            const memoryW = next.guestAiMemory[c.guestId]?.orchestrationWeight;
+            const confidence = recalculateConversationConfidence(
+              c,
+              reservation ?? null,
+              g,
+              0.12,
+              memoryW
+            );
             return {
               ...c,
               status: "ai_handling",
@@ -669,7 +676,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "decision",
           title: "Reservation confirmed — payment captured",
           explanation:
@@ -741,7 +748,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "action",
           title: "Upgrade offer orchestrated",
           explanation:
@@ -844,7 +851,7 @@ export function applyRuntimeEvent(
           guestId,
           agentRole: agentRoleForEscalationReason("sentiment_warning"),
         }),
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "escalation",
           title: "Sentiment guard triggered",
           explanation: "Negative sentiment event — reservation flagged for human review.",
@@ -930,7 +937,7 @@ export function applyRuntimeEvent(
           guestId,
           agentRole: agentRoleForEscalationReason("low_confidence_quote"),
         }),
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "decision",
           title: "Low-confidence quote flagged",
           explanation: "Quote blocked from autonomous send — human verification required.",
@@ -1017,7 +1024,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "policy_trigger",
           title: "VIP flow activated",
           explanation: "VIP guest detected — lowered escalation threshold; concierge routing on.",
@@ -1038,6 +1045,18 @@ export function applyRuntimeEvent(
           guestId,
           conversationId,
         }),
+        guestAiMemory: guestId
+          ? patchGuestAiMemory(next.guestAiMemory, guestId, (m) => ({
+              ...m,
+              memoryTags: [...new Set([...m.memoryTags, "VIP concierge"])],
+              loyaltyMemory: [
+                ...m.loyaltyMemory,
+                "VIP flow activated — supervised routing engaged",
+              ],
+              upsellMemory: [...m.upsellMemory, "Upsell corridor widened under VIP policy"],
+              orchestrationWeight: Math.min(1, m.orchestrationWeight + 0.09),
+            }))
+          : next.guestAiMemory,
       };
       break;
     }
@@ -1073,7 +1092,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "action",
           title: "OTA recovery workflow started",
           explanation: "Direct conversion incentive path engaged per OTA recovery policy.",
@@ -1125,6 +1144,38 @@ export function applyRuntimeEvent(
 
       next = {
         ...next,
+        staffAssignments: [
+          {
+            id: newId("assign"),
+            entityKey: conversationId ?? res?.id ?? guestId ?? "thread",
+            staffName:
+              (conversationId &&
+                next.conversations.find((c) => c.id === conversationId)?.assignedTo) ??
+              res?.assignedTo ??
+              "Ops Lead",
+            role: "owner" as const,
+            state: "assigned" as const,
+            note: "Authoritative thread control — automation paused",
+            updatedAt: isoNow(),
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          },
+          ...next.staffAssignments,
+        ].slice(0, 48),
+        interventions: [
+          {
+            id: newId("intr"),
+            createdAt: isoNow(),
+            label: "Human takeover · AI paused · escalation fabric notified",
+            actor: "Staff operator",
+            supervisorApproved: false,
+            conversationId,
+            reservationId: res?.id,
+            guestId,
+          },
+          ...next.interventions,
+        ].slice(0, 64),
         overview: {
           ...next.overview,
           humanTakeoverRatio: Math.min(0.45, next.overview.humanTakeoverRatio + 0.04),
@@ -1142,7 +1193,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "override",
           title: "Human takeover activated",
           explanation: "Staff assumed thread control — AI autonomous path paused.",
@@ -1203,7 +1254,7 @@ export function applyRuntimeEvent(
           }),
           runtime: { ...next.overview.runtime, status: "attention" },
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "policy_trigger",
           title: "Transfer SLA risk",
           explanation: "Transfer delay risk event — workflow blocked pending dispatch.",
@@ -1234,7 +1285,7 @@ export function applyRuntimeEvent(
           ),
           runtime: { ...next.overview.runtime, status: "healthy" },
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "action",
           title: "Workflow resumed",
           explanation: "Operational clearance — AI workflows running again.",
@@ -1277,7 +1328,7 @@ export function applyRuntimeEvent(
             agentRole: agent,
           }),
         },
-        auditEvents: appendAudit(next.auditEvents, {
+        auditEvents: appendAuditPipeline(next.auditEvents, {
           type: "decision",
           title: "Escalation resolved — pipeline reopen",
           explanation:

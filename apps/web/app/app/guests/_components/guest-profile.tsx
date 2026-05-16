@@ -77,6 +77,8 @@ export function GuestProfile({ payload }: GuestProfileProps) {
           guest={payload.guest}
           insight={payload.insight}
           actions={payload.actions}
+          primaryConversationId={payload.primaryConversationId}
+          primaryReservationId={payload.reservations[0]?.id ?? null}
         />
       </div>
     </div>

@@ -10,12 +10,16 @@ type GuestIntelligenceCardProps = {
   guest: Guest;
   insight: GuestAIInsight;
   actions: GuestAIAction[];
+  primaryConversationId: string | null;
+  primaryReservationId: string | null;
 };
 
 export function GuestIntelligenceSidebar({
   guest,
   insight,
   actions,
+  primaryConversationId,
+  primaryReservationId,
 }: GuestIntelligenceCardProps) {
   return (
     <aside className="space-y-4">
@@ -32,7 +36,12 @@ export function GuestIntelligenceSidebar({
       <GuestInsightsCard insight={insight} />
       <LoyaltyStatusCard guest={guest} />
       <CommunicationProfileCard insight={insight} />
-      <GuestActionsCard actions={actions} />
+      <GuestActionsCard
+        actions={actions}
+        guestId={guest.id}
+        conversationId={primaryConversationId}
+        reservationId={primaryReservationId}
+      />
     </aside>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
 import {
   ArrowUpCircle,
   Banknote,
@@ -18,7 +18,13 @@ import { AiInsightsCard } from "./ai-insights-card";
 import { OperationalEventsPanel } from "./operational-events-panel";
 import { ReservationContextCard } from "./reservation-context-card";
 import { AiActionMemoryStrip } from "@/app/app/_components/ai-action-memory-strip";
-import { useAIRuntimeStore, useRuntimeConversation, useRuntimeEntityStatuses } from "@/lib/runtime";
+import { OperationPhaseBadgeGroup } from "@/app/app/_components/operation-phase-badges";
+import {
+  useAIRuntimeStore,
+  useOperationPhasesForEntity,
+  useRuntimeConversation,
+  useRuntimeEntityStatuses,
+} from "@/lib/runtime";
 import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
 import {
   assignStaffAction,
@@ -34,9 +40,23 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const dispatch = useAIRuntimeStore((s) => s.dispatch);
+  const assignOperationalStaff = useAIRuntimeStore((s) => s.assignOperationalStaff);
   const storedConversation = useRuntimeConversation(detail.id);
   const liveDetail = storedConversation ?? detail;
   const runtimeStatuses = useRuntimeEntityStatuses(detail.id);
+  const phases = useOperationPhasesForEntity(detail.id);
+  const staffAssignmentsAll = useAIRuntimeStore((s) => s.staffAssignments);
+  const interventionsAll = useAIRuntimeStore((s) => s.interventions);
+  const staffAssignments = useMemo(
+    () =>
+      staffAssignmentsAll.filter((a) => a.conversationId === detail.id).slice(0, 4),
+    [staffAssignmentsAll, detail.id]
+  );
+  const interventions = useMemo(
+    () =>
+      interventionsAll.filter((i) => i.conversationId === detail.id).slice(0, 3),
+    [interventionsAll, detail.id]
+  );
 
   function run(label: string, fn: () => Promise<void>) {
     if (pending) return;
@@ -105,6 +125,46 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
 
         {runtimeStatuses.length > 0 ? (
           <RuntimeStatusBadgeGroup statuses={runtimeStatuses} className="px-0.5" />
+        ) : null}
+
+        {phases.length > 0 ? (
+          <div className="rounded-xl border border-white/[0.06] bg-black/25 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+              Supervised phases
+            </p>
+            <OperationPhaseBadgeGroup phases={phases} className="mt-1.5" />
+          </div>
+        ) : null}
+
+        {staffAssignments.length > 0 || interventions.length > 0 ? (
+          <section className="rounded-xl border border-cyan-500/15 bg-cyan-950/15 px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/65">
+              Staff collaboration
+            </p>
+            <ul className="mt-2 space-y-2 text-[11px] text-white/55">
+              {staffAssignments.map((a) => (
+                <li key={a.id} className="rounded-lg border border-white/[0.06] bg-black/30 px-2 py-1.5">
+                  <span className="font-semibold text-white/80">{a.staffName}</span>
+                  <span className="text-white/35"> · </span>
+                  <span className="uppercase tracking-wide text-[10px] text-cyan-200/70">
+                    {a.role} · {a.state}
+                  </span>
+                  {a.note ? (
+                    <p className="mt-1 text-[10px] leading-snug text-white/40">{a.note}</p>
+                  ) : null}
+                </li>
+              ))}
+              {interventions.map((i) => (
+                <li key={i.id} className="rounded-lg border border-amber-500/15 bg-amber-500/5 px-2 py-1.5">
+                  <span className="font-semibold text-amber-100/85">{i.label}</span>
+                  <p className="mt-0.5 text-[10px] text-white/38">
+                    {i.actor}
+                    {i.supervisorApproved ? " · Supervisor cleared" : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
         ) : null}
 
         <ReservationContextCard reservation={liveDetail.reservation} />
@@ -199,6 +259,13 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
               disabled={pending}
               onClick={() =>
                 run("assign", async () => {
+                  assignOperationalStaff({
+                    conversationId: detail.id,
+                    reservationId: detail.reservationId ?? undefined,
+                    guestId: detail.guestId,
+                    staffName: "Reservations",
+                    note: "Desk routing · multi-operator ownership",
+                  });
                   await assignStaffAction({
                     conversationId: detail.id,
                     staffName: "Reservations",
@@ -226,7 +293,7 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
           </div>
           <p className="mt-2 flex items-center gap-1.5 text-[10px] text-white/25">
             <Sparkles className="h-3 w-3" aria-hidden />
-            Stub actions refresh the view; Supabase-backed tools ship next.
+            Mutations persist in the operational store — audit + Brain mirrors update live.
           </p>
         </section>
       </div>

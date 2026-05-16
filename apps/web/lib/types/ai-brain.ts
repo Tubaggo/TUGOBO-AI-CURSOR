@@ -184,8 +184,23 @@ export const AUDIT_EVENT_TYPES = [
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
+/** Cross-module routing hints — mirrors operational modules in the live fabric. */
+export type AuditPropagationModule =
+  | "conversations"
+  | "reservations"
+  | "guests"
+  | "ai-brain"
+  | "escalations"
+  | "audit";
+
+export const AUDIT_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
+
+export type AuditSeverity = (typeof AUDIT_SEVERITIES)[number];
+
 export type AuditEvent = {
   id: string;
+  /** Immutable trace handle — mirrors `id` for external correlation (Supabase-ready). */
+  eventId?: string;
   type: AuditEventType;
   title: string;
   explanation: string;
@@ -194,6 +209,8 @@ export type AuditEvent = {
   policyReferences: string[];
   humanOverride: boolean;
   createdAt: string;
+  severity?: AuditSeverity;
+  propagationTargets?: AuditPropagationModule[];
   conversationId?: string;
   reservationId?: string;
   guestId?: string;

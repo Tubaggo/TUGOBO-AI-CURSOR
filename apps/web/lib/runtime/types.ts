@@ -3,6 +3,13 @@ import type { AuditEvent, EscalationEvent } from "@/lib/types/ai-brain";
 import type { Conversation, ConversationSummary } from "@/lib/types/conversations";
 import type { Guest } from "@/lib/types/guests";
 import type { Reservation } from "@/app/app/_types";
+import type {
+  GuestAiMemoryProfile,
+  InterventionLogEntry,
+  OperationalAction,
+  StaffAssignment,
+  StaffNoteEntry,
+} from "@/lib/entities";
 import type { LiveOperationalEvent } from "./live-events";
 
 /** Shared operational status chips across modules. */
@@ -68,7 +75,15 @@ export type AIRuntimeState = {
   guests: Guest[];
   escalations: EscalationEvent[];
   auditEvents: AuditEvent[];
+  /** Fabric-wide operational mutations (maps to runtime events + future tools). */
+  operationalActions: OperationalAction[];
   aiActionMemory: AIActionMemoryEntry[];
+  /** Multi-operator ownership — assignment + handoff signals */
+  staffAssignments: StaffAssignment[];
+  staffNotes: StaffNoteEntry[];
+  interventions: InterventionLogEntry[];
+  /** Guest-scoped durable AI memory — influences routing weight client-side */
+  guestAiMemory: Record<string, GuestAiMemoryProfile>;
   overview: AIBrainOverview;
   conversationMeta: Record<string, ConversationRuntimeMeta>;
   /** Entity → active runtime badges for quick lookup */

@@ -1,6 +1,7 @@
 import type { Conversation } from "@/lib/types/conversations";
 import type { Guest } from "@/lib/types/guests";
 import type { Reservation } from "@/app/app/_types";
+import { memoryOrchestrationBoost } from "@/lib/ai/memory-influence";
 
 export type ConfidenceFactors = {
   sentimentScore: number;
@@ -80,8 +81,13 @@ export function recalculateConversationConfidence(
   conversation: Conversation,
   reservation: Reservation | null,
   guest: Guest | null,
-  delta = 0
+  delta = 0,
+  guestMemoryWeight?: number
 ): number {
   const factors = buildConfidenceFactors(conversation, reservation, guest);
-  return clamp(computeConfidenceFromFactors(factors) + delta);
+  return clamp(
+    computeConfidenceFromFactors(factors) +
+      delta +
+      memoryOrchestrationBoost(guestMemoryWeight)
+  );
 }

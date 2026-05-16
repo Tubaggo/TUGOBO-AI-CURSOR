@@ -4,12 +4,23 @@ export {
   filterActionMemoryByRefs,
   useLiveOperationalEvents,
   useOperationalFocusLabel,
+  useOperationPhasesForEntity,
+  useOperationsStore,
   useOrchestrationPulseMetrics,
   useRuntimeConversation,
   useRuntimeConversationDetail,
   useRuntimeEntityStatuses,
   useRuntimePulse,
+  type AIRuntimeStore,
+  type OperationsStore,
 } from "./ai-runtime-store";
+export {
+  appendAuditPipeline,
+  filterAuditPipeline,
+  groupAuditTimeline,
+  type AuditTimelineGroup,
+} from "./audit-pipeline";
+export { deriveOperationPhases } from "./operation-phase";
 export { createRuntimeEvent, RUNTIME_EVENT_TYPES, type RuntimeEventType } from "./runtime-events";
 export { OPERATIONAL_AGENT_LABEL } from "./agent-role-map";
 export type { RuntimeOperationalStatus, AIRuntimeState } from "./types";

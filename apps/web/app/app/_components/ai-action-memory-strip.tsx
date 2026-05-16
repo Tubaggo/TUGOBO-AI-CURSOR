@@ -3,8 +3,11 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { Brain, ChevronRight } from "lucide-react";
+import type { AIActionMemoryEntry } from "@/lib/runtime/types";
 import { filterActionMemoryByRefs, OPERATIONAL_AGENT_LABEL, useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
+
+const EMPTY_MEMORY_ROWS: AIActionMemoryEntry[] = [];
 
 type AiActionMemoryStripProps = {
   conversationId?: string;
@@ -28,7 +31,7 @@ export function AiActionMemoryStrip({
   const pulse = useAIRuntimeStore((s) => s.lastPulseAt);
 
   const rows = useMemo(() => {
-    if (!hydrated) return [];
+    if (!hydrated) return EMPTY_MEMORY_ROWS;
     return filterActionMemoryByRefs(memory, { conversationId, reservationId, guestId }, limit);
   }, [hydrated, memory, conversationId, reservationId, guestId, limit]);
 

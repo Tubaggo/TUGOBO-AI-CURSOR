@@ -2,6 +2,7 @@ import { getAIBrainOverview, getAuditEvents, getEscalations } from "@/lib/data/a
 import { getConversationById, getConversations } from "@/lib/data/conversations";
 import { getGuests } from "@/lib/data/guests";
 import { getReservations } from "@/lib/data/reservations";
+import { createGuestMemorySeed } from "@/lib/ai/memory-influence";
 import { buildSeedLiveEvents } from "./live-events";
 import type { AIRuntimeState } from "./types";
 
@@ -11,6 +12,7 @@ export function buildRuntimeSeed(): AIRuntimeState {
   const conversations = summaries
     .map((s) => getConversationById(s.id))
     .filter((c): c is NonNullable<typeof c> => c !== null);
+  const guests = getGuests();
 
   return {
     hydrated: true,
@@ -19,10 +21,15 @@ export function buildRuntimeSeed(): AIRuntimeState {
     conversations,
     conversationSummaries: summaries,
     reservations: getReservations(),
-    guests: getGuests(),
+    guests,
     escalations: getEscalations("all"),
     auditEvents: getAuditEvents(50),
+    operationalActions: [],
     aiActionMemory: [],
+    staffAssignments: [],
+    staffNotes: [],
+    interventions: [],
+    guestAiMemory: Object.fromEntries(guests.map((g) => [g.id, createGuestMemorySeed(g)])),
     operationalFocusLabel: "Monitoring operational signals",
     overview: getAIBrainOverview(),
     conversationMeta: {},

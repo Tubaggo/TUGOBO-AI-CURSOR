@@ -3,17 +3,61 @@
 import { useState } from "react";
 import { Zap } from "lucide-react";
 import type { GuestAIAction } from "@/lib/types/guests";
+import { useAIRuntimeStore } from "@/lib/runtime";
 
 type GuestActionsCardProps = {
   actions: GuestAIAction[];
+  guestId: string;
+  conversationId?: string | null;
+  reservationId?: string | null;
 };
 
-export function GuestActionsCard({ actions }: GuestActionsCardProps) {
+export function GuestActionsCard({
+  actions,
+  guestId,
+  conversationId,
+  reservationId,
+}: GuestActionsCardProps) {
   const [toast, setToast] = useState<string | null>(null);
+  const dispatch = useAIRuntimeStore((s) => s.dispatch);
 
   function runAction(action: GuestAIAction) {
-    setToast(`${action.label} queued (mock tool).`);
-    window.setTimeout(() => setToast(null), 2800);
+    const refs = {
+      guestId,
+      conversationId: conversationId ?? undefined,
+      reservationId: reservationId ?? undefined,
+    };
+
+    switch (action.kind) {
+      case "upgrade":
+        dispatch("UPGRADE_OFFERED", refs);
+        setToast("Upgrade path propagated · audit + revenue rails updated.");
+        break;
+      case "direct_booking":
+        dispatch("OTA_RECOVERY_TRIGGERED", refs);
+        setToast("OTA → direct recovery orchestrated · workflows armed.");
+        break;
+      case "loyalty":
+        dispatch("VIP_GUEST_DETECTED", refs);
+        setToast("VIP intelligence tier promoted · concierge routing tightened.");
+        break;
+      case "human_followup":
+        dispatch("HUMAN_TAKEOVER", refs);
+        setToast("Human takeover issued · AI paused · staff assignment logged.");
+        break;
+      case "support_priority":
+        dispatch("LOW_CONFIDENCE_QUOTE", { ...refs, confidenceDelta: -0.12 });
+        setToast("Support priority lane · confidence gate + escalation opened.");
+        break;
+      case "risk_flag":
+        dispatch("NEGATIVE_SENTIMENT", refs);
+        setToast("Risk posture elevated · guest intelligence + escalations synced.");
+        break;
+      default:
+        setToast(`${action.label} queued.`);
+    }
+
+    window.setTimeout(() => setToast(null), 3200);
   }
 
   return (
@@ -23,7 +67,7 @@ export function GuestActionsCard({ actions }: GuestActionsCardProps) {
         <h3 className="text-sm font-semibold text-white">Operational AI actions</h3>
       </header>
       <p className="mb-3 text-[11px] text-white/38">
-        Structured like future agent tools — no side effects in mock mode.
+        Wired to the unified operations fabric — mutations propagate across audit, workflows, and threads.
       </p>
       <ul className="space-y-2">
         {actions.map((action) => (
