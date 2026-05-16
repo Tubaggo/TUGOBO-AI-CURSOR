@@ -11,6 +11,10 @@ import {
   type OperationalTimelineLane,
   useAIRuntimeStore,
 } from "@/lib/runtime";
+import {
+  TIMELINE_CATEGORY_LABEL,
+  TIMELINE_CATEGORY_TONE,
+} from "@/lib/runtime/timeline-labels";
 
 const LANE_STYLE: Record<
   OperationalTimelineLane,
@@ -92,6 +96,14 @@ export function OperationalPhaseTimeline({
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-wide text-white/55">
                       {lane.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded border px-1 py-px text-[8px] font-semibold uppercase tracking-wide",
+                        TIMELINE_CATEGORY_TONE[e.category]
+                      )}
+                    >
+                      {TIMELINE_CATEGORY_LABEL[e.category]}
                     </span>
                     <RelativeTime
                       iso={e.at}

@@ -5,7 +5,7 @@ import type { EscalationEvent } from "@/lib/types/ai-brain";
 import { useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
 import { AIBrainPageHeader } from "./ai-brain-page-header";
-import { EscalationFeed } from "./escalation-feed";
+import { EscalationQueuePanel } from "./escalation-queue-panel";
 
 type EscalationsWorkspaceProps = {
   all: EscalationEvent[];
@@ -49,7 +49,7 @@ export function EscalationsWorkspace({ all: serverAll }: EscalationsWorkspacePro
           </button>
         ))}
       </div>
-      <EscalationFeed events={events} />
+      <EscalationQueuePanel events={events} />
     </div>
   );
 }

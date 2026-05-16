@@ -12,6 +12,7 @@ import {
   Search,
   ShieldAlert,
   User,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
@@ -26,7 +27,8 @@ type CommandKind =
   | "audit"
   | "policy"
   | "workflow"
-  | "escalation";
+  | "escalation"
+  | "command";
 
 export type OperationalCommandItem = {
   id: string;
@@ -51,6 +53,53 @@ export function buildOperationalCommands(params: {
   escalations: ReturnType<typeof useOperationsStore.getState>["escalations"];
 }): OperationalCommandItem[] {
   const items: OperationalCommandItem[] = [];
+
+  items.push(
+    {
+      id: "cmd_payment_failures",
+      kind: "command",
+      title: "Open payment failures",
+      subtitle: "Reservations · payment risk",
+      href: "/app/reservations",
+      keywords: ["payment", "failures", "failed", "open payment failures"],
+    },
+    {
+      id: "cmd_vip_arrivals",
+      kind: "command",
+      title: "Show VIP arrivals",
+      subtitle: "Guest intelligence",
+      href: "/app/guests",
+      keywords: ["vip", "arrivals", "show vip arrivals", "loyalty"],
+    },
+    {
+      id: "cmd_active_escalations",
+      kind: "command",
+      title: "Show active escalations",
+      subtitle: "AI Brain · supervision",
+      href: "/app/ai-brain/escalations",
+      keywords: ["escalation", "escalations", "active", "supervision"],
+    },
+    {
+      id: "cmd_audit_trail",
+      kind: "command",
+      title: "Open audit trail",
+      subtitle: "Explainability log",
+      href: "/app/ai-brain/audit",
+      keywords: ["audit", "trail", "open audit trail", "trace"],
+    }
+  );
+
+  const marina = params.guests.find((g) => g.name.toLowerCase().includes("marina rossi"));
+  if (marina) {
+    items.push({
+      id: "cmd_marina",
+      kind: "command",
+      title: `Search Marina Rossi`,
+      subtitle: "Guest profile",
+      href: `/app/guests/${marina.id}`,
+      keywords: ["marina", "rossi", "search marina rossi", "guest"],
+    });
+  }
 
   for (const g of params.guests) {
     items.push({
@@ -187,6 +236,7 @@ const KIND_ICON: Record<CommandKind, React.ReactNode> = {
   policy: <Scale className="h-3.5 w-3.5 text-white/45" aria-hidden />,
   workflow: <Brain className="h-3.5 w-3.5 text-white/45" aria-hidden />,
   escalation: <ShieldAlert className="h-3.5 w-3.5 text-white/45" aria-hidden />,
+  command: <Zap className="h-3.5 w-3.5 text-emerald-400/70" aria-hidden />,
 };
 
 type OperationalCommandPaletteProps = {
@@ -229,7 +279,11 @@ export function OperationalCommandPalette({
 
   const filtered = useMemo(() => {
     const q = normalize(query);
-    if (!q) return commands.slice(0, 14);
+    if (!q) {
+      const quick = commands.filter((c) => c.kind === "command");
+      const rest = commands.filter((c) => c.kind !== "command");
+      return [...quick, ...rest].slice(0, 14);
+    }
     return commands
       .filter((c) => c.keywords.some((k) => k.includes(q) || q.includes(k)))
       .slice(0, 24);

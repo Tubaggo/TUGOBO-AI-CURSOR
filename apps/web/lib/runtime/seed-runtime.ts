@@ -19,6 +19,8 @@ export function buildRuntimeSeed(): AIRuntimeState {
     hydrated: true,
     lastPulseAt: Date.now(),
     liveEvents: buildSeedLiveEvents(),
+    notifications: [],
+    demoStableMode: true,
     conversations,
     conversationSummaries: summaries,
     reservations: getReservations(),

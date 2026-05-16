@@ -154,6 +154,15 @@ export const AI_OPERATIONAL_AGENT_ROLES = [
 
 export type AIOperationalAgentRole = (typeof AI_OPERATIONAL_AGENT_ROLES)[number];
 
+/** Cross-module routing hints — mirrors operational modules in the live fabric. */
+export type AuditPropagationModule =
+  | "conversations"
+  | "reservations"
+  | "guests"
+  | "ai-brain"
+  | "escalations"
+  | "audit";
+
 export type EscalationEvent = {
   id: string;
   reason: EscalationReason;
@@ -170,6 +179,16 @@ export type EscalationEvent = {
   reservationId?: string;
   guestId?: string;
   agentRole?: AIOperationalAgentRole;
+  /** Desk owner for SLA tracking */
+  assignedOwner?: string | null;
+  /** Originating operational module */
+  sourceModule?: AuditPropagationModule;
+  /** Recommended next step for staff */
+  suggestedAction?: string;
+  /** ISO deadline for first human response */
+  slaDueAt?: string;
+  /** Thread under explicit human control */
+  humanTakeoverActive?: boolean;
 };
 
 export const AUDIT_EVENT_TYPES = [
@@ -183,15 +202,6 @@ export const AUDIT_EVENT_TYPES = [
 ] as const;
 
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
-
-/** Cross-module routing hints — mirrors operational modules in the live fabric. */
-export type AuditPropagationModule =
-  | "conversations"
-  | "reservations"
-  | "guests"
-  | "ai-brain"
-  | "escalations"
-  | "audit";
 
 export const AUDIT_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
 

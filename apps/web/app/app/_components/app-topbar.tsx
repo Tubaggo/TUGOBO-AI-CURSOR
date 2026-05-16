@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import type { Organization, User as AppUser } from "@/app/app/_types";
 import { OrgSwitcher } from "./org-switcher";
 import { UserMenu } from "./user-menu";
 import { OperationalCommandPalette } from "./operational-command-palette";
 import { OperationalLivePulse } from "./operational-live-pulse";
+import { OperationalNotificationCenter } from "./operational-notification-center";
 import { OrchestrationPulseBar } from "./orchestration-pulse-bar";
 
 type AppTopbarProps = {
@@ -92,13 +93,7 @@ export function AppTopbar({
           >
             <Search className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            className="hidden h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.035] text-white/48 transition-colors hover:border-white/[0.12] hover:bg-white/[0.07] hover:text-white/70 sm:flex"
-            aria-label="Notifications (placeholder)"
-          >
-            <Bell className="h-4 w-4" />
-          </button>
+          <OperationalNotificationCenter />
           <OrchestrationPulseBar />
           <OperationalLivePulse />
           <UserMenu user={user} />

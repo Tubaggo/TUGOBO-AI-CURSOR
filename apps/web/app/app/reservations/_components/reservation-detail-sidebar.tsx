@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import type { AIReservationInsight, GuestStayProfile, Reservation } from "@/app/app/_types";
-import { derivePaymentState, sendPaymentLink } from "@/lib/data/reservations";
+import { derivePaymentState } from "@/lib/data/reservations";
+import { useOperationsStore } from "@/store/operations-store";
 import { AiReservationInsights } from "./ai-reservation-insights";
 import { GuestStayContext } from "./guest-stay-context";
 import { PaymentStatusCard } from "./payment-status-card";
@@ -21,7 +22,13 @@ export function ReservationDetailSidebar({
   aiInsight,
   upsellOpportunities,
 }: ReservationDetailSidebarProps) {
-  const [reservation, setReservation] = useState(initialReservation);
+  const hydrated = useOperationsStore((s) => s.hydrated);
+  const storeReservation = useOperationsStore((s) =>
+    s.reservations.find((r) => r.id === initialReservation.id)
+  );
+  const [localReservation, setLocalReservation] = useState(initialReservation);
+  const reservation =
+    hydrated && storeReservation ? storeReservation : localReservation;
   const payment = useMemo(() => derivePaymentState(reservation), [reservation]);
 
   return (
@@ -42,7 +49,10 @@ export function ReservationDetailSidebar({
           ))}
         </ul>
       </section>
-      <ReservationActions reservation={reservation} onReservationChange={setReservation} />
+      <ReservationActions
+        reservation={reservation}
+        onReservationChange={setLocalReservation}
+      />
     </div>
   );
 }

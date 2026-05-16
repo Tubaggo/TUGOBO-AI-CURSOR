@@ -8,23 +8,27 @@ import {
   Percent,
   ShieldCheck,
   UserPlus,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Reservation } from "@/app/app/_types";
-import { sendPaymentLink } from "@/lib/data/reservations";
+import { useOperationsStore } from "@/store/operations-store";
 
 type ReservationActionsProps = {
   reservation: Reservation;
-  onReservationChange: (next: Reservation) => void;
+  onReservationChange?: (next: Reservation) => void;
 };
 
 type ActionKind =
   | "resend_payment"
+  | "payment_failed"
+  | "payment_success"
   | "waive_tax"
   | "approve_transfer"
   | "request_deposit"
   | "assign"
-  | "confirm";
+  | "confirm"
+  | "human_takeover";
 
 export function ReservationActions({
   reservation,
@@ -32,15 +36,22 @@ export function ReservationActions({
 }: ReservationActionsProps) {
   const [busy, setBusy] = useState<ActionKind | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const execute = useOperationsStore((s) => s.executeReservationOperation);
+  const storeReservation = useOperationsStore((s) =>
+    s.reservations.find((r) => r.id === reservation.id)
+  );
+  const live = storeReservation ?? reservation;
 
-  function run(kind: ActionKind, label: string, fn: () => void) {
+  function run(kind: ActionKind, label: string, op?: Parameters<typeof execute>[1]) {
     setBusy(kind);
     window.setTimeout(() => {
-      fn();
-      setNotice(`${label} — queued (mock).`);
+      if (op) execute(reservation.id, op);
+      const next = useOperationsStore.getState().reservations.find((r) => r.id === reservation.id);
+      if (next && onReservationChange) onReservationChange(next);
+      setNotice(`${label} — propagated to operational fabric.`);
       setBusy(null);
-      window.setTimeout(() => setNotice(null), 2800);
-    }, 420);
+      window.setTimeout(() => setNotice(null), 3200);
+    }, 380);
   }
 
   const btnClass =
@@ -50,27 +61,45 @@ export function ReservationActions({
     <section className="rounded-xl border border-white/[0.07] bg-zinc-950/50 p-4">
       <h2 className="text-sm font-semibold text-white">Operational actions</h2>
       <p className="mt-1 text-[11px] leading-relaxed text-white/38">
-        Structured for future Inngest / tools wiring — today they simulate hotel desk workflows.
+        Mutates runtime state — status, payments, audit, notifications, and AI confidence.
+      </p>
+      <p className="mt-2 text-[10px] tabular-nums text-white/30">
+        Live: {live.status.replace(/_/g, " ")} · {live.paymentStatus.replace(/_/g, " ")}
+        {live.assignedTo ? ` · ${live.assignedTo}` : ""}
       </p>
       <div className="mt-4 space-y-2">
         <button
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() =>
-            run("resend_payment", "Resend payment link", () => {
-              onReservationChange(sendPaymentLink(reservation));
-            })
-          }
+          onClick={() => run("resend_payment", "Payment link sent", "send_payment_link")}
         >
           <Link2 className="h-4 w-4 text-sky-300/90" aria-hidden />
-          Resend payment link
+          Send payment link
         </button>
         <button
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() => run("waive_tax", "Waive city tax gesture", () => {})}
+          onClick={() => run("payment_failed", "Payment failed", "payment_failed")}
+        >
+          <XCircle className="h-4 w-4 text-rose-300/90" aria-hidden />
+          Mark payment failed
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          className={btnClass}
+          onClick={() => run("payment_success", "Payment captured", "payment_success")}
+        >
+          <Banknote className="h-4 w-4 text-emerald-300/90" aria-hidden />
+          Mark payment success
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          className={btnClass}
+          onClick={() => run("waive_tax", "Waive city tax gesture")}
         >
           <Percent className="h-4 w-4 text-emerald-300/85" aria-hidden />
           Waive city tax (gesture)
@@ -79,7 +108,7 @@ export function ReservationActions({
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() => run("approve_transfer", "Approve manual transfer", () => {})}
+          onClick={() => run("approve_transfer", "Approve manual transfer")}
         >
           <ShieldCheck className="h-4 w-4 text-violet-300/90" aria-hidden />
           Approve manual transfer
@@ -88,7 +117,7 @@ export function ReservationActions({
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() => run("request_deposit", "Request deposit", () => {})}
+          onClick={() => run("request_deposit", "Request deposit")}
         >
           <Banknote className="h-4 w-4 text-amber-300/90" aria-hidden />
           Request deposit
@@ -97,16 +126,25 @@ export function ReservationActions({
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() => run("assign", "Assign staff", () => {})}
+          onClick={() => run("assign", "Staff assigned", "assign_staff")}
         >
           <UserPlus className="h-4 w-4 text-blue-300/90" aria-hidden />
-          Assign / reassign staff
+          Assign staff (Ops Lead)
         </button>
         <button
           type="button"
           disabled={busy !== null}
           className={btnClass}
-          onClick={() => run("confirm", "Confirm reservation", () => {})}
+          onClick={() => run("human_takeover", "Human takeover", "human_takeover")}
+        >
+          <UserPlus className="h-4 w-4 text-orange-300/90" aria-hidden />
+          Human takeover
+        </button>
+        <button
+          type="button"
+          disabled={busy !== null}
+          className={btnClass}
+          onClick={() => run("confirm", "Reservation confirmed", "confirm")}
         >
           <CheckCircle2 className="h-4 w-4 text-teal-300/90" aria-hidden />
           Confirm reservation

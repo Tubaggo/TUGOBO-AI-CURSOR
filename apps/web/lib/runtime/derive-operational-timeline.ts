@@ -1,6 +1,10 @@
 import type { AIActionMemoryEntry } from "./types";
 import type { InterventionLogEntry, StaffAssignment } from "@/lib/entities";
 import type { Conversation } from "@/lib/types/conversations";
+import {
+  MEMORY_KIND_CATEGORY,
+  type OperationalTimelineCategory,
+} from "./timeline-labels";
 
 export type OperationalTimelineLane = "ai" | "human" | "system" | "recovery";
 
@@ -8,6 +12,7 @@ export type OperationalTimelineEntry = {
   id: string;
   at: string;
   lane: OperationalTimelineLane;
+  category: OperationalTimelineCategory;
   title: string;
   detail: string;
   confidenceHint?: string;
@@ -64,6 +69,7 @@ export function deriveOperationalTimeline(args: {
       id: m.id,
       at: m.createdAt,
       lane,
+      category: MEMORY_KIND_CATEGORY[m.kind],
       title: KIND_TITLE[m.kind],
       detail: m.summary,
       confidenceHint:
@@ -81,6 +87,7 @@ export function deriveOperationalTimeline(args: {
       id: i.id,
       at: i.createdAt,
       lane: "human",
+      category: "human_override",
       title: "Supervisor intervention",
       detail: i.label,
     });
@@ -92,6 +99,7 @@ export function deriveOperationalTimeline(args: {
       id: a.id,
       at: a.updatedAt,
       lane: a.state === "handoff" ? "human" : "system",
+      category: "human_override",
       title: a.state === "handoff" ? "Handoff routed" : "Staff ownership assigned",
       detail: `${a.staffName} · ${a.role}${a.note ? ` — ${a.note}` : ""}`,
     });
@@ -106,6 +114,12 @@ export function deriveOperationalTimeline(args: {
         : conversation.aiState === "paused"
           ? "recovery"
           : "ai",
+    category:
+      conversation.aiInsight.confidence < 0.65
+        ? "policy_trigger"
+        : conversation.aiState === "human_active"
+          ? "human_override"
+          : "ai_action",
     title: "Current operational posture",
     detail: `${conversation.aiState.replace(/_/g, " ")} · ${Math.round(conversation.aiInsight.confidence * 100)}% confidence`,
     confidenceHint:

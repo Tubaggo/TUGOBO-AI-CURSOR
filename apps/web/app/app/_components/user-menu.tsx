@@ -2,7 +2,8 @@
 
 import { forwardRef } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { LogOut, User, Building2 } from "lucide-react";
+import { LogOut, RefreshCw, User, Building2 } from "lucide-react";
+import { useOperationsStore } from "@/store/operations-store";
 import type { User as AppUser } from "@/app/app/_types";
 import { hotelRoleLabel } from "./role-label";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const UserMenuTrigger = forwardRef<HTMLButtonElement, { name: string }>(
 
 export function UserMenu({ user }: UserMenuProps) {
   const mounted = useClientMounted();
+  const resetRuntime = useOperationsStore((s) => s.resetRuntime);
 
   if (!mounted) {
     return <UserMenuTrigger name={user.name} />;
@@ -72,6 +74,13 @@ export function UserMenu({ user }: UserMenuProps) {
           >
             <Building2 className="h-4 w-4 text-white/45" />
             Organization
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className="flex cursor-pointer select-none items-center gap-2 rounded-lg px-2 py-2 text-[12px] text-white/45 outline-none data-[highlighted]:bg-white/[0.06]"
+            onSelect={() => resetRuntime()}
+          >
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+            Reset operational fabric (demo)
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-white/[0.06]" />
           <DropdownMenu.Item

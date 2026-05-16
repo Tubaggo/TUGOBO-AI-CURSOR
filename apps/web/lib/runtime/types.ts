@@ -11,6 +11,7 @@ import type {
   StaffNoteEntry,
 } from "@/lib/entities";
 import type { LiveOperationalEvent } from "./live-events";
+import type { OperationalNotification } from "./operational-notifications";
 
 /** Shared operational status chips across modules. */
 export const RUNTIME_OPERATIONAL_STATUSES = [
@@ -69,6 +70,10 @@ export type AIRuntimeState = {
   operationalFocusLabel: string;
   /** Unified cross-module operational event stream */
   liveEvents: LiveOperationalEvent[];
+  /** Operational notification center — derived from fabric mutations */
+  notifications: OperationalNotification[];
+  /** Stable demo mode — deterministic heartbeats, resettable fabric */
+  demoStableMode: boolean;
   conversations: Conversation[];
   conversationSummaries: ConversationSummary[];
   reservations: Reservation[];

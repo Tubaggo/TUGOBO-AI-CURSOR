@@ -15,6 +15,7 @@ import { patchGuestAiMemory } from "@/lib/ai/memory-influence";
 import { appendLiveEvent, createLiveEventFromRuntime, LIVE_EVENT_CATALOG } from "./live-events";
 import type { RuntimeEvent } from "./runtime-events";
 import type { AIRuntimeState, AIActionMemoryEntry, ConversationRuntimeMeta, RuntimeOperationalStatus } from "./types";
+import { defaultOwnerForEscalation } from "./staff-roster";
 
 function isoNow(): string {
   return new Date().toISOString();
@@ -53,12 +54,21 @@ function appendEscalation(
   events: EscalationEvent[],
   partial: Omit<EscalationEvent, "id" | "createdAt" | "resolved" | "resolvedAt">
 ): EscalationEvent[] {
+  const createdAt = isoNow();
+  const slaHours = partial.severity === "critical" ? 0.5 : partial.severity === "high" ? 1 : 2;
   return [
     {
       id: newId("esc"),
-      createdAt: isoNow(),
+      createdAt,
       resolved: false,
       resolvedAt: null,
+      assignedOwner: partial.assignedOwner ?? defaultOwnerForEscalation(partial.reason),
+      sourceModule: partial.sourceModule ?? "ai-brain",
+      suggestedAction:
+        partial.suggestedAction ?? "Review linked thread and assign desk owner within SLA.",
+      slaDueAt:
+        partial.slaDueAt ??
+        new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString(),
       ...partial,
     },
     ...events,

@@ -24,6 +24,7 @@ import { OperationalGraphCard } from "./operational-graph-card";
 import { LiveOperationalEventFeed } from "@/app/app/_components/live-operational-event-feed";
 import { ExecutiveSignalStrip } from "@/app/app/_components/executive-signal-strip";
 import { AutonomousOpsCorePanel } from "./autonomous-ops-core-panel";
+import { StaffWorkloadPanel } from "@/app/app/_components/staff-workload-panel";
 
 const AGENT_FOCUS: Record<AIOperationalAgentRole, string> = {
   reservation_agent: "Pipeline integrity · inventory coupling · stage transitions",
@@ -82,6 +83,10 @@ export function AIBrainOverviewWorkspace({ overview: serverOverview }: AIBrainOv
 
       <section className="mb-6">
         <ExecutiveSignalStrip compact />
+      </section>
+
+      <section className="mb-6">
+        <StaffWorkloadPanel />
       </section>
 
       <section className="mb-6 grid gap-4 lg:grid-cols-3">

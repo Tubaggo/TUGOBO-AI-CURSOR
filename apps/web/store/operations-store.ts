@@ -27,6 +27,13 @@ import {
   type RuntimeEventPayload,
   type RuntimeEventType,
 } from "@/lib/runtime/runtime-events";
+import {
+  applyNotificationFromRuntimeEvent,
+  buildInitialNotifications,
+  resetNotificationIdSequence,
+  type OperationalNotification,
+} from "@/lib/runtime/operational-notifications";
+import { resetDemoSequence } from "@/lib/runtime/demo-mode";
 
 type StaffAssignmentPayload = {
   staffName: string;
@@ -51,6 +58,22 @@ type OperationsActions = {
   assignOperationalStaff: (args: StaffAssignmentPayload) => void;
   recordStaffNote: (note: Omit<StaffNoteEntry, "id" | "createdAt">) => void;
   logSupervisorIntervention: (entry: Omit<InterventionLogEntry, "id" | "createdAt">) => void;
+  resetRuntime: () => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  assignEscalationOwner: (escalationId: string, staffName: string) => void;
+  resolveEscalation: (escalationId: string) => void;
+  markEscalationHumanTakeover: (escalationId: string) => void;
+  executeReservationOperation: (
+    reservationId: string,
+    operation:
+      | "send_payment_link"
+      | "payment_failed"
+      | "payment_success"
+      | "confirm"
+      | "assign_staff"
+      | "human_takeover"
+  ) => void;
 };
 
 export type OperationsStore = AIRuntimeState & OperationsActions;
@@ -62,6 +85,8 @@ const initialState: AIRuntimeState = {
   hydrated: false,
   lastPulseAt: 0,
   liveEvents: [],
+  notifications: [],
+  demoStableMode: true,
   conversations: [],
   conversationSummaries: [],
   reservations: [],
@@ -103,12 +128,35 @@ const EMPTY_ENTITY_STATUSES: RuntimeOperationalStatus[] = [];
 const EMPTY_OPERATION_PHASES: OperationPhaseState[] = [];
 const EMPTY_AI_ACTION_MEMORY: AIActionMemoryEntry[] = [];
 
+let runtimeIdCounter = 0;
+function nextRuntimeId(prefix: string): string {
+  runtimeIdCounter += 1;
+  return `${prefix}_${runtimeIdCounter}`;
+}
+
 export const useOperationsStore = create<OperationsStore>((set, get) => ({
   ...initialState,
 
   hydrate: () => {
     if (get().hydrated) return;
-    set(buildRuntimeSeed());
+    const seed = buildRuntimeSeed();
+    resetNotificationIdSequence();
+    runtimeIdCounter = 0;
+    set({
+      ...seed,
+      notifications: buildInitialNotifications(seed),
+    });
+  },
+
+  resetRuntime: () => {
+    resetNotificationIdSequence();
+    resetDemoSequence();
+    runtimeIdCounter = 0;
+    const seed = buildRuntimeSeed();
+    set({
+      ...seed,
+      notifications: buildInitialNotifications(seed),
+    });
   },
 
   emitHeartbeat: () => {
@@ -136,9 +184,10 @@ export const useOperationsStore = create<OperationsStore>((set, get) => ({
       const catalog = LIVE_EVENT_CATALOG[type];
       next = {
         ...next,
+        notifications: applyNotificationFromRuntimeEvent(state.notifications, event, next),
         operationalActions: [
           {
-            id: `op_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            id: nextRuntimeId("op"),
             label: catalog.title,
             runtimeEventType: type,
             outcome: "propagated" as const,
@@ -225,13 +274,173 @@ export const useOperationsStore = create<OperationsStore>((set, get) => ({
       ...state,
       interventions: [
         {
-          id: `intr_${Date.now()}`,
+          id: nextRuntimeId("intr"),
           createdAt: new Date().toISOString(),
           ...entry,
         },
         ...state.interventions,
       ].slice(0, 64),
     }));
+  },
+
+  markNotificationRead: (id) => {
+    set((state) => ({
+      ...state,
+      notifications: state.notifications.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      ),
+    }));
+  },
+
+  markAllNotificationsRead: () => {
+    set((state) => ({
+      ...state,
+      notifications: state.notifications.map((n) => ({ ...n, read: true })),
+    }));
+  },
+
+  assignEscalationOwner: (escalationId, staffName) => {
+    set((state) => ({
+      ...state,
+      lastPulseAt: Date.now(),
+      escalations: state.escalations.map((e) =>
+        e.id === escalationId ? { ...e, assignedOwner: staffName } : e
+      ),
+      notifications: state.notifications.map((n) =>
+        n.escalationId === escalationId
+          ? { ...n, assignedStaff: staffName, actionStatus: "in_progress" as const }
+          : n
+      ),
+      staffAssignments: [
+        {
+          id: nextRuntimeId("assign"),
+          entityKey: escalationId,
+          staffName,
+          role: "owner" as const,
+          state: "assigned" as const,
+          note: "Escalation queue ownership",
+          updatedAt: new Date().toISOString(),
+        },
+        ...state.staffAssignments,
+      ].slice(0, 48),
+    }));
+  },
+
+  resolveEscalation: (escalationId) => {
+    const now = new Date().toISOString();
+    const esc = get().escalations.find((e) => e.id === escalationId);
+    get().dispatch("ESCALATION_RESOLVED", {
+      conversationId: esc?.conversationId,
+      reservationId: esc?.reservationId,
+      guestId: esc?.guestId,
+      triggerLabel: "Manual resolution",
+    });
+    set((state) => ({
+      ...state,
+      escalations: state.escalations.map((e) =>
+        e.id === escalationId
+          ? {
+              ...e,
+              resolved: true,
+              resolvedAt: now,
+              aiConfidenceAfter: Math.min(0.95, (e.aiConfidenceBefore ?? 0.7) + 0.12),
+            }
+          : e
+      ),
+      notifications: state.notifications.map((n) =>
+        n.escalationId === escalationId
+          ? { ...n, actionStatus: "resolved" as const, read: true }
+          : n
+      ),
+      operationalFocusLabel: "Escalation cleared — confidence recovery logged",
+    }));
+  },
+
+  markEscalationHumanTakeover: (escalationId) => {
+    const esc = get().escalations.find((e) => e.id === escalationId);
+    if (esc?.conversationId) {
+      get().dispatch("HUMAN_TAKEOVER", {
+        conversationId: esc.conversationId,
+        reservationId: esc.reservationId,
+        guestId: esc.guestId,
+      });
+    }
+    set((state) => ({
+      ...state,
+      escalations: state.escalations.map((e) =>
+        e.id === escalationId ? { ...e, humanTakeoverActive: true } : e
+      ),
+    }));
+  },
+
+  executeReservationOperation: (reservationId, operation) => {
+    const state = get();
+    const reservation = state.reservations.find((r) => r.id === reservationId);
+    if (!reservation) return;
+
+    const payload = {
+      reservationId,
+      conversationId: reservation.conversationId ?? undefined,
+      guestId: reservation.guestId,
+    };
+
+    switch (operation) {
+      case "send_payment_link":
+        set((s) => ({
+          ...s,
+          reservations: s.reservations.map((r) =>
+            r.id === reservationId
+              ? {
+                  ...r,
+                  paymentStatus: "awaiting_payment" as const,
+                }
+              : r
+          ),
+        }));
+        get().dispatch("PAYMENT_LINK_SENT", payload);
+        break;
+      case "payment_failed":
+        set((s) => ({
+          ...s,
+          reservations: s.reservations.map((r) =>
+            r.id === reservationId
+              ? { ...r, paymentStatus: "payment_failed" as const }
+              : r
+          ),
+        }));
+        get().dispatch("PAYMENT_LINK_FAILED", payload);
+        break;
+      case "payment_success":
+        set((s) => ({
+          ...s,
+          reservations: s.reservations.map((r) =>
+            r.id === reservationId
+              ? { ...r, paymentStatus: "paid" as const }
+              : r
+          ),
+        }));
+        get().dispatch("PAYMENT_COMPLETED", payload);
+        break;
+      case "confirm":
+        get().setReservationStage(reservationId, "confirmed");
+        get().dispatch("PAYMENT_COMPLETED", {
+          ...payload,
+          triggerLabel: "Reservation confirmed by desk",
+        });
+        break;
+      case "assign_staff":
+        get().assignReservationStaff(reservationId, "Ops Lead");
+        break;
+      case "human_takeover":
+        if (reservation.conversationId) {
+          get().dispatch("HUMAN_TAKEOVER", payload);
+        }
+        break;
+      default: {
+        const _exhaustive: never = operation;
+        return _exhaustive;
+      }
+    }
   },
 }));
 
@@ -334,6 +543,24 @@ export function useAiActionMemorySlice(limit: number): AIActionMemoryEntry[] {
     if (!hydrated) return EMPTY_AI_ACTION_MEMORY;
     return memory.slice(0, limit);
   }, [hydrated, memory, limit]);
+}
+
+export function useOperationalNotifications(limit?: number): OperationalNotification[] {
+  const hydrated = useOperationsStore((s) => s.hydrated);
+  const notifications = useOperationsStore((s) => s.notifications);
+  return useMemo(() => {
+    if (!hydrated) return [];
+    return limit !== undefined ? notifications.slice(0, limit) : notifications;
+  }, [hydrated, notifications, limit]);
+}
+
+export function useUnreadNotificationCount(): number {
+  const hydrated = useOperationsStore((s) => s.hydrated);
+  const notifications = useOperationsStore((s) => s.notifications);
+  return useMemo(() => {
+    if (!hydrated) return 0;
+    return notifications.filter((n) => !n.read && n.actionStatus !== "dismissed").length;
+  }, [hydrated, notifications]);
 }
 
 export function filterActionMemoryByRefs(

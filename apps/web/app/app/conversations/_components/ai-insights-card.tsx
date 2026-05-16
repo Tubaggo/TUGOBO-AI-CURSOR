@@ -56,6 +56,13 @@ export function AiInsightsCard({ insight }: AiInsightsCardProps) {
               style={{ width: `${pct}%` }}
             />
           </div>
+          {pct < 65 ? (
+            <p className="mt-1.5 text-[9px] leading-snug text-amber-200/70">
+              Autonomous send restricted · human review suggested
+            </p>
+          ) : pct >= 85 ? (
+            <p className="mt-1.5 text-[9px] text-emerald-200/55">Supervised autonomy active</p>
+          ) : null}
         </div>
         <div className="rounded-lg border border-white/[0.06] bg-black/25 px-2.5 py-2">
           <p className="text-[10px] font-medium uppercase tracking-wide text-white/32">Sentiment</p>

@@ -2,17 +2,20 @@
 
 import { useEffect } from "react";
 import { useOperationsStore } from "@/store/operations-store";
+import { DEMO_HEARTBEAT_INTERVAL_MS } from "@/lib/runtime/demo-mode";
 
 const MIN_INTERVAL_MS = 52_000;
 const MAX_INTERVAL_MS = 78_000;
 
-function nextInterval(): number {
-  return MIN_INTERVAL_MS + Math.floor(Math.random() * (MAX_INTERVAL_MS - MIN_INTERVAL_MS));
+function nextInterval(demoStable: boolean): number {
+  if (demoStable) return DEMO_HEARTBEAT_INTERVAL_MS;
+  return MIN_INTERVAL_MS + Math.floor((MAX_INTERVAL_MS - MIN_INTERVAL_MS) * 0.5);
 }
 
 /** Ambient low-frequency pulses — keeps the operational fabric feeling alive without user action. */
 export function AutonomousHeartbeatDriver() {
   const hydrated = useOperationsStore((s) => s.hydrated);
+  const demoStableMode = useOperationsStore((s) => s.demoStableMode);
   const emitHeartbeat = useOperationsStore((s) => s.emitHeartbeat);
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export function AutonomousHeartbeatDriver() {
           emitHeartbeat();
         }
         schedule();
-      }, nextInterval());
+      }, nextInterval(demoStableMode));
     };
 
     schedule();
@@ -35,7 +38,7 @@ export function AutonomousHeartbeatDriver() {
         clearTimeout(timerId);
       }
     };
-  }, [hydrated, emitHeartbeat]);
+  }, [hydrated, demoStableMode, emitHeartbeat]);
 
   return null;
 }

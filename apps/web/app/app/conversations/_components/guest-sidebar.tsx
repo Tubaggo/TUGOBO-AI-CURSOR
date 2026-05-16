@@ -27,6 +27,7 @@ import {
   useRuntimeEntityStatuses,
 } from "@/lib/runtime";
 import { RuntimeStatusBadgeGroup } from "@/app/app/_components/runtime-status-badge";
+import { StaffWorkloadPanel } from "@/app/app/_components/staff-workload-panel";
 import {
   assignStaffAction,
   stubSuggestedAction,
@@ -167,6 +168,8 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
             </ul>
           </section>
         ) : null}
+
+        <StaffWorkloadPanel compact className="rounded-xl border border-white/[0.07] bg-zinc-900/40 p-3" />
 
         <OperationalPhaseTimeline conversation={liveDetail} />
         <ReservationContextCard reservation={liveDetail.reservation} />

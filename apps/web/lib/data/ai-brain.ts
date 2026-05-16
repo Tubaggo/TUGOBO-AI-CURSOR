@@ -21,6 +21,10 @@ function isoDaysAgo(days: number): string {
   return d.toISOString();
 }
 
+function slaDueFrom(createdAt: string, hours: number): string {
+  return new Date(new Date(createdAt).getTime() + hours * 60 * 60 * 1000).toISOString();
+}
+
 /** In-memory persona profiles — replace with hotel-scoped config store. */
 let personaProfiles: AIPersona[] = [
   {
@@ -327,6 +331,10 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
     conversationId: "conv_sea_view_quote",
     reservationId: "res_88421",
     guestId: "g_marina",
+    assignedOwner: "Revenue Desk",
+    sourceModule: "reservations",
+    suggestedAction: "Resend PSP link with supervisor clearance · verify hold timer",
+    slaDueAt: slaDueFrom(isoHoursAgo(2), 1),
   },
   {
     id: "esc_vip_ahmet",
@@ -344,6 +352,10 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
     conversationId: "conv_airport_transfer",
     reservationId: "res_airport_exec",
     guestId: "g_ahmet",
+    assignedOwner: "Concierge Lead",
+    sourceModule: "conversations",
+    suggestedAction: "Confirm transfer buffer with flight ops · update guest in Arabic",
+    slaDueAt: slaDueFrom(isoHoursAgo(5), 2),
   },
   {
     id: "esc_policy_ota",
@@ -360,6 +372,10 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
       "Revenue policy required manager-approved discount band. Human override applied with audit trail.",
     reservationId: "res_ota_recovery_01",
     guestId: "g_james",
+    assignedOwner: "Ops Lead",
+    sourceModule: "reservations",
+    suggestedAction: "Manager-approved discount band applied",
+    slaDueAt: slaDueFrom(isoHoursAgo(9), 4),
   },
   {
     id: "esc_multilingual",
@@ -374,6 +390,10 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
     aiConfidenceAfter: 0.88,
     explanation: "Persona switched to Arabic VIP mode; knowledge kn_sea_upgrade re-grounded response.",
     guestId: "g_ahmet",
+    assignedOwner: "Concierge Lead",
+    sourceModule: "guests",
+    suggestedAction: "Persona switched · inventory code re-grounded",
+    slaDueAt: slaDueFrom(isoDaysAgo(1), 8),
   },
   {
     id: "esc_low_quote",
@@ -389,6 +409,10 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
     explanation:
       "Connecting rooms + child policy intersection not fully covered in knowledge graph.",
     conversationId: "conv_family_quote",
+    assignedOwner: "Ops Lead",
+    sourceModule: "conversations",
+    suggestedAction: "Supervisor review quote · connecting rooms policy",
+    slaDueAt: slaDueFrom(isoHoursAgo(12), 3),
   },
   {
     id: "esc_sentiment",
@@ -405,6 +429,11 @@ const ESCALATIONS_SEED: EscalationEvent[] = [
       "Second payment reminder triggered sentiment model. AI paused autonomous messaging.",
     conversationId: "conv_payment_nudge",
     guestId: "g_elena",
+    assignedOwner: "Front Desk",
+    sourceModule: "conversations",
+    suggestedAction: "Pause autonomous nudges · personal outreach within 30m",
+    slaDueAt: slaDueFrom(isoHoursAgo(3), 0.5),
+    humanTakeoverActive: true,
   },
 ];
 
