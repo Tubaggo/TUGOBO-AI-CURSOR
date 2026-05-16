@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import type { AuditSeverity } from "@/lib/types/ai-brain";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
 import { useOperationsStore } from "@/store/operations-store";
 
 type CommandKind =
@@ -200,6 +201,7 @@ export function OperationalCommandPalette({
   onOpenChange,
   spotlightSeverity,
 }: OperationalCommandPaletteProps) {
+  const mounted = useClientMounted();
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -221,9 +223,9 @@ export function OperationalCommandPalette({
   );
 
   const commands = useMemo(() => {
-    if (!snapshot.hydrated) return [];
+    if (!mounted || !snapshot.hydrated) return [];
     return buildOperationalCommands(snapshot);
-  }, [snapshot]);
+  }, [mounted, snapshot]);
 
   const filtered = useMemo(() => {
     const q = normalize(query);
@@ -237,6 +239,10 @@ export function OperationalCommandPalette({
     onOpenChange(false);
     setQuery("");
     router.push(href);
+  }
+
+  if (!mounted) {
+    return null;
   }
 
   return (

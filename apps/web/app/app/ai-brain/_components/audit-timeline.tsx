@@ -122,6 +122,11 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                 {e.actionOutcome ? ` · outcome ${e.actionOutcome}` : null}
               </p>
             ) : null}
+            {e.humanOverride ? (
+              <p className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/[0.06] px-2 py-1 text-[10px] text-amber-100/80">
+                Human override recorded — supervisor authority superseded autonomous path
+              </p>
+            ) : null}
             <div className="mt-3 space-y-2">
               <PolicyReferenceCard
                 references={e.policyReferences}

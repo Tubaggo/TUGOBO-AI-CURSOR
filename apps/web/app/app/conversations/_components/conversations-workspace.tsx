@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, LayoutGrid, MessageSquare, PanelRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Conversation, ConversationSummary } from "@/lib/types/conversations";
@@ -25,10 +25,16 @@ export function ConversationsWorkspace({ summaries, activeId, detail: serverDeta
   const lastPulse = useAIRuntimeStore((s) => s.lastPulseAt);
 
   const summariesLive = hydrated ? storeSummaries : summaries;
-  const detail = hydrated && activeId ? storeDetail : serverDetail;
+
+  /** Prefer live store thread when hydrated; always fall back to server payload for routing. */
+  const detail = useMemo(() => {
+    if (!activeId) return null;
+    if (hydrated && storeDetail) return storeDetail;
+    return serverDetail;
+  }, [activeId, hydrated, storeDetail, serverDetail]);
 
   useEffect(() => {
-    if (!detail) {
+    if (!activeId || !detail) {
       setMobilePanel("list");
       return;
     }
@@ -36,7 +42,7 @@ export function ConversationsWorkspace({ summaries, activeId, detail: serverDeta
     if (!window.matchMedia("(min-width: 1024px)").matches) {
       setMobilePanel("thread");
     }
-  }, [detail?.id]);
+  }, [activeId, detail]);
 
   const showList = mobilePanel === "list";
   const showThread = mobilePanel === "thread";

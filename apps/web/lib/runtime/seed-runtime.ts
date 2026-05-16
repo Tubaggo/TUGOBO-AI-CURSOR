@@ -4,6 +4,7 @@ import { getGuests } from "@/lib/data/guests";
 import { getReservations } from "@/lib/data/reservations";
 import { createGuestMemorySeed } from "@/lib/ai/memory-influence";
 import { buildSeedLiveEvents } from "./live-events";
+import { buildSeedActionMemory } from "./seed-action-memory";
 import type { AIRuntimeState } from "./types";
 
 /** Build initial runtime snapshot from server mock getters. */
@@ -25,7 +26,7 @@ export function buildRuntimeSeed(): AIRuntimeState {
     escalations: getEscalations("all"),
     auditEvents: getAuditEvents(50),
     operationalActions: [],
-    aiActionMemory: [],
+    aiActionMemory: buildSeedActionMemory(conversations),
     staffAssignments: [],
     staffNotes: [],
     interventions: [],

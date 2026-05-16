@@ -18,6 +18,7 @@ import { AiInsightsCard } from "./ai-insights-card";
 import { OperationalEventsPanel } from "./operational-events-panel";
 import { ReservationContextCard } from "./reservation-context-card";
 import { AiActionMemoryStrip } from "@/app/app/_components/ai-action-memory-strip";
+import { OperationalPhaseTimeline } from "@/app/app/_components/operational-phase-timeline";
 import { OperationPhaseBadgeGroup } from "@/app/app/_components/operation-phase-badges";
 import {
   useAIRuntimeStore,
@@ -167,6 +168,7 @@ export function GuestSidebar({ detail }: GuestSidebarProps) {
           </section>
         ) : null}
 
+        <OperationalPhaseTimeline conversation={liveDetail} />
         <ReservationContextCard reservation={liveDetail.reservation} />
         <AiInsightsCard insight={liveDetail.aiInsight} />
 

@@ -45,7 +45,8 @@ export function ConversationListItem({ row, active, onNavigate }: ConversationLi
     <li>
       <Link
         href={`/app/conversations/${row.id}`}
-        onClick={onNavigate}
+        prefetch
+        onClick={() => onNavigate?.()}
         className={cn(
           "group flex gap-2.5 rounded-xl border px-2.5 py-2.5 transition md:px-3",
           active

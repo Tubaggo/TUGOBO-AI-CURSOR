@@ -179,6 +179,28 @@
   animation: tick-fade 0.2s ease-out both;
 }
 
+@keyframes op-subtle-enter {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-op-subtle-enter {
+  animation: op-subtle-enter 0.35s ease-out both;
+}
+
+@keyframes heartbeat-soft {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+.animate-heartbeat-soft {
+  animation: heartbeat-soft 3.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-msg-in,
   .animate-toast-slide,
@@ -190,6 +212,8 @@
   .animate-live-pulse,
   .animate-shimmer-soft,
   .animate-tick-fade,
+  .animate-op-subtle-enter,
+  .animate-heartbeat-soft,
   .animate-pulse,
   .animate-lp-float,
   .animate-lp-fade-up,

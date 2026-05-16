@@ -7,6 +7,7 @@ import { pipelineStageLabel, formatMoney, sourceLabel } from "./reservation-form
 import { ReservationTimeline } from "./reservation-timeline";
 import { ReservationDetailSidebar } from "./reservation-detail-sidebar";
 import { ReservationOrchestrationBand } from "./reservation-orchestration-band";
+import { ReservationLifecycleRail } from "@/app/app/_components/reservation-lifecycle-rail";
 
 type ReservationDetailLayoutProps = {
   detail: ReservationDetailPayload;
@@ -95,6 +96,7 @@ export function ReservationDetailLayout({ detail }: ReservationDetailLayoutProps
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
+          <ReservationLifecycleRail reservation={r} />
           <PipelineRail current={r.status} />
           <ReservationOrchestrationBand
             reservationId={r.id}

@@ -1,10 +1,12 @@
 "use client";
 
+import { forwardRef } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { LogOut, User, Building2 } from "lucide-react";
 import type { User as AppUser } from "@/app/app/_types";
 import { hotelRoleLabel } from "./role-label";
 import { cn } from "@/lib/utils";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
 
 type UserMenuProps = {
   user: AppUser;
@@ -17,17 +19,32 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+const UserMenuTrigger = forwardRef<HTMLButtonElement, { name: string }>(
+  function UserMenuTrigger({ name }, ref) {
+    return (
+      <button
+        ref={ref}
+        type="button"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.06] text-xs font-semibold text-white/90 transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+        aria-label="Open user menu"
+      >
+        <span aria-hidden>{initials(name)}</span>
+      </button>
+    );
+  }
+);
+
 export function UserMenu({ user }: UserMenuProps) {
+  const mounted = useClientMounted();
+
+  if (!mounted) {
+    return <UserMenuTrigger name={user.name} />;
+  }
+
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.1] bg-white/[0.06] text-xs font-semibold text-white/90 transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
-          aria-label="Open user menu"
-        >
-          <span aria-hidden>{initials(user.name)}</span>
-        </button>
+        <UserMenuTrigger name={user.name} />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content

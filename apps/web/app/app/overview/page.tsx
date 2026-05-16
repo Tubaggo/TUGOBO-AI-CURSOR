@@ -5,6 +5,7 @@ import {
   getTodaysArrivalFocus,
 } from "@/lib/data/overview";
 import { OverviewOperationsPanels } from "../_components/overview-operations-panels";
+import { OverviewLiveLayer } from "../_components/overview-live-layer";
 
 export default function AppOverviewPage() {
   const { stats, asOf } = getOverviewStats();
@@ -28,8 +29,8 @@ export default function AppOverviewPage() {
             Operations overview
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/42">
-            Snapshot of arrivals, guest channels, AI-assisted actions, and items that need a human
-            decision — wired to live data in a later release.
+            Executive command surface — revenue posture, supervised automation, and the live
+            operational fabric across conversations, reservations, and guest intelligence.
           </p>
         </div>
         <p className="text-xs font-medium tabular-nums text-white/32">Refreshed {asOfLabel}</p>
@@ -50,6 +51,7 @@ export default function AppOverviewPage() {
         ))}
       </div>
 
+      <OverviewLiveLayer />
       <OverviewOperationsPanels feed={feed} arrivals={arrivals} attention={attention} />
     </div>
   );

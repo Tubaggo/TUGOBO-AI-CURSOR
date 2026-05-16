@@ -19,6 +19,10 @@ import type { LiveOperationalEvent } from "@/lib/runtime/live-events";
 import { LIVE_EVENT_CATALOG } from "@/lib/runtime/live-events";
 import { deriveOrchestrationPulse, type OrchestrationPulseMetrics } from "@/lib/runtime/orchestration-pulse";
 import {
+  applyHeartbeatToEvents,
+  nextHeartbeatEvent,
+} from "@/lib/runtime/heartbeat-events";
+import {
   createRuntimeEvent,
   type RuntimeEventPayload,
   type RuntimeEventType,
@@ -36,6 +40,8 @@ type StaffAssignmentPayload = {
 
 type OperationsActions = {
   hydrate: () => void;
+  /** Low-frequency ambient pulse — appends live event without entity mutation. */
+  emitHeartbeat: () => void;
   dispatch: (type: RuntimeEventType, payload: RuntimeEventPayload) => void;
   setReservationStage: (
     reservationId: string,
@@ -103,6 +109,24 @@ export const useOperationsStore = create<OperationsStore>((set, get) => ({
   hydrate: () => {
     if (get().hydrated) return;
     set(buildRuntimeSeed());
+  },
+
+  emitHeartbeat: () => {
+    const event = nextHeartbeatEvent();
+    set((state) => ({
+      ...state,
+      lastPulseAt: Date.now(),
+      operationalFocusLabel: event.title,
+      liveEvents: applyHeartbeatToEvents(state.liveEvents, event),
+      overview: {
+        ...state.overview,
+        asOfIso: new Date().toISOString(),
+        runtime: {
+          ...state.overview.runtime,
+          lastHealthCheckAt: new Date().toISOString(),
+        },
+      },
+    }));
   },
 
   dispatch: (type, payload) => {

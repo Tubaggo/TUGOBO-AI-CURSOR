@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
 import { useOperationsStore } from "@/store/operations-store";
+import { LivePulsePlaceholder } from "./live-ui-placeholder";
 
 /** Top-bar live pulse — rotates orchestration headlines so the console feels supervised. */
 export function OperationalLivePulse({ className }: { className?: string }) {
+  const mounted = useClientMounted();
   const hydrated = useOperationsStore((s) => s.hydrated);
   const operationalFocusLabel = useOperationsStore((s) => s.operationalFocusLabel);
   const liveEvents = useOperationsStore((s) => s.liveEvents);
@@ -14,6 +17,7 @@ export function OperationalLivePulse({ className }: { className?: string }) {
   const escalations = useOperationsStore((s) => s.escalations);
 
   const ticker = useMemo(() => {
+    if (!mounted || !hydrated) return [];
     const escOpen = escalations.filter((e) => !e.resolved).length;
     const heads = [
       ...liveEvents.map((e) => ({
@@ -38,17 +42,21 @@ export function OperationalLivePulse({ className }: { className?: string }) {
       },
     ];
     return heads;
-  }, [liveEvents, auditEvents, escalations]);
+  }, [mounted, hydrated, liveEvents, auditEvents, escalations]);
 
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
-    if (!hydrated || ticker.length === 0) return;
+    if (!mounted || !hydrated || ticker.length === 0) return;
     const id = window.setInterval(() => {
       setIdx((i) => (i + 1) % ticker.length);
     }, 4200);
     return () => window.clearInterval(id);
-  }, [hydrated, ticker.length]);
+  }, [mounted, hydrated, ticker.length]);
+
+  if (!mounted || !hydrated) {
+    return <LivePulsePlaceholder className={className} />;
+  }
 
   const row = ticker[idx] ?? {
     text: "Operational fabric idle",
@@ -69,19 +77,6 @@ export function OperationalLivePulse({ className }: { className?: string }) {
       : row.severity === "warning"
         ? "bg-amber-400"
         : "bg-emerald-400";
-
-  if (!hydrated) {
-    return (
-      <div
-        className={cn(
-          "hidden max-w-[min(340px,46vw)] shrink animate-pulse flex-col rounded-xl border border-white/[0.07] bg-white/[0.02] px-2.5 py-1.5 text-right sm:flex md:max-w-[380px]",
-          className
-        )}
-      >
-        <span className="text-[10px] text-white/28">Bootstrapping runtime…</span>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -107,7 +102,7 @@ export function OperationalLivePulse({ className }: { className?: string }) {
           Live operational pulse
         </span>
       </div>
-      <p className="w-full truncate text-[10px] font-semibold leading-snug text-white/78 md:text-[11px]">
+      <p className="w-full truncate text-[10px] font-semibold leading-snug text-white/78 animate-tick-fade md:text-[11px]">
         {row.text}
       </p>
       <p className="hidden w-full truncate text-[9px] font-medium leading-snug text-emerald-100/45 md:inline">

@@ -6,6 +6,7 @@ import { Brain, ChevronRight } from "lucide-react";
 import type { AIActionMemoryEntry } from "@/lib/runtime/types";
 import { filterActionMemoryByRefs, OPERATIONAL_AGENT_LABEL, useAIRuntimeStore } from "@/lib/runtime";
 import { cn } from "@/lib/utils";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
 
 const EMPTY_MEMORY_ROWS: AIActionMemoryEntry[] = [];
 
@@ -26,16 +27,16 @@ export function AiActionMemoryStrip({
   className,
   title = "AI action memory",
 }: AiActionMemoryStripProps) {
+  const mounted = useClientMounted();
   const hydrated = useAIRuntimeStore((s) => s.hydrated);
   const memory = useAIRuntimeStore((s) => s.aiActionMemory);
-  const pulse = useAIRuntimeStore((s) => s.lastPulseAt);
 
   const rows = useMemo(() => {
-    if (!hydrated) return EMPTY_MEMORY_ROWS;
+    if (!mounted || !hydrated) return EMPTY_MEMORY_ROWS;
     return filterActionMemoryByRefs(memory, { conversationId, reservationId, guestId }, limit);
-  }, [hydrated, memory, conversationId, reservationId, guestId, limit]);
+  }, [mounted, hydrated, memory, conversationId, reservationId, guestId, limit]);
 
-  if (!hydrated || rows.length === 0) return null;
+  if (!mounted || !hydrated || rows.length === 0) return null;
 
   return (
     <section
@@ -43,7 +44,6 @@ export function AiActionMemoryStrip({
         "rounded-xl border border-violet-500/15 bg-violet-500/[0.04] p-3",
         className
       )}
-      data-runtime-pulse={pulse > 0 ? String(pulse) : undefined}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-200/75">

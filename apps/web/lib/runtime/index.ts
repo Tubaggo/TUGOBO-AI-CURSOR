@@ -28,3 +28,15 @@ export type { LiveOperationalEvent, OperationalModule, LiveEventSeverity } from 
 export { buildRuntimeSeed } from "./seed-runtime";
 export { recalculateConversationConfidence } from "./confidence-engine";
 export { pickPresenceHint, PRESENCE_HINTS } from "./orchestration-pulse";
+export { deriveOperationalTimeline } from "./derive-operational-timeline";
+export type {
+  OperationalTimelineEntry,
+  OperationalTimelineLane,
+} from "./derive-operational-timeline";
+export {
+  deriveReservationLifecycleStage,
+  LIFECYCLE_LABEL,
+  RESERVATION_LIFECYCLE_STAGES,
+  lifecycleStageIndex,
+  type ReservationLifecycleStage,
+} from "./reservation-lifecycle";

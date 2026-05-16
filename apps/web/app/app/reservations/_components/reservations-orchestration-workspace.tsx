@@ -21,6 +21,8 @@ import { useAIRuntimeStore } from "@/lib/runtime";
 import { formatMoney } from "./reservation-formatters";
 import { ReservationPipeline } from "./reservation-pipeline";
 import { ReservationTable } from "./reservation-table";
+import { ExecutiveSignalStrip } from "@/app/app/_components/executive-signal-strip";
+import { LiveOperationalEventFeed } from "@/app/app/_components/live-operational-event-feed";
 
 type ReservationsOrchestrationWorkspaceProps = {
   initialReservations: Reservation[];
@@ -172,6 +174,16 @@ export function ReservationsOrchestrationWorkspace({
             ) : null}
           </div>
         </div>
+      </section>
+
+      <section className="mb-6 space-y-4">
+        <ExecutiveSignalStrip compact />
+        <LiveOperationalEventFeed
+          compact
+          limit={5}
+          title="Reservation fabric pulses"
+          subtitle="Payment · confirmation · OTA recovery signals"
+        />
       </section>
 
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

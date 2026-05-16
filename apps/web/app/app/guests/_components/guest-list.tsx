@@ -16,6 +16,7 @@ import { GUEST_INTELLIGENCE_SEGMENTS } from "@/lib/types/guests";
 import { getGuests } from "@/lib/data/guests";
 import { useAIRuntimeStore } from "@/lib/runtime";
 import { GuestTable } from "./guest-table";
+import { LiveOperationalEventFeed } from "@/app/app/_components/live-operational-event-feed";
 
 type GuestListProps = {
   initialGuests: Guest[];
@@ -113,6 +114,15 @@ export function GuestList({ initialGuests, metrics }: GuestListProps) {
           hint="Payment, cancellation, or stay risk"
           icon={AlertTriangle}
           tone="rose"
+        />
+      </section>
+
+      <section className="mb-6">
+        <LiveOperationalEventFeed
+          compact
+          limit={4}
+          title="Guest fabric signals"
+          subtitle="VIP · sentiment · loyalty orchestration"
         />
       </section>
 

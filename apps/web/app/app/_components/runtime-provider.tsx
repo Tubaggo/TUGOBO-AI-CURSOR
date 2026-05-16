@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useAIRuntimeStore } from "@/lib/runtime";
+import { AutonomousHeartbeatDriver } from "./autonomous-heartbeat-driver";
 
 type RuntimeProviderProps = {
   children: ReactNode;
@@ -10,11 +11,15 @@ type RuntimeProviderProps = {
 /** Hydrates global AI orchestration store once per app session. */
 export function RuntimeProvider({ children }: RuntimeProviderProps) {
   const hydrate = useAIRuntimeStore((s) => s.hydrate);
-  const hydrated = useAIRuntimeStore((s) => s.hydrated);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
-  return <div data-runtime-hydrated={hydrated ? "true" : "false"}>{children}</div>;
+  return (
+    <>
+      <AutonomousHeartbeatDriver />
+      {children}
+    </>
+  );
 }

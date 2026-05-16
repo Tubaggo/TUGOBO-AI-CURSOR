@@ -6,6 +6,7 @@ import { filterAuditPipeline, groupAuditTimeline } from "@/lib/runtime";
 import { useAIRuntimeStore } from "@/lib/runtime";
 import { AIBrainPageHeader } from "./ai-brain-page-header";
 import { AuditTimeline } from "./audit-timeline";
+import { AuditTrustSummary } from "./audit-trust-summary";
 
 type AuditWorkspaceProps = {
   events: AuditEvent[];
@@ -49,8 +50,10 @@ export function AuditWorkspace({ events: serverEvents }: AuditWorkspaceProps) {
       <AIBrainPageHeader
         eyebrow="AI Brain · Audit"
         title="AI operational trace system"
-        description="Immutable audit pipeline — severity, propagation targets, linked entities, and supervisor overrides woven into a single operational narrative."
+        description="Enterprise-grade trace — policy linkage, reasoning visibility, propagation chains, and human override authority on every operational mutation."
       />
+
+      <AuditTrustSummary events={events} />
 
       <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-white/[0.06] pb-4">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-white/35">

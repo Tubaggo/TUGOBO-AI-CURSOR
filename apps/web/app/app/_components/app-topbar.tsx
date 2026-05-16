@@ -7,6 +7,7 @@ import { OrgSwitcher } from "./org-switcher";
 import { UserMenu } from "./user-menu";
 import { OperationalCommandPalette } from "./operational-command-palette";
 import { OperationalLivePulse } from "./operational-live-pulse";
+import { OrchestrationPulseBar } from "./orchestration-pulse-bar";
 
 type AppTopbarProps = {
   organizations: Organization[];
@@ -98,6 +99,7 @@ export function AppTopbar({
           >
             <Bell className="h-4 w-4" />
           </button>
+          <OrchestrationPulseBar />
           <OperationalLivePulse />
           <UserMenu user={user} />
         </div>

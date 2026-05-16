@@ -45,7 +45,7 @@ export function ConversationThread({ detail }: ConversationThreadProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-gradient-to-b from-zinc-950 to-zinc-950/98">
-      <header className="shrink-0 border-b border-white/[0.07] px-3 py-3 md:px-5 md:py-3.5">
+      <header className="shrink-0 border-b border-white/[0.07] px-3 py-3 transition-colors duration-500 md:px-5 md:py-3.5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/32">

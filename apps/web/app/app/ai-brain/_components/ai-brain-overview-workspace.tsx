@@ -22,6 +22,8 @@ import { ConfidenceDistributionChart } from "./confidence-distribution-chart";
 import { AIExplanationCard } from "./ai-explanation-card";
 import { OperationalGraphCard } from "./operational-graph-card";
 import { LiveOperationalEventFeed } from "@/app/app/_components/live-operational-event-feed";
+import { ExecutiveSignalStrip } from "@/app/app/_components/executive-signal-strip";
+import { AutonomousOpsCorePanel } from "./autonomous-ops-core-panel";
 
 const AGENT_FOCUS: Record<AIOperationalAgentRole, string> = {
   reservation_agent: "Pipeline integrity · inventory coupling · stage transitions",
@@ -78,9 +80,14 @@ export function AIBrainOverviewWorkspace({ overview: serverOverview }: AIBrainOv
         asOf={overview.asOfIso}
       />
 
+      <section className="mb-6">
+        <ExecutiveSignalStrip compact />
+      </section>
+
       <section className="mb-6 grid gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-4 lg:col-span-2">
           <AIRuntimeCard runtime={overview.runtime} />
+          <AutonomousOpsCorePanel />
         </div>
         <article className="rounded-xl border border-white/[0.07] bg-zinc-900/55 p-4">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">

@@ -1,8 +1,10 @@
 "use client";
 
+import { forwardRef } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Building2, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
 import type { Organization } from "@/app/app/_types";
 
 type OrgSwitcherProps = {
@@ -12,42 +14,57 @@ type OrgSwitcherProps = {
   compact?: boolean;
 };
 
+const OrgSwitcherTrigger = forwardRef<
+  HTMLButtonElement,
+  { active: Organization; compact: boolean }
+>(function OrgSwitcherTrigger({ active, compact }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      className={cn(
+        "group flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
+        compact ? "h-9 max-w-[200px] px-2.5" : "min-h-[40px] max-w-[min(100%,280px)] px-3 py-2"
+      )}
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-sky-500/90 to-blue-600 text-white shadow-inner">
+        <Building2 className="h-4 w-4" aria-hidden />
+      </div>
+      {!compact ? (
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-white/90">{active.name}</p>
+          <p className="truncate text-[10px] text-white/40">
+            {active.city}, {active.country}
+          </p>
+        </div>
+      ) : (
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-white/80">
+          {active.name}
+        </span>
+      )}
+      <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden />
+    </button>
+  );
+});
+
 export function OrgSwitcher({
   organizations,
   activeOrganizationId,
   onOrganizationChange,
   compact = false,
 }: OrgSwitcherProps) {
+  const mounted = useClientMounted();
   const active =
     organizations.find((o) => o.id === activeOrganizationId) ?? organizations[0];
+
+  if (!mounted) {
+    return <OrgSwitcherTrigger active={active} compact={compact} />;
+  }
 
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "group flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] text-left transition-colors hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50",
-            compact ? "h-9 max-w-[200px] px-2.5" : "min-h-[40px] max-w-[min(100%,280px)] px-3 py-2"
-          )}
-        >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-sky-500/90 to-blue-600 text-white shadow-inner">
-            <Building2 className="h-4 w-4" aria-hidden />
-          </div>
-          {!compact ? (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-white/90">{active.name}</p>
-              <p className="truncate text-[10px] text-white/40">
-                {active.city}, {active.country}
-              </p>
-            </div>
-          ) : (
-            <span className="min-w-0 flex-1 truncate text-xs font-medium text-white/80">
-              {active.name}
-            </span>
-          )}
-          <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden />
-        </button>
+        <OrgSwitcherTrigger active={active} compact={compact} />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content

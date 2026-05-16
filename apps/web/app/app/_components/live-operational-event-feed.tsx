@@ -16,7 +16,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LiveEventSeverity, LiveOperationalEvent, OperationalModule } from "@/lib/runtime";
-import { OPERATIONAL_AGENT_LABEL, useLiveOperationalEvents, useRuntimePulse } from "@/lib/runtime";
+import { useClientMounted } from "@/lib/hooks/use-client-mounted";
+import { OPERATIONAL_AGENT_LABEL, useLiveOperationalEvents, useOperationsStore } from "@/lib/runtime";
+import { RelativeTime } from "./relative-time";
 
 const MODULE_LABEL: Record<OperationalModule, string> = {
   conversations: "Conversations",
@@ -69,16 +71,6 @@ const MODULE_ICONS: Record<OperationalModule, LucideIcon> = {
   audit: Activity,
 };
 
-function shortAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(ms / 60000);
-  if (m < 1) return "Just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
-
 function EventIcon({ event }: { event: LiveOperationalEvent }) {
   const Icon = EVENT_ICONS[event.eventType] ?? MODULE_ICONS[event.module];
   return <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />;
@@ -101,10 +93,15 @@ export function LiveOperationalEventFeed({
   className,
   fallbackEvents,
 }: LiveOperationalEventFeedProps) {
-  const pulse = useRuntimePulse();
+  const mounted = useClientMounted();
+  const hydrated = useOperationsStore((s) => s.hydrated);
   const storeEvents = useLiveOperationalEvents(limit);
-  const events =
-    storeEvents.length > 0 ? storeEvents : (fallbackEvents?.slice(0, limit) ?? []);
+  const liveReady = mounted && hydrated;
+  const events = liveReady
+    ? storeEvents.length > 0
+      ? storeEvents
+      : (fallbackEvents?.slice(0, limit) ?? [])
+    : [];
 
   return (
     <section className={cn("rounded-xl border border-white/[0.07] bg-zinc-900/45", className)}>
@@ -127,30 +124,34 @@ export function LiveOperationalEventFeed({
             <p className="mt-0.5 text-[11px] text-white/35">{subtitle}</p>
           ) : null}
         </div>
-        <span className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-emerald-300/70">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/40" />
-            <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400/90" />
+        {liveReady ? (
+          <span className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-emerald-300/70">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/40" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400/90" />
+            </span>
+            Live
           </span>
-          Live
-        </span>
+        ) : (
+          <span className="text-[10px] font-medium uppercase tracking-wider text-white/28">
+            Syncing
+          </span>
+        )}
       </header>
-      <ul
-        key={pulse > 0 ? `pulse-${pulse}` : "static"}
-        className={cn("divide-y divide-white/[0.05]", compact ? "p-1" : "p-2")}
-      >
+      <ul className={cn("divide-y divide-white/[0.05]", compact ? "p-1" : "p-2")}>
         {events.length === 0 ? (
           <li className="px-3 py-4 text-center text-[11px] text-white/35">
-            Awaiting operational signals…
+            {liveReady ? "Awaiting operational signals…" : "Connecting operational fabric…"}
           </li>
         ) : (
-          events.map((item) => (
+          events.map((item, index) => (
             <li
               key={item.id}
               className={cn(
-                "border-l-2 transition-colors duration-500",
+                "border-l-2 transition-all duration-500 hover:bg-white/[0.02]",
                 SEVERITY_ACCENT[item.severity],
-                compact ? "mx-1 rounded-lg px-2.5 py-2" : "mx-2 rounded-lg px-3 py-2.5"
+                compact ? "mx-1 rounded-lg px-2.5 py-2" : "mx-2 rounded-lg px-3 py-2.5",
+                index === 0 && liveReady && "animate-tick-fade"
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -184,12 +185,10 @@ export function LiveOperationalEventFeed({
                     </span>
                   </div>
                 </div>
-                <time
+                <RelativeTime
+                  iso={item.createdAt}
                   className="shrink-0 tabular-nums text-[10px] text-white/32"
-                  dateTime={item.createdAt}
-                >
-                  {shortAgo(item.createdAt)}
-                </time>
+                />
               </div>
               <p
                 className={cn(
