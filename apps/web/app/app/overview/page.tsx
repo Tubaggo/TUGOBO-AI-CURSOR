@@ -1,0 +1,423 @@
+"use client";
+
+import Link from "next/link";
+import {
+  DollarSign,
+  TrendingUp,
+  PiggyBank,
+  ShieldAlert,
+  Bot,
+  Banknote,
+  UserPlus,
+  Sparkles,
+  ChevronRight,
+  Radio,
+  AlertTriangle,
+  Zap,
+} from "lucide-react";
+import {
+  useOperationalRuntime,
+  selectRevenueMetrics,
+  selectMounted,
+  selectOperationsFeed,
+  selectRecoveryJourneys,
+  selectRevenueStories,
+  selectReservations,
+  selectConversations,
+} from "@/stores/operational-runtime";
+import { OverviewGraphPanel } from "../_components/overview-graph-panel";
+import { formatEur, formatPct } from "@/lib/operational/format";
+import { RevenueMetricCard } from "../_components/revenue-metric-card";
+import { RecoveryJourneyCard } from "../_components/recovery-journey-card";
+import { RevenueStoryCard } from "../_components/revenue-story-card";
+import { AiImpactPanel } from "../_components/ai-impact-panel";
+import { OtaRecoveryPanel } from "../_components/ota-recovery-panel";
+import { FinancialAttributionBadge } from "../_components/financial-attribution-badge";
+import { OperationsFeedRuntimeItem } from "../_components/operational-intelligence-feed";
+import { useMutationPulse } from "@/lib/runtime/hooks/use-mutation-pulse";
+
+export default function OverviewPage() {
+  const mounted = useOperationalRuntime(selectMounted);
+  const m = useOperationalRuntime(selectRevenueMetrics);
+  const feed = useOperationalRuntime(selectOperationsFeed);
+  const journeys = useOperationalRuntime(selectRecoveryJourneys);
+  const stories = useOperationalRuntime(selectRevenueStories);
+  const reservations = useOperationalRuntime(selectReservations);
+  const conversations = useOperationalRuntime(selectConversations);
+  const dash = mounted ? "" : "—";
+  const metricCards = [
+    {
+      label: "Revenue recovered today",
+      value: mounted ? formatEur(m.revenueRecoveredToday, true) : dash,
+      delta: "+€840",
+      icon: DollarSign,
+      iconColor: "text-emerald-400",
+      iconBg: "bg-emerald-500/10",
+      sub: "payment + abandonment recovery",
+    },
+    {
+      label: "AI influenced revenue",
+      value: mounted ? formatEur(m.aiInfluencedRevenue, true) : dash,
+      delta: "+12%",
+      icon: Sparkles,
+      iconColor: "text-violet-400",
+      iconBg: "bg-violet-500/10",
+      sub: "attributed pipeline value",
+    },
+    {
+      label: "OTA commission avoided",
+      value: mounted ? formatEur(m.otaCommissionAvoided) : dash,
+      delta: "+€212",
+      icon: PiggyBank,
+      iconColor: "text-amber-400",
+      iconBg: "bg-amber-500/10",
+      sub: "direct conversion savings",
+    },
+    {
+      label: "Upsell revenue generated",
+      value: mounted ? formatEur(m.upsellRevenueGenerated) : dash,
+      delta: "+€95 ADR",
+      icon: TrendingUp,
+      iconColor: "text-blue-400",
+      iconBg: "bg-blue-500/10",
+      sub: "post-confirmation bundles",
+    },
+    {
+      label: "Payment recovery revenue",
+      value: mounted ? formatEur(m.paymentRecoveryRevenue) : dash,
+      delta: "3 flows",
+      icon: Banknote,
+      iconColor: "text-cyan-400",
+      iconBg: "bg-cyan-500/10",
+      sub: "failed payment rescued",
+    },
+    {
+      label: "Human takeover saved",
+      value: mounted ? formatEur(m.humanTakeoverSavedRevenue, true) : dash,
+      delta: "91% success",
+      icon: UserPlus,
+      iconColor: "text-rose-400",
+      iconBg: "bg-rose-500/10",
+      sub: "assisted close attribution",
+    },
+    {
+      label: "Revenue at risk",
+      value: mounted ? formatEur(m.revenueAtRisk) : dash,
+      delta: "2 active",
+      icon: ShieldAlert,
+      iconColor: "text-amber-400",
+      iconBg: "bg-amber-500/10",
+      sub: "payment + cancellation exposure",
+      variant: "risk" as const,
+    },
+    {
+      label: "Recovery success rate",
+      value: mounted ? formatPct(m.recoverySuccessRate) : dash,
+      delta: "+4%",
+      icon: Zap,
+      iconColor: "text-emerald-400",
+      iconBg: "bg-emerald-500/10",
+      sub: "booking recovery engine",
+    },
+    {
+      label: "Direct booking conversion",
+      value: mounted ? formatEur(m.directBookingConversionValue, true) : dash,
+      delta: "+5 closes",
+      icon: Bot,
+      iconColor: "text-blue-400",
+      iconBg: "bg-blue-500/10",
+      sub: "AI-supervised direct channel",
+    },
+  ];
+
+  const executiveStrip = [
+    { label: "AI generated revenue", value: mounted ? formatEur(m.aiGeneratedRevenue, true) : dash },
+    { label: "Escalated revenue exposure", value: mounted ? formatEur(m.escalatedRevenueExposure) : dash },
+    { label: "Occupancy influence", value: mounted ? `+${m.occupancyInfluencePct}%` : dash },
+  ];
+
+  return (
+    <div className="flex-1 overflow-auto">
+      <div className="mx-auto max-w-[1400px] p-7">
+        <OverviewHeader />
+        <MotionRuntimeOverviewExecutiveStrip items={executiveStrip} />
+        <MotionOverviewMetricGrid metricCards={metricCards} />
+        <OverviewGraphPanel />
+        <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <div className="rounded-xl border border-white/[0.06] bg-zinc-900 p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <MotionRecoveryEngineHeader />
+              <Link href="/app/conversations" className="text-xs text-emerald-400 hover:text-emerald-300">
+                Orchestrate →
+              </Link>
+            </div>
+            <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+              {journeys.slice(0, 3).map((j) => (
+                <RecoveryJourneyCard key={j.id} journey={j} />
+              ))}
+            </div>
+          </div>
+          <OtaRecoveryPanel />
+        </div>
+        <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
+          <div className="rounded-xl border border-white/[0.06] bg-zinc-900 p-5">
+            <h2 className="text-sm font-semibold text-white mb-1">AI impact metrics</h2>
+            <p className="text-[11px] text-white/35 mb-4">Operational health · revenue attribution layer</p>
+            <AiImpactPanel />
+          </div>
+          <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden flex flex-col max-h-[520px]">
+            <div className="border-b border-white/[0.05] px-5 py-4 shrink-0">
+              <div className="flex items-center gap-2">
+                <Radio className="h-4 w-4 text-emerald-400/80" />
+                <div>
+                  <h2 className="text-sm font-semibold text-white">AI operational intelligence</h2>
+                  <p className="text-[10px] text-white/30">Mission-critical · financially aware</p>
+                </div>
+              </div>
+            </div>
+            <div className="divide-y divide-white/[0.04] overflow-y-auto flex-1">
+              {feed.map((item) => (
+                <div key={item.id} className={`flex gap-3 border-l-2 px-4 py-3 ${item.tone}`}>
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-white/40" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-white/90">{item.title}</p>
+                    <p className="text-[11px] text-white/38 mt-0.5">{item.meta}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-[10px] text-white/22">{item.time}</span>
+                      {item.financialEur ? (
+                        <span className="text-[10px] font-semibold text-emerald-400 tabular-nums">
+                          {formatEur(item.financialEur)}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mb-6">
+          <MotionRevenueStoriesHeader />
+          <MotionRevenueStoriesGrid stories={stories} />
+        </div>
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <MotionOverviewReservationsPanel reservations={reservations} />
+          <MotionOverviewConversationsPanel conversations={conversations} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OverviewHeader() {
+  return (
+    <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-400/50">
+          Operational intelligence runtime
+        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-white">Executive revenue overview</h1>
+        <p className="mt-0.5 text-sm text-white/38">
+          Live orchestration · synchronized graph · financial causality across every path
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
+          <MotionOverviewLiveDot />
+          <span className="text-xs font-medium text-emerald-400">Runtime synchronized</span>
+        </div>
+        <Link
+          href="/app/ai-brain"
+          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500"
+        >
+          <Bot className="h-3.5 w-3.5" />
+          AI Brain
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function MotionOverviewLiveDot() {
+  return <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />;
+}
+
+function MotionOverviewMetricGrid({
+  metricCards,
+}: {
+  metricCards: Parameters<typeof RevenueMetricCard>[0][];
+}) {
+  return (
+    <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3">
+      {metricCards.map((card) => (
+        <RevenueMetricCard key={card.label} {...card} />
+      ))}
+    </div>
+  );
+}
+
+function MotionRecoveryEngineHeader() {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/28">Booking recovery engine</p>
+      <h2 className="text-sm font-semibold text-white mt-0.5">Recovery journeys · live</h2>
+    </div>
+  );
+}
+
+function MotionRevenueStoriesHeader() {
+  return (
+    <div className="mb-4 flex items-center justify-between">
+      <div>
+        <h2 className="text-sm font-semibold text-white">Revenue storytelling</h2>
+        <p className="text-[11px] text-white/35">Live narratives · AI + human attribution</p>
+      </div>
+      <Link href="/app/ai-brain/audit" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+        Audit trail <ChevronRight className="h-3 w-3" />
+      </Link>
+    </div>
+  );
+}
+
+function MotionRevenueStoriesGrid({ stories }: { stories: ReturnType<typeof selectRevenueStories> }) {
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {stories.slice(0, 4).map((s) => (
+        <RevenueStoryCard key={s.id} story={s} />
+      ))}
+    </div>
+  );
+}
+
+function MotionOverviewReservationsPanel({
+  reservations,
+}: {
+  reservations: ReturnType<typeof selectReservations>;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
+        <h2 className="text-sm font-semibold text-white">Pipeline · financial lifecycle</h2>
+        <Link href="/app/reservations" className="text-xs text-blue-400 hover:text-blue-300">
+          View all →
+        </Link>
+      </div>
+      <div className="divide-y divide-white/[0.04]">
+        {reservations.slice(0, 4).map((r) => (
+          <div key={r.id} className="px-5 py-3.5 hover:bg-white/[0.02]">
+            <MotionOverviewReservationRow r={r} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MotionOverviewReservationRow({ r }: { r: ReturnType<typeof selectReservations>[number] }) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium text-white/85">{r.guest}</p>
+        <p className="text-[11px] text-white/38">
+          {r.room} · {r.currentStage.replace(/_/g, " ")}
+        </p>
+      </div>
+      <MotionOverviewReservationRowRight r={r} />
+    </div>
+  );
+}
+
+function MotionOverviewReservationRowRight({ r }: { r: ReturnType<typeof selectReservations>[number] }) {
+  return (
+    <div className="flex flex-col items-start gap-1 sm:items-end">
+      <span className="text-sm font-bold tabular-nums text-white">{formatEur(r.bookingValueEur)}</span>
+      {r.revenueAtRiskEur > 0 ? (
+        <span className="text-[10px] font-medium text-amber-400">At risk {formatEur(r.revenueAtRiskEur)}</span>
+      ) : null}
+      {r.attributions[0] ? <FinancialAttributionBadge attribution={r.attributions[0]} compact /> : null}
+    </div>
+  );
+}
+
+function MotionOverviewConversationsPanel({
+  conversations,
+}: {
+  conversations: ReturnType<typeof selectConversations>;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
+        <h2 className="text-sm font-semibold text-white">Guest orchestration · revenue exposure</h2>
+        <Link href="/app/conversations" className="text-xs text-blue-400 hover:text-blue-300">
+          Inbox →
+        </Link>
+      </div>
+      <div className="divide-y divide-white/[0.04]">
+        {conversations.map((c) => (
+          <div key={c.id} className="px-5 py-3.5">
+            <MotionOverviewConversationRow c={c} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MotionRuntimeOverviewExecutiveStrip({
+  items,
+}: {
+  items: { label: string; value: string }[];
+}) {
+  const isLive = useMutationPulse(5000);
+  return (
+    <div
+      className={
+        isLive
+          ? "mb-4 grid grid-cols-2 gap-6 border-b border-cyan-500/10 pb-4 md:grid-cols-3"
+          : "mb-4 grid grid-cols-2 gap-6 border-b border-white/[0.04] pb-4 md:grid-cols-3"
+      }
+    >
+      {items.map((item) => (
+        <div key={item.label}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/28">{item.label}</p>
+          <p
+            className={
+              isLive
+                ? "mt-0.5 text-lg font-bold tabular-nums text-white animate-tick-fade"
+                : "mt-0.5 text-lg font-bold tabular-nums text-white"
+            }
+          >
+            {item.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MotionOverviewConversationRow({ c }: { c: ReturnType<typeof selectConversations>[number] }) {
+  return (
+    <div className="flex gap-3">
+      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${c.avatarColor}`}>
+        {c.initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium text-white/85">{c.guestName}</span>
+          <span className="text-[10px] text-white/28">{c.time}</span>
+        </div>
+        <p className="truncate text-xs text-white/40">{c.lastMessage}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {c.revenueExposureEur > 0 ? (
+            <span className="rounded-md border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+              Exposure {formatEur(c.revenueExposureEur)}
+            </span>
+          ) : null}
+          {c.attributions.slice(0, 1).map((a) => (
+            <FinancialAttributionBadge key={a.kind} attribution={a} compact />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
