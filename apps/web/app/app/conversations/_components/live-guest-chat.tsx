@@ -20,6 +20,7 @@ import type { ConversationThread } from "@/lib/runtime/entities";
 import { cn } from "@/lib/utils";
 import { ReservationOperationCard } from "./reservation-operation-card";
 import { AiOperationalMoments } from "./ai-operational-moments";
+import { op } from "@/lib/i18n/operationalTexts";
 
 function channelLabel(ch?: ConversationChannel): string {
   if (ch === "instagram") return "Instagram";
@@ -137,7 +138,7 @@ export function LiveGuestChat({
                 className="flex items-center gap-1.5 rounded-lg border border-amber-500/18 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-400 transition-colors hover:bg-amber-500/14"
               >
                 <UserCheck className="h-3.5 w-3.5" />
-                Take over
+                {op("takeOver")}
               </button>
             ) : null}
             {effectiveStatus === "human_takeover" ? (
@@ -155,7 +156,7 @@ export function LiveGuestChat({
                 href={reservationsHref}
                 className="hidden rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-white/48 transition-colors hover:text-white/75 lg:flex"
               >
-                View booking
+                {op("viewBooking")}
               </Link>
             ) : null}
           </div>
@@ -209,8 +210,8 @@ export function LiveGuestChat({
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendReply()}
             placeholder={
               effectiveStatus === "human_takeover"
-                ? "Reply as hotel staff…"
-                : "AI is handling this — take over to reply"
+                ? op("replyAsStaffPlaceholder")
+                : op("aiHandlingCannotReply")
             }
             disabled={effectiveStatus === "ai_active"}
             className="min-w-0 flex-1 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm text-white/80 placeholder:text-white/25 focus:border-blue-500/25 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"

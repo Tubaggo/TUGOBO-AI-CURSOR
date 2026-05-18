@@ -1,19 +1,20 @@
 import type { ConversationStatus, LeadStatus, ReservationStatus } from "./mock-data";
+import { op } from "@/lib/i18n/operationalTexts";
 
 export function StatusBadge({ status }: { status: ConversationStatus }) {
   const map: Record<ConversationStatus, { label: string; cls: string; dot: string }> = {
     ai_active: {
-      label: "Ops auto",
+      label: op("statusAiActive"),
       cls: "bg-blue-500/15 text-blue-400 border-blue-500/20",
       dot: "bg-blue-400",
     },
     human_takeover: {
-      label: "Staff",
+      label: op("statusHumanTakeover"),
       cls: "bg-amber-500/15 text-amber-400 border-amber-500/20",
       dot: "bg-amber-400",
     },
     resolved: {
-      label: "Closed",
+      label: op("statusResolved"),
       cls: "bg-white/[0.06] text-white/35 border-white/[0.07]",
       dot: "bg-white/30",
     },
@@ -29,11 +30,11 @@ export function StatusBadge({ status }: { status: ConversationStatus }) {
 
 export function LeadBadge({ status }: { status: LeadStatus }) {
   const map: Record<LeadStatus, { label: string; cls: string }> = {
-    new: { label: "Inquiry", cls: "bg-white/[0.06] text-white/40 border-white/[0.08]" },
-    qualified: { label: "Qualified", cls: "bg-violet-500/15 text-violet-400 border-violet-500/20" },
-    quoted: { label: "Offer sent", cls: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
-    confirmed: { label: "Confirmed", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
-    lost: { label: "Lost", cls: "bg-red-500/15 text-red-400 border-red-500/20" },
+    new: { label: op("leadNew"), cls: "bg-white/[0.06] text-white/40 border-white/[0.08]" },
+    qualified: { label: op("leadQualified"), cls: "bg-violet-500/15 text-violet-400 border-violet-500/20" },
+    quoted: { label: op("leadQuoted"), cls: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
+    confirmed: { label: op("leadConfirmed"), cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
+    lost: { label: op("leadLost"), cls: "bg-red-500/15 text-red-400 border-red-500/20" },
   };
   const s = map[status];
   return (
@@ -45,11 +46,14 @@ export function LeadBadge({ status }: { status: LeadStatus }) {
 
 export function ResBadge({ status }: { status: ReservationStatus }) {
   const map: Record<ReservationStatus, { label: string; cls: string }> = {
-    confirmed: { label: "Confirmed", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
-    pending_payment: { label: "Payment pending", cls: "bg-amber-500/15 text-amber-400 border-amber-500/20" },
-    quoted: { label: "Offer sent", cls: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
-    new: { label: "Inquiry", cls: "bg-white/[0.06] text-white/40 border-white/[0.08]" },
-    lost: { label: "Lost", cls: "bg-red-500/15 text-red-400 border-red-500/20" },
+    confirmed: { label: op("resConfirmed"), cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20" },
+    pending_payment: {
+      label: op("resPendingPayment"),
+      cls: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+    },
+    quoted: { label: op("resQuoted"), cls: "bg-blue-500/15 text-blue-400 border-blue-500/20" },
+    new: { label: op("resNew"), cls: "bg-white/[0.06] text-white/40 border-white/[0.08]" },
+    lost: { label: op("resLost"), cls: "bg-red-500/15 text-red-400 border-red-500/20" },
   };
   const s = map[status];
   return (

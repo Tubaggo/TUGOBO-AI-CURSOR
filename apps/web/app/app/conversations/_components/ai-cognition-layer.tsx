@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { CognitionSnapshot } from "@/lib/runtime/conversation-runtime";
 import { formatEur } from "@/lib/operational/format";
+import { op } from "@/lib/i18n/operationalTexts";
 import { cn } from "@/lib/utils";
 import { Brain, Banknote, Shield, Target, ChevronRight } from "lucide-react";
 
@@ -22,37 +23,40 @@ export function AiCognitionLayer({
     >
       <div className="shrink-0 border-b border-white/[0.04] px-4 py-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">
-          Operations brief
+          {op("cognitionTitle")}
         </p>
-        <p className="mt-1 text-[11px] text-white/32">What matters now · revenue · next step</p>
+        <p className="mt-1 text-[11px] text-white/32">{op("cognitionSubtitle")}</p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto conv-scroll px-4 py-4 space-y-3">
-        <BriefModule icon={Target} title="What we're seeing">
+        <BriefModule icon={Target} title={op("cognitionSeeing")}>
           <p className="text-[12px] leading-relaxed text-white/62">{cognition.interpretation}</p>
         </BriefModule>
 
-        <BriefModule icon={Banknote} title="Revenue picture">
+        <BriefModule icon={Banknote} title={op("cognitionRevenue")}>
           <dl className="space-y-2 text-[11px]">
-            <Row label="Booking value" value={formatEur(cognition.financial.directValueEur)} />
-            <Row label="OTA retention" value={formatEur(cognition.financial.otaOpportunityEur)} />
+            <Row label={op("cognitionBookingValue")} value={formatEur(cognition.financial.directValueEur)} />
+            <Row label={op("cognitionOtaRetention")} value={formatEur(cognition.financial.otaOpportunityEur)} />
             <Row
-              label="Close confidence"
+              label={op("cognitionCloseConfidence")}
               value={`${cognition.financial.revenueConfidence}%`}
               highlight
             />
           </dl>
         </BriefModule>
 
-        <BriefModule icon={Shield} title="Escalation check">
+        <BriefModule icon={Shield} title={op("cognitionEscalation")}>
           <p className="text-[12px] text-white/58">
             {cognition.escalation.humanRequired
-              ? "Staff is leading this conversation."
-              : "No staff takeover needed yet."}
+              ? op("staffLeadingConversation")
+              : op("noStaffTakeoverYet")}
           </p>
           <dl className="mt-2 space-y-1.5 text-[11px]">
-            <Row label="Recovery confidence" value={`${cognition.escalation.recoveryConfidence}%`} />
             <Row
-              label="Escalation risk"
+              label={op("cognitionRecoveryConfidence")}
+              value={`${cognition.escalation.recoveryConfidence}%`}
+            />
+            <Row
+              label={op("cognitionEscalationRisk")}
               value={cognition.escalation.escalationProbability}
               tone={
                 cognition.escalation.escalationProbability === "Critical" ||
@@ -64,7 +68,7 @@ export function AiCognitionLayer({
           </dl>
         </BriefModule>
 
-        <BriefModule icon={Brain} title="Guest history">
+        <BriefModule icon={Brain} title={op("cognitionGuestHistory")}>
           {cognition.memoryBullets.length > 0 ? (
             <ul className="space-y-1.5">
               {cognition.memoryBullets.map((b) => (
@@ -75,11 +79,11 @@ export function AiCognitionLayer({
               ))}
             </ul>
           ) : (
-            <p className="text-[11px] text-white/35">No prior stay notes on file.</p>
+            <p className="text-[11px] text-white/35">{op("cognitionNoHistory")}</p>
           )}
         </BriefModule>
 
-        <BriefModule icon={ChevronRight} title="Suggested next step" highlight>
+        <BriefModule icon={ChevronRight} title={op("cognitionSuggestedStep")} highlight>
           <p className="text-[12px] font-medium leading-relaxed text-cyan-100/85">
             {cognition.recommendedAction}
           </p>

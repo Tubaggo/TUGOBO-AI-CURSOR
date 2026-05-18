@@ -13,37 +13,40 @@ import {
 } from "lucide-react";
 import type { ConvReservation } from "@/app/dashboard/_components/chat-threads";
 import type { ConversationStatus } from "@/app/dashboard/_components/mock-data";
+import { op } from "@/lib/i18n/operationalTexts";
 import { cn } from "@/lib/utils";
 
-const STATUS_MAP = {
-  confirmed: {
-    label: "Confirmed",
-    icon: CheckCircle2,
-    border: "border-emerald-500/25",
-    header: "bg-emerald-500/[0.08]",
-    iconColor: "text-emerald-400",
-    badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-    dot: "bg-emerald-400",
-  },
-  pending_payment: {
-    label: "Pending payment",
-    icon: AlertCircle,
-    border: "border-amber-500/25",
-    header: "bg-amber-500/[0.07]",
-    iconColor: "text-amber-400",
-    badge: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-    dot: "bg-amber-400 animate-pulse",
-  },
-  quoted: {
-    label: "Quote sent",
-    icon: FileText,
-    border: "border-blue-500/25",
-    header: "bg-blue-500/[0.07]",
-    iconColor: "text-blue-400",
-    badge: "bg-blue-500/15 text-blue-400 border-blue-500/25",
-    dot: "bg-blue-400",
-  },
-} as const;
+function statusMap() {
+  return {
+    confirmed: {
+      label: op("resConfirmed"),
+      icon: CheckCircle2,
+      border: "border-emerald-500/25",
+      header: "bg-emerald-500/[0.08]",
+      iconColor: "text-emerald-400",
+      badge: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
+      dot: "bg-emerald-400",
+    },
+    pending_payment: {
+      label: op("resPendingPayment"),
+      icon: AlertCircle,
+      border: "border-amber-500/25",
+      header: "bg-amber-500/[0.07]",
+      iconColor: "text-amber-400",
+      badge: "bg-amber-500/15 text-amber-400 border-amber-500/25",
+      dot: "bg-amber-400 animate-pulse",
+    },
+    quoted: {
+      label: op("resQuoted"),
+      icon: FileText,
+      border: "border-blue-500/25",
+      header: "bg-blue-500/[0.07]",
+      iconColor: "text-blue-400",
+      badge: "bg-blue-500/15 text-blue-400 border-blue-500/25",
+      dot: "bg-blue-400",
+    },
+  } as const;
+}
 
 export function ReservationOperationCard({
   reservation: r,
@@ -57,6 +60,7 @@ export function ReservationOperationCard({
   onSendPaymentLink: () => void;
   reservationsHref: string;
 }) {
+  const STATUS_MAP = statusMap();
   const s = STATUS_MAP[r.status];
   const StatusIcon = s.icon;
   const showPaymentBtn = r.status === "pending_payment" || r.status === "quoted";
@@ -73,7 +77,7 @@ export function ReservationOperationCard({
           <StatusIcon className={cn("h-4 w-4", s.iconColor)} />
           <div>
             <p className="text-sm font-semibold text-white">
-              {r.status === "quoted" ? "Offer prepared" : "Reservation in progress"}
+              {r.status === "quoted" ? op("offerPrepared") : op("reservationInProgress")}
             </p>
             <p className="mt-0.5 text-[11px] text-white/40">Ref #{r.ref}</p>
           </div>
@@ -88,56 +92,44 @@ export function ReservationOperationCard({
           {s.label}
         </span>
       </div>
-
-      <div className="px-5 pb-1 pt-4">
+      <div className="px-5 pb-4 pt-2">
         <p className="mb-3 text-[13px] font-semibold text-white/90">{r.room}</p>
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <DetailCell icon={CalendarDays} label="Check-in" value={r.checkIn} />
-          <DetailCell icon={CalendarDays} label="Check-out" value={r.checkOut} />
-          <DetailCell icon={Users} label="Guests" value={String(r.guests)} />
-          <DetailCell icon={Moon} label="Nights" value={String(r.nights)} />
+        <div className="mb-3 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-4">
+          <Meta icon={CalendarDays} label={op("checkIn")} value={r.checkIn} />
+          <Meta icon={CalendarDays} label={op("checkOut")} value={r.checkOut} />
+          <Meta icon={Users} label={op("guestsLabel")} value={String(r.guests)} />
+          <Meta icon={Moon} label={op("nightsLabel")} value={String(r.nights)} />
         </div>
-        <div className="flex items-center justify-between border-t border-white/[0.04] py-4">
-          <p className="text-[11px] text-white/35">
-            {r.currency}
-            {r.pricePerNight.toLocaleString()} × {r.nights} nights
-          </p>
-          <p className="text-xl font-bold tabular-nums text-white">
-            {r.currency}
-            {r.total.toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 px-5 pb-5">
-        <Link
-          href={reservationsHref}
-          className="flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3.5 py-2 text-xs font-medium text-white/55 transition-colors hover:text-white/75"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          View reservation
-        </Link>
-        {showPaymentBtn ? (
-          <button
-            type="button"
-            onClick={onSendPaymentLink}
-            className={cn(
-              "flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all active:scale-[0.97]",
-              sentLink
-                ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
-                : "border border-amber-500/25 bg-amber-500/15 text-amber-200 hover:bg-amber-500/20"
-            )}
+        <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-3">
+          <Link
+            href={reservationsHref}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-white/55 hover:text-white/75"
           >
-            <CreditCard className="h-3.5 w-3.5" />
-            {sentLink ? "Link sent" : "Send payment link"}
-          </button>
-        ) : null}
+            <ExternalLink className="h-3.5 w-3.5" />
+            {op("viewReservation")}
+          </Link>
+          {showPaymentBtn ? (
+            <button
+              type="button"
+              onClick={onSendPaymentLink}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-semibold",
+                sentLink
+                  ? "border border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+                  : "border border-amber-500/25 bg-amber-500/12 text-amber-200"
+              )}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              {sentLink ? op("linkSent") : op("sendPaymentLink")}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
 }
 
-function DetailCell({
+function Meta({
   icon: Icon,
   label,
   value,
@@ -147,12 +139,10 @@ function DetailCell({
   value: string;
 }) {
   return (
-    <div>
-      <p className="mb-0.5 flex items-center gap-1 text-[10px] text-white/30">
-        <Icon className="h-3 w-3 text-blue-400/80" />
-        {label}
-      </p>
-      <p className="text-[12px] font-medium text-white/70">{value}</p>
+    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] px-2.5 py-2">
+      <Icon className="mb-1 h-3 w-3 text-white/35" />
+      <p className="text-[9px] text-white/32">{label}</p>
+      <p className="font-medium text-white/80">{value}</p>
     </div>
   );
 }

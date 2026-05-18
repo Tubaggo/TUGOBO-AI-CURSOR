@@ -8,6 +8,12 @@ import {
   resolveReservation,
 } from "@/lib/runtime/chat-bridge";
 import { escalationRiskLabel, reservationStageLabel } from "@/lib/i18n/runtime-copy";
+import {
+  aiReservationStageLabel,
+  confidencePercent,
+  suggestedActionLabel,
+} from "@/lib/ai/confidence";
+import type { ConversationAiState } from "@/lib/ai/types";
 import type { ConversationThread, Guest } from "@/lib/runtime/entities";
 import { formatEur } from "@/lib/operational/format";
 import { cn } from "@/lib/utils";
@@ -17,19 +23,31 @@ export function OperationIntelligencePanel({
   thread,
   cognition,
   pulseActive,
+  aiState,
 }: {
   thread: ConversationThread;
   guest?: Guest;
   cognition: CognitionSnapshot;
   pulseActive?: boolean;
+  aiState?: ConversationAiState;
 }) {
   const t = useTranslations("panel");
   const tCommon = useTranslations("common");
   const reservation = resolveReservation(thread.id);
   const stage = inferReservationStage(thread, reservation);
-  const aiConfidence = cognition.financial.revenueConfidence;
+  const aiConfidence =
+    aiState?.confidence !== null && aiState?.confidence !== undefined
+      ? confidencePercent(aiState.confidence)
+      : cognition.financial.revenueConfidence;
   const escalationLevel = cognition.escalation.escalationProbability;
-  const humanRequired = cognition.escalation.humanRequired;
+  const humanRequired = aiState?.requiresHuman ?? cognition.escalation.humanRequired;
+  const displayStage = aiState?.reservationStage
+    ? aiReservationStageLabel(aiState.reservationStage)
+    : reservationStageLabel(stage);
+  const displaySummary = aiState?.guestSummary ?? cognition.interpretation;
+  const displayAction = aiState?.suggestedAction
+    ? suggestedActionLabel(aiState.suggestedAction)
+    : cognition.recommendedAction;
 
   const supervisionLabel = humanRequired
     ? t("supervision.staffLed")
@@ -72,7 +90,7 @@ export function OperationIntelligencePanel({
       <div className="conv-scroll min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <PanelBlock title={t("reservationStage")}>
           <span className="inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-300">
-            {reservationStageLabel(stage)}
+            {displayStage}
           </span>
         </PanelBlock>
 
@@ -119,7 +137,7 @@ export function OperationIntelligencePanel({
         </PanelBlock>
 
         <PanelBlock title={t("guestSummary")}>
-          <p className="text-[12px] leading-relaxed text-white/58">{cognition.interpretation}</p>
+          <p className="text-[12px] leading-relaxed text-white/58">{displaySummary}</p>
         </PanelBlock>
 
         <PanelBlock title={t("operationalStatus")}>
@@ -153,7 +171,7 @@ export function OperationIntelligencePanel({
           <div className="flex gap-2">
             <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-400/80" />
             <p className="text-[12px] font-medium leading-relaxed text-cyan-100/85">
-              {cognition.recommendedAction}
+              {displayAction}
             </p>
           </div>
         </PanelBlock>

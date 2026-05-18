@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { HotelIntelligenceInsights, IntelligenceChatRequest } from "@tugobo/shared";
 import { fetchIntelligenceChat } from "@/lib/intelligence-chat-client";
+import { bridgeWebChatToPanel } from "@/lib/channels/web-chat-bridge";
 import type { FlowId, FlowState, ScenarioAssistantPayload } from "./concierge-web-chat-scenarios";
 import {
   advanceScenario,
@@ -713,6 +714,7 @@ export function ConciergeWebChat() {
       }
 
       appendVisitor(trimmed);
+      bridgeWebChatToPanel(trimmed);
 
       const routed = detectFlowFromUserText(trimmed);
       if (routed) {

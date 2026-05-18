@@ -96,7 +96,7 @@ export function Sidebar({ basePath = DEFAULT_BASE }: { basePath?: string }) {
   );
 
   return (
-    <aside className="flex h-full w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-zinc-900">
+    <aside className="hidden h-full w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-zinc-900 lg:flex">
       <div className="flex min-h-[88px] items-center border-b border-white/[0.06] px-4 py-6">
         <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
           <Image

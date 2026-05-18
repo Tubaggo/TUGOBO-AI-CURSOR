@@ -26,13 +26,17 @@ import {
   ShieldCheck,
   ArrowUpRight,
   AlertTriangle,
-  Globe,
-  Instagram,
-  MessageCircle,
   Sparkles,
   CheckCheck,
   RefreshCw,
+  ChevronLeft,
+  PanelRight,
 } from "lucide-react";
+import {
+  ConversationsMobileTabs,
+  type ConversationsMobilePane,
+} from "../_components/conversations-mobile-tabs";
+import { MobileQuickActions } from "../_components/mobile-quick-actions";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -55,6 +59,22 @@ import {
   type LiveConvOverlay,
   type LiveQueueStats,
 } from "@/lib/panel/use-live-panel-overlay";
+import {
+  aiReservationStageLabel,
+  confidencePercent,
+  suggestedActionLabel,
+} from "@/lib/ai/confidence";
+import { useConversationAi } from "@/lib/ai/use-guest-ai-response";
+import { useConversationAiStore } from "@/lib/stores/conversation-ai-store";
+import { simulateAIResponse } from "@/lib/channels/simulate-ai-response";
+import { stageLabel } from "@/lib/channels/channelLabels";
+import type { ChannelType } from "@/lib/channels/types";
+import { useOperationConversationStore } from "@/lib/stores/operation-conversation-store";
+import { useOperationConversationsPanel } from "@/lib/panel/use-operation-conversations";
+import { ChannelBadge, ChannelGlyph, channelDisplayLabel } from "../_components/channel-badge";
+import { ChannelFilters } from "../_components/channel-filters";
+import { DemoIncomingSimulator } from "../_components/demo-incoming-simulator";
+import { op } from "@/lib/i18n/operationalTexts";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -212,29 +232,6 @@ const INCOMING_MSG: ChatMsg = {
   time: "",
 };
 
-function channelLabel(ch?: ConversationChannel): string {
-  if (ch === "instagram") return "Instagram";
-  if (ch === "web") return "Web chat";
-  return "WhatsApp";
-}
-
-function ChannelGlyph({
-  channel,
-  className,
-}: {
-  channel?: ConversationChannel;
-  className?: string;
-}) {
-  const ch = channel ?? "whatsapp";
-  if (ch === "instagram") {
-    return <Instagram className={cn("text-pink-400/90", className)} aria-hidden />;
-  }
-  if (ch === "web") {
-    return <Globe className={cn("text-sky-400/85", className)} aria-hidden />;
-  }
-  return <MessageCircle className={cn("text-emerald-400/90", className)} aria-hidden />;
-}
-
 // ─── Demo guest pool ──────────────────────────────────────────────────────────
 
 type DemoGuest = {
@@ -318,6 +315,8 @@ export default function ConversationsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string>("c2");
   const live = useLivePanelOverlay(selected);
+  const conversationAi = useConversationAi(selected);
+  const opPanel = useOperationConversationsPanel();
   const [opsTick, setOpsTick] = useState(0);
 
   // Demo mode
@@ -350,6 +349,15 @@ export default function ConversationsPage() {
   const [opsPhase, setOpsPhase] = useState<OpsPhase>("triage");
   const [opsPulseAt, setOpsPulseAt] = useState<number>(() => Date.now());
   const [lastSyncAt, setLastSyncAt] = useState<number>(() => Date.now());
+  const [mobilePane, setMobilePane] = useState<ConversationsMobilePane>("queue");
+  const [tabletSummaryOpen, setTabletSummaryOpen] = useState(false);
+
+  function selectConversation(id: string) {
+    setSelected(id);
+    opPanel.clearPulse(id);
+    setMobilePane("chat");
+    setTabletSummaryOpen(false);
+  }
 
   // Keep ref in sync for stale-closure safety in timeouts
   useEffect(() => {
@@ -358,10 +366,15 @@ export default function ConversationsPage() {
 
   // ── Derived values for selected conversation ───────────────────────────────
 
-  // Include demo conversations (newest first) in lookup
-  const allConvs: Conversation[] = [...demoConversations, ...CONVERSATIONS];
-  const selectedConv = allConvs.find((c) => c.id === selected)!;
-  const thread = CHAT_THREADS[selected] ?? demoChatThreads[selected];
+  const staticIds = new Set(CONVERSATIONS.map((c) => c.id));
+  const operationConvs = opPanel.panelConversations.filter((c) => !staticIds.has(c.id));
+  const allConvs: Conversation[] = [...operationConvs, ...demoConversations, ...CONVERSATIONS];
+  const selectedConv = allConvs.find((c) => c.id === selected);
+  const thread =
+    CHAT_THREADS[selected] ??
+    demoChatThreads[selected] ??
+    opPanel.threadsById[selected];
+  const selectedOperation = opPanel.getOperationSummary(selected);
 
   const hasLocalStatus = selected in localStatuses;
   const effectiveStatus: ConversationStatus = localStatuses[selected] ?? selectedConv?.status;
@@ -403,6 +416,68 @@ export default function ConversationsPage() {
       ...prev,
       [convId]: [...(prev[convId] ?? []), ...msgs],
     }));
+  }
+
+  function messagesForConv(convId: string): ChatMsg[] {
+    const base = CHAT_THREADS[convId]?.messages ?? demoChatThreads[convId]?.messages ?? [];
+    return [...base, ...(localMessages[convId] ?? [])];
+  }
+
+  function triggerGuestAiResponse(convId: string, guestMessage: string) {
+    const conv = allConvs.find((c) => c.id === convId);
+    if (!conv) return;
+
+    const status = localStatuses[convId] ?? conv.status;
+    if (status !== "ai_active") return;
+
+    const op = opPanel.getOperationSummary(convId);
+    if (op) {
+      useOperationConversationStore.getState().simulateAIResponseForConversation(convId, guestMessage);
+      return;
+    }
+
+    setLocalTyping((prev) => ({ ...prev, [convId]: true }));
+
+    const channel: ChannelType =
+      conv.channel === "web"
+        ? "web_chat"
+        : conv.channel === "instagram"
+          ? "instagram"
+          : "whatsapp";
+
+    const result = simulateAIResponse(guestMessage, {
+      stage: "new_inquiry",
+      guestName: conv.contact.name,
+      channel,
+      language: conv.language,
+    });
+
+    window.setTimeout(() => {
+      const now = new Date().toLocaleTimeString("tr-TR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const msgs: ChatMsg[] = result.operationalEvents.map((event, i) => ({
+        id: `sys-${convId}-${Date.now()}-${i}`,
+        dir: "system",
+        body: event,
+        time: now,
+      }));
+      msgs.push({
+        id: `ai-${convId}-${Date.now()}`,
+        dir: "out",
+        by: "ai",
+        body: result.replyText,
+        time: now,
+      });
+      addMessages(convId, msgs);
+      setLocalTyping((prev) => ({ ...prev, [convId]: false }));
+      setLocalLastMsgs((prev) => ({ ...prev, [convId]: result.replyText }));
+      if (result.requiresHuman) {
+        setLocalStatuses((prev) => ({ ...prev, [convId]: "human_takeover" }));
+        showToast("İnsan desteği öneriliyor", result.suggestedAction, "new");
+      }
+    }, 1400);
   }
 
   // ── Effects ────────────────────────────────────────────────────────────────
@@ -468,6 +543,23 @@ export default function ConversationsPage() {
     }, 50);
   }, [localMessages, localTyping]);
 
+  useEffect(() => {
+    const unsub = useOperationConversationStore.subscribe((state, prev) => {
+      if (state.conversations.length > prev.conversations.length) {
+        const newest = state.conversations[0];
+        if (!newest) return;
+        setSelected(newest.id);
+        showToast(
+          op("toastNewInquiry", "tr", { name: newest.guestName }),
+          newest.lastMessage.slice(0, 72),
+          "new"
+        );
+      }
+    });
+    return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Simulate an incoming follow-up from Ahmet (c1) after 8 seconds
   useEffect(() => {
     const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -476,7 +568,7 @@ export default function ConversationsPage() {
       const msg: ChatMsg = { ...INCOMING_MSG, time: now };
       addMessages(incomingId, [msg]);
       setLocalLastMsgs((prev) => ({ ...prev, [incomingId]: msg.body }));
-      // Only bump unread if the user isn't currently viewing c1
+      void triggerGuestAiResponse(incomingId, msg.body);
       if (selectedRef.current !== incomingId) {
         setLocalUnreads((prev) => ({ ...prev, [incomingId]: (prev[incomingId] ?? 0) + 1 }));
         showToast("New message · Ahmet Yılmaz 🇹🇷", msg.body, "new");
@@ -499,6 +591,7 @@ export default function ConversationsPage() {
       };
       addMessages(incomingId, [msg]);
       setLocalLastMsgs((prev) => ({ ...prev, [incomingId]: "Жду ответа по Делюкс-номеру…" }));
+      void triggerGuestAiResponse(incomingId, msg.body);
       if (selectedRef.current !== incomingId) {
         setLocalUnreads((prev) => ({ ...prev, [incomingId]: (prev[incomingId] ?? 0) + 1 }));
         showToast("New message · Elena Petrov 🇷🇺", "Still waiting for room confirmation", "new");
@@ -574,17 +667,11 @@ export default function ConversationsPage() {
     setSelected(convId);
     showToast(`New inquiry · ${guest.name} ${guest.flag}`, guest.inquiry.slice(0, 52) + "…", "new");
 
-    // ── 2. AI starts typing ─────────────────────────────────────────────────
+    // ── 2–3. AI greeting (real provider with scripted fallback) ─────────────
     addDemoTimeout(() => {
       setLocalUnreads((prev) => ({ ...prev, [convId]: 0 }));
-      setLocalTyping((prev) => ({ ...prev, [convId]: true }));
+      triggerGuestAiResponse(convId, guest.inquiry);
     }, 2200);
-
-    // ── 3. AI greeting ──────────────────────────────────────────────────────
-    addDemoTimeout(() => {
-      setLocalTyping((prev) => ({ ...prev, [convId]: false }));
-      addMessages(convId, [{ id: `${convId}-ai1`, dir: "out", by: "ai", body: guest.aiGreet, time: ts() }]);
-    }, 4500);
 
     // ── 4. AI starts typing for offer ───────────────────────────────────────
     addDemoTimeout(() => {
@@ -662,7 +749,9 @@ export default function ConversationsPage() {
     const r = effectiveReservation;
     showToast(
       "Payment link sent",
-      r ? `${selectedConv.contact.name} · ${r.currency}${r.total.toLocaleString()}` : undefined
+      r && selectedConv
+        ? `${selectedConv.contact.name} · ${r.currency}${r.total.toLocaleString()}`
+        : undefined
     );
 
     setTimeout(() => {
@@ -692,7 +781,7 @@ export default function ConversationsPage() {
       addMessages(selected, [sysMsg, aiMsg]);
       showToast(
         "Payment confirmed",
-        `${selectedConv.contact.name} · ${r.currency}${r.total.toLocaleString()} received`
+        `${selectedConv?.contact.name ?? "Misafir"} · ${r.currency}${r.total.toLocaleString()} received`
       );
     }, 3500);
   }
@@ -700,22 +789,21 @@ export default function ConversationsPage() {
   function handleTakeover() {
     setLocalStatuses((prev) => ({ ...prev, [selected]: "human_takeover" }));
     setLocalTyping((prev) => ({ ...prev, [selected]: false }));
+    useConversationAiStore.getState().setHumanActive(selected);
   }
 
   function handleHandToAI() {
     setLocalStatuses((prev) => ({ ...prev, [selected]: "ai_active" }));
-    setLocalTyping((prev) => ({ ...prev, [selected]: true }));
     setReplyText("");
 
-    const aiBody = AI_RESUME[selected] ?? "Picking up the conversation now! 🤖";
-    const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const lastGuest = [...messagesForConv(selected)]
+      .reverse()
+      .find((m) => m.dir === "in");
+    const resumePrompt =
+      lastGuest?.body ??
+      "Ekip görüşmeyi AI'ya devretti. Misafire kısa ve sıcak bir devam mesajı yaz.";
 
-    setTimeout(() => {
-      setLocalTyping((prev) => ({ ...prev, [selected]: false }));
-      addMessages(selected, [
-        { id: `ai-resume-${Date.now()}`, dir: "out", by: "ai", body: aiBody, time: now },
-      ]);
-    }, 2400);
+    void triggerGuestAiResponse(selected, resumePrompt);
   }
 
   function handleSendReply() {
@@ -730,16 +818,17 @@ export default function ConversationsPage() {
 
   // ── Filter ─────────────────────────────────────────────────────────────────
 
-  const filtered = allConvs.filter((c) => {
-    // Use localStatuses override so demo flow status changes are reflected in tabs
-    const effectiveConvStatus = localStatuses[c.id] ?? c.status;
-    const matchTab = activeTab === "all" || effectiveConvStatus === activeTab;
-    const matchSearch =
-      !search ||
-      c.contact.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.lastMessage.toLowerCase().includes(search.toLowerCase());
-    return matchTab && matchSearch;
-  });
+  const filtered = opPanel.filteredByChannel(
+    allConvs.filter((c) => {
+      const effectiveConvStatus = localStatuses[c.id] ?? c.status;
+      const matchTab = activeTab === "all" || effectiveConvStatus === activeTab;
+      const matchSearch =
+        !search ||
+        c.contact.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.lastMessage.toLowerCase().includes(search.toLowerCase());
+      return matchTab && matchSearch;
+    })
+  );
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -753,7 +842,7 @@ export default function ConversationsPage() {
           <div className="flex items-center gap-2 text-[11px] text-white/35">
             <span className="font-medium text-white/55">Grand Hotel Demo</span>
             <span className="text-white/15">·</span>
-            <span>Live hotel operations</span>
+            <span>{op("liveHotelOps")}</span>
             {live.mounted ? (
               <span className="ml-1 flex items-center gap-1 text-emerald-400/75">
                 <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
@@ -762,39 +851,47 @@ export default function ConversationsPage() {
             ) : null}
           </div>
           <Link href="/app/operations" className="text-[11px] font-medium text-blue-400/80 hover:text-blue-300">
-            Operations center →
+            {op("operationsCenterLink")}
           </Link>
         </div>
       ) : (
-      <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-white/[0.03] bg-zinc-950/90">
+      <div className="flex shrink-0 flex-col gap-2 border-b border-white/[0.03] bg-zinc-950/90 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-center gap-2 text-[11px] text-white/20">
           <span>Grand Hotel Demo</span>
           <span className="text-white/10">·</span>
-          <span>Operasyon paneli önizlemesi</span>
+          <span>{op("livePanelPreview")}</span>
           {demoMode && (
             <span className="flex items-center gap-1 text-blue-400/60 ml-1">
               <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
-              Auto-demo running
+              {op("autoDemoRunning")}
             </span>
           )}
         </div>
-        <button
-          onClick={() => setDemoMode((v) => !v)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all active:scale-[0.97]",
-            demoMode
-              ? "bg-blue-500/15 border-blue-500/25 text-blue-300 hover:bg-blue-500/20"
-              : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:bg-white/[0.06]"
-          )}
-        >
-          <span
-            className={cn(
-              "w-1.5 h-1.5 rounded-full transition-colors",
-              demoMode ? "bg-blue-400 animate-pulse" : "bg-white/20"
-            )}
+        <div className="flex items-center gap-2">
+          <DemoIncomingSimulator
+            onIncoming={(id) => {
+              selectConversation(id);
+              showToast(op("newChannelMessage"), op("addedToQueue"), "new");
+            }}
           />
-          Demo Mode {demoMode ? "ON" : "OFF"}
-        </button>
+          <button
+            onClick={() => setDemoMode((v) => !v)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all active:scale-[0.97]",
+              demoMode
+                ? "bg-blue-500/15 border-blue-500/25 text-blue-300 hover:bg-blue-500/20"
+                : "bg-white/[0.04] border-white/[0.08] text-white/40 hover:text-white/60 hover:bg-white/[0.06]"
+            )}
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full transition-colors",
+                demoMode ? "bg-blue-400 animate-pulse" : "bg-white/20"
+              )}
+            />
+            Demo Mode {demoMode ? "ON" : "OFF"}
+          </button>
+        </div>
       </div>
       )}
 
@@ -806,8 +903,18 @@ export default function ConversationsPage() {
         lastSyncAt={lastSyncAt}
       />
 
+      <ConversationsMobileTabs
+        value={mobilePane}
+        onChange={setMobilePane}
+        chatDisabled={!selectedConv}
+        summaryDisabled={!selectedConv || !thread}
+        alertQueue={filtered.some((c) => (localUnreads[c.id] ?? c.unread) > 0)}
+        alertChat={conversationAi.status === "awaiting_approval" || isAiTyping}
+        alertSummary={Boolean(conversationAi.requiresHuman || selectedOperation?.requiresHuman)}
+      />
+
       {/* ── Main 3-column area ───────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden relative">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
 
       {/* ── Left: conversation list ──────────────────────────────────────── */}
       <ConvList
@@ -816,7 +923,12 @@ export default function ConversationsPage() {
         search={search}
         setSearch={setSearch}
         selected={selected}
-        setSelected={setSelected}
+        setSelected={selectConversation}
+        mobileCompact
+        className={cn(
+          "w-full md:w-[300px]",
+          mobilePane !== "queue" && "hidden md:flex"
+        )}
         filtered={filtered}
         localUnreads={localUnreads}
         localLastMsgs={localLastMsgs}
@@ -825,14 +937,31 @@ export default function ConversationsPage() {
         locale="tr"
         queueStats={isLivePanel ? live.queueStats : undefined}
         convOverlays={isLivePanel ? live.convOverlays : undefined}
+        channelFilter={opPanel.channelFilter}
+        onChannelFilterChange={opPanel.setChannelFilter}
+        isPulsing={opPanel.isPulsing}
+        onClearPulse={opPanel.clearPulse}
       />
 
       {/* ── Center: chat ─────────────────────────────────────────────────── */}
       {selectedConv && thread ? (
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r border-white/[0.03] bg-zinc-950/15">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-white/[0.03] bg-zinc-950/15 md:border-r",
+            mobilePane !== "chat" && "hidden md:flex"
+          )}
+        >
           {/* Header */}
-          <div className="shrink-0 flex items-center justify-between gap-4 px-6 py-5 border-b border-white/[0.03] bg-zinc-950/40 backdrop-blur-[6px]">
-            <div className="flex items-center gap-4 min-w-0">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.03] bg-zinc-950/40 px-4 py-3 backdrop-blur-[6px] md:gap-4 md:px-6 md:py-5">
+            <button
+              type="button"
+              onClick={() => setMobilePane("queue")}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-white/50 md:hidden"
+              aria-label="Görüşmelere dön"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
               <div className="relative shrink-0">
                 <div
                   className={cn(
@@ -844,66 +973,92 @@ export default function ConversationsPage() {
                 </div>
                 <span
                   className="pointer-events-none absolute bottom-0 left-0 z-[1] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm"
-                  title={channelLabel(selectedConv.channel)}
+                  title={channelDisplayLabel(selectedConv.channel)}
                 >
                   <ChannelGlyph channel={selectedConv.channel} className="h-2 w-2" />
                 </span>
               </div>
               <div className="min-w-0">
-                <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
-                  <span className="text-sm font-semibold tracking-tight text-white">
-                    {selectedConv.contact.name}
+                <p className="truncate text-sm font-semibold tracking-tight text-white">
+                  {selectedConv.contact.name}
+                </p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/40">
+                  <ChannelBadge channel={selectedConv.channel} className="!py-0" />
+                  <span className="text-white/20">·</span>
+                  <span className="truncate">
+                    {selectedOperation
+                      ? stageLabel(selectedOperation.stage)
+                      : conversationAi.reservationStage
+                        ? aiReservationStageLabel(conversationAi.reservationStage)
+                        : "Yeni talep"}
                   </span>
+                </p>
+                <div className="mt-1.5 hidden flex-wrap items-center gap-2 md:flex">
                   <LanguageFlag lang={selectedConv.language} />
                   <StatusBadge status={effectiveStatus} />
                   <LeadBadge status={selectedConv.leadStatus} />
                 </div>
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-                  <span className="flex items-center gap-1.5 text-[11px] text-white/38">
-                    <Phone className="h-3 w-3 shrink-0 opacity-70" />
-                    {selectedConv.contact.phone}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-[11px] text-white/38">
-                    <Clock className="h-3 w-3 shrink-0 opacity-70" />
-                    {allMessages.filter((m) => m.dir !== "system").length} messages
-                  </span>
-                  <span className="hidden items-center gap-1.5 text-[11px] text-white/32 sm:flex">
-                    <ChannelGlyph channel={selectedConv.channel} className="h-3 w-3 opacity-80" />
-                    {channelLabel(selectedConv.channel)}
-                  </span>
-                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTabletSummaryOpen(true);
+                  setMobilePane("summary");
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04] text-white/45 transition-colors hover:text-white/70 lg:hidden"
+                aria-label="Operasyon özeti"
+              >
+                <PanelRight className="h-4 w-4" />
+              </button>
               {effectiveReservation && (
                 <Link
                   href={reservationsHref}
                   className="hidden items-center gap-1.5 rounded-lg border border-white/[0.07] bg-white/[0.035] px-3 py-1.5 text-[11px] font-medium text-white/48 transition-[background-color,color,border-color] duration-200 hover:border-white/[0.1] hover:bg-white/[0.055] hover:text-white/78 lg:flex"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  View booking
+                  {op("viewBooking")}
                 </Link>
               )}
               {effectiveStatus === "ai_active" && (
                 <button
                   onClick={handleTakeover}
-                  className="flex items-center gap-1.5 rounded-lg border border-amber-500/18 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-400 transition-[background-color,border-color,transform] duration-200 hover:border-amber-500/26 hover:bg-amber-500/[0.14] active:scale-[0.97]"
+                  className="hidden items-center gap-1.5 rounded-lg border border-amber-500/18 bg-amber-500/10 px-3 py-1.5 text-[11px] font-medium text-amber-400 transition-[background-color,border-color,transform] duration-200 hover:border-amber-500/26 hover:bg-amber-500/[0.14] active:scale-[0.97] md:flex"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
-                  Take over
+                  {op("takeOver")}
                 </button>
               )}
               {effectiveStatus === "human_takeover" && (
                 <button
                   onClick={handleHandToAI}
-                  className="flex items-center gap-1.5 rounded-lg border border-blue-500/18 bg-blue-500/10 px-3 py-1.5 text-[11px] font-medium text-blue-400 transition-[background-color,border-color,transform] duration-200 hover:border-blue-500/26 hover:bg-blue-500/[0.14] active:scale-[0.97]"
+                  className="hidden items-center gap-1.5 rounded-lg border border-blue-500/18 bg-blue-500/10 px-3 py-1.5 text-[11px] font-medium text-blue-400 transition-[background-color,border-color,transform] duration-200 hover:border-blue-500/26 hover:bg-blue-500/[0.14] active:scale-[0.97] md:flex"
                 >
                   <Bot className="w-3.5 h-3.5" />
-                  Hand to AI
+                  {op("handToAi")}
                 </button>
               )}
             </div>
           </div>
+
+          {conversationAi.statusLabel ? (
+            <div
+              className={cn(
+                "shrink-0 border-b border-white/[0.04] px-6 py-2 text-[11px] font-medium",
+                conversationAi.status === "human_recommended" || conversationAi.requiresHuman
+                  ? "bg-rose-500/[0.06] text-rose-200/85"
+                  : conversationAi.status === "error"
+                    ? "bg-amber-500/[0.06] text-amber-200/85"
+                    : "bg-blue-500/[0.05] text-blue-200/80"
+              )}
+            >
+              {conversationAi.statusLabel}
+              {conversationAi.status === "awaiting_approval" && conversationAi.lastResponse ? (
+                <span className="ml-2 text-white/35">· AI beklemede</span>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* Messages */}
           <div
@@ -940,6 +1095,15 @@ export default function ConversationsPage() {
             </div>
           </div>
 
+          <MobileQuickActions
+            status={effectiveStatus}
+            hasReservation={Boolean(effectiveReservation)}
+            onTakeover={handleTakeover}
+            onHandToAI={handleHandToAI}
+            onSendPaymentLink={handleSendPaymentLink}
+            onOpenSummary={() => setMobilePane("summary")}
+          />
+
           {/* Reply bar */}
           <ReplyBar
             status={effectiveStatus}
@@ -950,14 +1114,59 @@ export default function ConversationsPage() {
           />
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-white/20 text-sm">Select a conversation</p>
+        <div
+          className={cn(
+            "flex flex-1 items-center justify-center px-6",
+            mobilePane !== "chat" && "hidden md:flex"
+          )}
+        >
+          <p className="max-w-sm text-center text-sm leading-relaxed text-white/30">
+            {selectedConv
+              ? "Bu görüşme için mesaj geçmişi yükleniyor…"
+              : "Henüz aktif görüşme yok. Web Chat, WhatsApp veya Instagram'dan gelen talepler burada görünecek."}
+          </p>
         </div>
       )}
 
-      {/* ── Right: guest sidebar ─────────────────────────────────────────── */}
-      {selectedConv && thread && (
-        <GuestSidebar
+      {/* ── Right: operation summary (desktop column / mobile tab / tablet slide-over) ─ */}
+      {selectedConv && thread && (mobilePane === "summary" || tabletSummaryOpen) ? (
+        <button
+          type="button"
+          aria-label="Özeti kapat"
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[1px] lg:hidden"
+          onClick={() => {
+            setTabletSummaryOpen(false);
+            if (mobilePane === "summary") setMobilePane("chat");
+          }}
+        />
+      ) : null}
+
+      {selectedConv && thread ? (
+        <div
+          className={cn(
+            "conv-scroll z-50 flex shrink-0 flex-col overflow-y-auto bg-zinc-950/95",
+            mobilePane === "summary"
+              ? "w-full md:hidden"
+              : tabletSummaryOpen
+                ? "fixed inset-y-0 right-0 w-full max-w-[320px] border-l border-white/[0.06] shadow-2xl md:flex lg:hidden"
+                : "hidden lg:flex lg:w-[284px]"
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3 lg:hidden">
+            <p className="text-sm font-semibold text-white">Operasyon özeti</p>
+            <button
+              type="button"
+              onClick={() => {
+                setTabletSummaryOpen(false);
+                setMobilePane("chat");
+              }}
+              className="rounded-lg px-2 py-1 text-[12px] font-medium text-white/45 hover:bg-white/[0.06] hover:text-white/70"
+            >
+              Kapat
+            </button>
+          </div>
+          <GuestSidebar
+          compact={mobilePane === "summary" || tabletSummaryOpen}
           conv={selectedConv}
           thread={thread}
           effectiveStatus={effectiveStatus}
@@ -968,11 +1177,61 @@ export default function ConversationsPage() {
           onHandToAI={handleHandToAI}
           reservationsHref={reservationsHref}
           locale="tr"
-          aiConfidence={isLivePanel ? live.cognition?.financial.revenueConfidence : undefined}
-          guestSummary={isLivePanel ? live.cognition?.interpretation : undefined}
-          suggestedAction={isLivePanel ? live.cognition?.recommendedAction : undefined}
+          aiConfidence={
+            conversationAi.confidence !== null
+              ? confidencePercent(conversationAi.confidence)
+              : isLivePanel
+                ? live.cognition?.financial.revenueConfidence
+                : undefined
+          }
+          guestSummary={
+            conversationAi.guestSummary ??
+            (isLivePanel ? live.cognition?.interpretation : undefined)
+          }
+          suggestedAction={
+            conversationAi.suggestedAction
+              ? suggestedActionLabel(conversationAi.suggestedAction)
+              : isLivePanel
+                ? live.cognition?.recommendedAction
+                : undefined
+          }
+          aiReservationStage={
+            conversationAi.reservationStage
+              ? aiReservationStageLabel(conversationAi.reservationStage)
+              : undefined
+          }
+          requiresHuman={conversationAi.requiresHuman || selectedOperation?.requiresHuman}
+          aiStatusLabel={
+            selectedOperation?.statusLabel || conversationAi.statusLabel || undefined
+          }
+          pendingAiReply={
+            conversationAi.status === "awaiting_approval"
+              ? conversationAi.lastResponse?.reply
+              : undefined
+          }
+          operationStage={
+            selectedOperation ? stageLabel(selectedOperation.stage) : undefined
+          }
+          operationChannel={
+            selectedOperation ? channelDisplayLabel(selectedOperation.channel) : undefined
+          }
+          operationBookingValue={selectedOperation?.bookingValue}
+          operationSuggestedAction={
+            selectedOperation?.requiresHuman
+              ? "İnsan desteği devralsın"
+              : selectedOperation?.statusLabel
+          }
+          operationLastActivity={
+            selectedOperation
+              ? new Date(selectedOperation.lastActivityAt).toLocaleTimeString("tr-TR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : undefined
+          }
         />
-      )}
+        </div>
+      ) : null}
       </div>{/* end 3-column area */}
     </div>
   );
@@ -984,7 +1243,7 @@ function Toast({ toast }: { toast: ToastData | null }) {
   if (!toast) return null;
   const isSuccess = toast.type === "success";
   return (
-    <div className="fixed bottom-5 right-5 z-50 animate-toast-slide pointer-events-none">
+    <div className="toast-mobile-safe pointer-events-none fixed bottom-5 right-5 z-50 animate-toast-slide">
       <div
         className={cn(
           "flex items-start gap-3 pl-3.5 pr-5 py-3 rounded-xl border shadow-2xl shadow-black/50 min-w-[220px] max-w-[300px]",
@@ -1135,14 +1394,14 @@ function MetricsBar({
         </div>
       </div>
 
-      <div className="grid grid-cols-5 border-t border-white/[0.03]">
+      <div className="conv-scroll flex gap-0 overflow-x-auto border-t border-white/[0.03] md:grid md:grid-cols-5 md:overflow-visible">
       {METRIC_DEFS.map((m, i) => {
         const v = values[m.key];
         return (
           <div
             key={m.key}
             className={cn(
-              "flex items-center gap-3.5 px-5 py-5",
+              "flex min-w-[148px] shrink-0 items-center gap-3.5 px-4 py-4 md:min-w-0 md:px-5 md:py-5",
               i < METRIC_DEFS.length - 1 && "border-r border-white/[0.03]"
             )}
           >
@@ -1237,6 +1496,12 @@ function ConvList({
   locale = "tr",
   queueStats,
   convOverlays,
+  channelFilter,
+  onChannelFilterChange,
+  isPulsing,
+  onClearPulse,
+  className,
+  mobileCompact = false,
 }: {
   activeTab: Tab;
   setActiveTab: (t: Tab) => void;
@@ -1252,6 +1517,12 @@ function ConvList({
   locale?: "tr" | "en";
   queueStats?: LiveQueueStats;
   convOverlays?: Record<string, LiveConvOverlay>;
+  channelFilter: import("@/lib/channels/types").ChannelFilter;
+  onChannelFilterChange: (f: import("@/lib/channels/types").ChannelFilter) => void;
+  isPulsing: (id: string) => boolean;
+  onClearPulse: (id: string) => void;
+  className?: string;
+  mobileCompact?: boolean;
 }) {
   const t = useTranslations("conversations");
   const tCommon = useTranslations("common");
@@ -1268,9 +1539,19 @@ function ConvList({
       ];
 
   return (
-    <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-r border-white/[0.03] bg-zinc-950/35">
+    <div
+      className={cn(
+        "flex w-[300px] shrink-0 flex-col overflow-hidden border-r border-white/[0.03] bg-zinc-950/35",
+        className
+      )}
+    >
       {/* Header */}
-      <div className="border-b border-white/[0.03] px-4 pb-5 pt-6">
+      <div
+        className={cn(
+          "border-b border-white/[0.03] px-4 pb-5 pt-6",
+          mobileCompact && "px-3 pb-3 pt-4"
+        )}
+      >
         <div className="mb-1.5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-sm font-semibold tracking-tight text-white">
@@ -1299,7 +1580,7 @@ function ConvList({
         </div>
 
         {/* KPI stats */}
-        <div className="mb-4 mt-5 grid grid-cols-3 gap-2.5">
+        <div className={cn("mb-4 mt-5 grid grid-cols-3 gap-2.5", mobileCompact && "hidden")}>
           {headerStats.map((stat) => (
             <div
               key={stat.label}
@@ -1315,7 +1596,12 @@ function ConvList({
         </div>
 
         {/* OTA dependency risk insight */}
-        <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-amber-500/[0.08] bg-amber-500/[0.04] px-3 py-3">
+        <div
+          className={cn(
+            "mb-4 flex items-center gap-2.5 rounded-lg border border-amber-500/[0.08] bg-amber-500/[0.04] px-3 py-3",
+            mobileCompact && "hidden"
+          )}
+        >
           <AlertTriangle className="h-3 w-3 shrink-0 text-amber-400/55" />
           <p className="min-w-0 flex-1 text-[10px] leading-relaxed text-white/38">
             OTA route costs you{" "}
@@ -1336,6 +1622,8 @@ function ConvList({
           />
         </div>
       </div>
+
+      <ChannelFilters value={channelFilter} onChange={onChannelFilterChange} />
 
       {/* Tabs */}
       <div className="flex shrink-0 gap-1 border-b border-white/[0.03] px-3 py-3">
@@ -1383,7 +1671,7 @@ function ConvList({
               <div className="mb-2.5 flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-400/85" />
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400/75">
-                  {waiting.length} guest{waiting.length !== 1 ? "s" : ""} waiting for staff
+                  {op("guestWaitingStaff", "tr", { count: waiting.length })}
                 </span>
               </div>
               {waiting.map((c) => (
@@ -1415,14 +1703,19 @@ function ConvList({
           const isAiWorking = isAiHandling && (localTyping[conv.id] ?? CHAT_THREADS[conv.id]?.aiTyping ?? false);
           // Show waiting indicator only for human_takeover with unread messages
           const isWaiting = effectiveConvStatus === "human_takeover" && hasUnread && !isSelected;
+          const pulsing = isPulsing(conv.id);
 
           return (
             <button
               key={conv.id}
               type="button"
-              onClick={() => setSelected(conv.id)}
+              onClick={() => {
+                setSelected(conv.id);
+                onClearPulse(conv.id);
+              }}
               className={cn(
                 "group w-full rounded-lg border-l-2 py-3.5 pl-3.5 pr-3.5 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-out",
+                pulsing && "animate-pulse ring-1 ring-blue-500/25",
                 isSelected
                   ? "border-amber-400/60 bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
                   : isWaiting
@@ -1443,7 +1736,7 @@ function ConvList({
                   </div>
                   <span
                     className="pointer-events-none absolute bottom-0 left-0 z-[2] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm backdrop-blur-[2px] transition-transform duration-200 group-hover:translate-y-[2px]"
-                    title={channelLabel(conv.channel)}
+                    title={channelDisplayLabel(conv.channel)}
                   >
                     <ChannelGlyph channel={conv.channel} className="h-2 w-2" />
                   </span>
@@ -1487,7 +1780,7 @@ function ConvList({
                       {isAiWorking && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/18 bg-blue-500/10 px-2 py-0.5 text-[9px] font-semibold text-blue-200/80 animate-tick-fade">
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-400/90 animate-live-pulse" />
-                          working
+                          AI yanıtlıyor
                         </span>
                       )}
                     </div>
@@ -1550,7 +1843,10 @@ function ConvList({
           );
         })}
         {filtered.length === 0 && (
-          <p className="py-14 text-center text-sm text-white/22">{t("noConversations")}</p>
+          <p className="px-4 py-14 text-center text-sm leading-relaxed text-white/22">
+            Henüz aktif görüşme yok. Web Chat, WhatsApp veya Instagram&apos;dan gelen talepler
+            burada görünecek.
+          </p>
         )}
       </div>
     </div>
@@ -1570,9 +1866,19 @@ function GuestSidebar({
   onHandToAI,
   reservationsHref,
   locale = "tr",
+  compact = false,
   aiConfidence,
   guestSummary,
   suggestedAction,
+  aiReservationStage,
+  requiresHuman,
+  aiStatusLabel,
+  pendingAiReply,
+  operationStage,
+  operationChannel,
+  operationBookingValue,
+  operationSuggestedAction,
+  operationLastActivity,
 }: {
   conv: Conversation;
   thread: ChatThread;
@@ -1584,9 +1890,19 @@ function GuestSidebar({
   onHandToAI: () => void;
   reservationsHref: string;
   locale?: "tr" | "en";
+  compact?: boolean;
   aiConfidence?: number;
   guestSummary?: string;
   suggestedAction?: string;
+  aiReservationStage?: string;
+  requiresHuman?: boolean;
+  aiStatusLabel?: string;
+  pendingAiReply?: string;
+  operationStage?: string;
+  operationChannel?: string;
+  operationBookingValue?: number;
+  operationSuggestedAction?: string;
+  operationLastActivity?: string;
 }) {
   const t = useTranslations("conversations");
   const tCommon = useTranslations("common");
@@ -1595,7 +1911,20 @@ function GuestSidebar({
   const confidence = aiConfidence ?? 87;
 
   return (
-    <div className="conv-scroll flex w-[284px] shrink-0 flex-col overflow-y-auto bg-zinc-950/40">
+    <div className={cn("flex w-full flex-col", compact ? "bg-transparent" : "conv-scroll shrink-0 overflow-y-auto bg-zinc-950/40 lg:w-[284px]")}>
+      {operationChannel ? (
+        <div className={cn("border-b border-white/[0.03] px-5 py-4", compact && "px-4 py-3")}>
+          <SidebarLabel>{op("channelLabel")}</SidebarLabel>
+          <ChannelBadge channel={conv.channel} size="md" />
+          {operationStage ? (
+            <p className="mt-3 text-[11px] text-white/40">
+              {op("reservationStatusLabel")}:{" "}
+              <span className="font-medium text-white/70">{operationStage}</span>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Guest profile */}
       <div className="border-b border-white/[0.03] px-5 py-6">
         <SidebarLabel>{t("guest")}</SidebarLabel>
@@ -1611,7 +1940,7 @@ function GuestSidebar({
             </div>
             <span
               className="pointer-events-none absolute bottom-0 left-0 z-[1] flex h-[15px] w-[15px] translate-x-[-2px] translate-y-[3px] items-center justify-center rounded-md border border-white/[0.1] bg-zinc-950/95 shadow-sm"
-              title={channelLabel(conv.channel)}
+              title={channelDisplayLabel(conv.channel)}
             >
               <ChannelGlyph channel={conv.channel} className="h-2 w-2" />
             </span>
@@ -1622,7 +1951,9 @@ function GuestSidebar({
             </p>
             <div className="mt-1.5 flex items-center gap-2">
               <LanguageFlag lang={conv.language} />
-              <span className="text-[11px] text-white/34">{conv.language} speaker</span>
+              <span className="text-[11px] text-white/34">
+                {conv.language} {op("speakerSuffix")}
+              </span>
             </div>
           </div>
         </div>
@@ -1756,17 +2087,51 @@ function GuestSidebar({
       <div className="px-5 py-6 pb-8">
         <SidebarLabel>{t("guestSummary")}</SidebarLabel>
         <div className="flex flex-col gap-5">
+          {aiStatusLabel ? (
+            <p className="rounded-lg border border-blue-500/18 bg-blue-500/[0.05] px-3 py-2 text-[11px] font-medium text-blue-200/85">
+              {aiStatusLabel}
+            </p>
+          ) : null}
+          {requiresHuman ? (
+            <p className="rounded-lg border border-rose-500/20 bg-rose-500/[0.06] px-3 py-2 text-[11px] font-medium text-rose-200/88">
+              {op("humanSupportRequired")}
+            </p>
+          ) : null}
+          {pendingAiReply ? (
+            <div className="rounded-lg border border-amber-500/18 bg-amber-500/[0.05] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-amber-300/75">
+                {op("aiSuggestionPending")}
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-amber-100/85">{pendingAiReply}</p>
+            </div>
+          ) : null}
           {guestSummary ? (
             <p className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 text-[11px] leading-relaxed text-white/50">
               {guestSummary}
             </p>
           ) : null}
-          {suggestedAction ? (
+          {(operationSuggestedAction || suggestedAction) ? (
             <div className="rounded-lg border border-cyan-500/18 bg-cyan-500/[0.04] px-3 py-2.5">
               <p className="text-[9px] font-semibold uppercase tracking-wider text-cyan-400/70">
-                {t("suggestedAction")}
+                {op("suggestedActionLabel")}
               </p>
-              <p className="mt-1 text-[11px] font-medium leading-relaxed text-cyan-100/85">{suggestedAction}</p>
+              <p className="mt-1 text-[11px] font-medium leading-relaxed text-cyan-100/85">
+                {operationSuggestedAction ?? suggestedAction}
+              </p>
+            </div>
+          ) : null}
+          {operationBookingValue ? (
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-white/26">{op("estimatedBookingValue")}</span>
+              <span className="font-semibold text-emerald-400/85 tabular-nums">
+                ₺{operationBookingValue.toLocaleString("tr-TR")}
+              </span>
+            </div>
+          ) : null}
+          {operationLastActivity ? (
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-white/26">{op("lastActivity")}</span>
+              <span className="text-white/55">{operationLastActivity}</span>
             </div>
           ) : null}
           <div className="flex items-center justify-between gap-3 text-[11px]">
@@ -1774,16 +2139,18 @@ function GuestSidebar({
             <span
               className={cn(
                 "px-2.5 py-1 rounded-full font-semibold shrink-0",
-                conv.leadStatus === "confirmed"
+                conv.leadStatus === "confirmed" || aiReservationStage === "Onaylandı"
                   ? "bg-emerald-500/15 text-emerald-400"
-                  : conv.leadStatus === "quoted"
+                  : conv.leadStatus === "quoted" || aiReservationStage?.includes("Teklif")
                   ? "bg-blue-500/15 text-blue-400"
                   : conv.leadStatus === "qualified"
                   ? "bg-violet-500/15 text-violet-400"
                   : "bg-white/[0.05] text-white/34"
               )}
             >
-              {conv.leadStatus.charAt(0).toUpperCase() + conv.leadStatus.slice(1)}
+              {operationStage ??
+                aiReservationStage ??
+                conv.leadStatus.charAt(0).toUpperCase() + conv.leadStatus.slice(1)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 text-[11px]">
@@ -1799,18 +2166,18 @@ function GuestSidebar({
               )}
             >
               {effectiveStatus === "ai_active" ? (
-                <><Bot className="w-3 h-3" />AI destek</>
+                <><Bot className="w-3 h-3" />{op("handledByAi")}</>
               ) : effectiveStatus === "human_takeover" ? (
-                <><User className="w-3 h-3" />Staff</>
+                <><User className="w-3 h-3" />{op("handledByStaff")}</>
               ) : (
-                <><CheckCircle2 className="w-3 h-3" />Resolved</>
+                <><CheckCircle2 className="w-3 h-3" />{op("handledByClosed")}</>
               )}
             </span>
           </div>
           {effectiveStatus === "ai_active" && (
             <div>
               <div className="flex items-center justify-between text-[11px] mb-2">
-                <span className="text-white/26">{t("completionSupport")}</span>
+                <span className="text-white/26">AI destek seviyesi</span>
                 <span className="text-white/56 font-semibold tabular-nums">{confidence}%</span>
               </div>
               <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
@@ -1824,7 +2191,10 @@ function GuestSidebar({
           <div className="flex items-center gap-1.5 pt-1 text-[11px] text-white/24">
             <TrendingUp className="h-3 w-3 shrink-0 opacity-80" />
             <span>
-              Via {channelLabel(conv.channel)} · {conv.time}
+              {op("viaChannel", "tr", {
+                channel: channelDisplayLabel(conv.channel),
+                time: conv.time,
+              })}
             </span>
           </div>
         </div>
@@ -1860,7 +2230,7 @@ function ReservationCard({
 }) {
   const statusMap = {
     confirmed: {
-      label: "Confirmed",
+      label: op("resConfirmed"),
       icon: CheckCircle2,
       border: "border-emerald-500/25",
       header: "bg-emerald-500/[0.08]",
@@ -1869,7 +2239,7 @@ function ReservationCard({
       dot: "bg-emerald-400",
     },
     pending_payment: {
-      label: "Pending Payment",
+      label: op("resPendingPayment"),
       icon: AlertCircle,
       border: "border-amber-500/25",
       header: "bg-amber-500/[0.07]",
@@ -1878,7 +2248,7 @@ function ReservationCard({
       dot: "bg-amber-400 animate-pulse",
     },
     quoted: {
-      label: "Quote Sent",
+      label: op("resQuoted"),
       icon: FileText,
       border: "border-blue-500/25",
       header: "bg-blue-500/[0.07]",
@@ -1900,12 +2270,12 @@ function ReservationCard({
       )}
     >
       {/* Header */}
-      <div className={cn("flex items-center justify-between px-5 py-4 transition-all duration-500", s.header)}>
+      <div className={cn("flex items-center justify-between px-4 py-3 transition-all duration-500 sm:px-5 sm:py-4", s.header)}>
         <div className="flex items-center gap-2.5">
           <StatusIcon className={cn("w-4 h-4 transition-colors duration-500", s.iconColor)} />
           <div>
             <p className="text-sm font-semibold text-white">
-              {r.status === "quoted" ? "Quote Created" : "Reservation Created"}
+              {r.status === "quoted" ? op("quoteCreated") : op("reservationCreated")}
             </p>
             <p className="text-[11px] text-white/40 mt-0.5">Grand Hotel Demo · Ref #{r.ref}</p>
           </div>
@@ -1922,24 +2292,24 @@ function ReservationCard({
       </div>
 
       {/* Details */}
-      <div className="px-5 pt-5 pb-1">
-        <p className="text-[13px] font-semibold text-white/90 mb-3.5">{r.room}</p>
-        <div className="mb-4 grid grid-cols-4 gap-3">
-          <DetailCell icon={CalendarDays} label="Check-in" value={r.checkIn} iconColor="text-blue-400" />
-          <DetailCell icon={CalendarDays} label="Check-out" value={r.checkOut} iconColor="text-blue-400" />
-          <DetailCell icon={Users} label="Guests" value={String(r.guests)} iconColor="text-violet-400" />
-          <DetailCell icon={Moon} label="Nights" value={String(r.nights)} iconColor="text-indigo-400" />
+      <div className="px-4 pt-4 pb-1 sm:px-5 sm:pt-5">
+        <p className="mb-3 text-[13px] font-semibold text-white/90 sm:mb-3.5">{r.room}</p>
+        <div className="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+          <DetailCell icon={CalendarDays} label={op("checkIn")} value={r.checkIn} iconColor="text-blue-400" />
+          <DetailCell icon={CalendarDays} label={op("checkOut")} value={r.checkOut} iconColor="text-blue-400" />
+          <DetailCell icon={Users} label={op("guestsLabel")} value={String(r.guests)} iconColor="text-violet-400" />
+          <DetailCell icon={Moon} label={op("nightsLabel")} value={String(r.nights)} iconColor="text-indigo-400" />
         </div>
         <div className="mb-4 flex items-center justify-between border-t border-white/[0.04] py-4">
           <div>
-            <p className="text-[11px] text-white/35 mb-0.5">Price per night</p>
+            <p className="text-[11px] text-white/35 mb-0.5">{op("pricePerNight")}</p>
             <p className="text-[13px] text-white/60">
               {r.currency}{r.pricePerNight.toLocaleString()} × {r.nights} nights
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] text-white/35 mb-0.5">Total amount</p>
-            <p className="text-[22px] font-bold text-white tabular-nums tracking-tight">
+            <p className="text-[11px] text-white/35 mb-0.5">{op("totalAmount")}</p>
+            <p className="text-lg font-bold text-white tabular-nums tracking-tight sm:text-[22px]">
               {r.currency}{r.total.toLocaleString()}
             </p>
           </div>
@@ -1947,13 +2317,13 @@ function ReservationCard({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 px-5 pb-5 pt-1">
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-4 pt-1 sm:px-5 sm:pb-5">
         <Link
           href={reservationsHref}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/[0.035] border border-white/[0.07] text-white/55 hover:text-white/75 hover:bg-white/[0.055] active:scale-[0.97] text-xs font-medium transition-all"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          View reservation
+          {op("viewReservation")}
         </Link>
         {showPaymentBtn && (
           <button
@@ -1968,16 +2338,16 @@ function ReservationCard({
             )}
           >
             {sentLink ? (
-              <><CheckCircle2 className="w-3.5 h-3.5" />Link sent!</>
+              <><CheckCircle2 className="w-3.5 h-3.5" />{op("linkSent")}</>
             ) : (
-              <><Send className="w-3.5 h-3.5" />Send payment link</>
+              <><Send className="w-3.5 h-3.5" />{op("sendPaymentLink")}</>
             )}
           </button>
         )}
         {convStatus === "ai_active" && (
           <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-transparent border border-white/[0.06] text-white/34 hover:text-white/55 hover:bg-white/[0.04] text-xs font-medium transition-colors ml-auto">
             <UserCheck className="w-3.5 h-3.5" />
-            Take over
+            {op("takeOver")}
           </button>
         )}
       </div>
@@ -1999,7 +2369,7 @@ function DetailCell({
   iconColor: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.035] bg-white/[0.02] p-3.5">
+    <div className="rounded-xl border border-white/[0.035] bg-white/[0.02] p-2.5 sm:p-3.5">
       <Icon className={cn("w-3.5 h-3.5 mb-2", iconColor)} />
       <p className="text-[10px] text-white/34 mb-1 font-medium">{label}</p>
       <p className="text-[13px] font-semibold text-white/88">{value}</p>
@@ -2027,7 +2397,7 @@ function ReplyBar({
       <div className="shrink-0 border-t border-white/[0.03] px-6 py-5">
         <div className="flex items-center justify-center gap-2 py-2">
           <CheckCircle2 className="w-4 h-4 text-white/20" />
-          <p className="text-sm text-white/25">Conversation resolved</p>
+          <p className="text-sm text-white/25">{op("conversationResolved")}</p>
         </div>
       </div>
     );
@@ -2041,14 +2411,14 @@ function ReplyBar({
             <Bot className="w-3.5 h-3.5 text-blue-400" />
           </div>
           <p className="text-[13px] text-blue-300/60 flex-1">
-            The Tugobo operations layer is handling this thread. Click{" "}
+            {op("aiHandlingThread")}{" "}
             <button
               onClick={onTakeover}
               className="text-amber-400 font-medium hover:text-amber-300 transition-colors"
             >
-              Take over
+              {op("takeOver")}
             </button>{" "}
-            to reply manually.
+            {op("aiHandlingThreadTakeover")}
           </p>
         </div>
       </div>
@@ -2065,7 +2435,7 @@ function ReplyBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onSend()}
-          placeholder="Type a reply…"
+          placeholder={op("typeReplyPlaceholder")}
           className="flex-1 rounded-xl border border-white/[0.07] bg-white/[0.045] px-4 py-2.5 text-sm text-white placeholder:text-white/22 transition-[border-color,background-color] duration-200 focus:border-indigo-500/35 focus:outline-none focus:ring-1 focus:ring-indigo-500/20"
         />
         <button

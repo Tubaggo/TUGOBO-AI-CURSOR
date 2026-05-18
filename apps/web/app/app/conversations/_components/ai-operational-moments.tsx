@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConversationThread } from "@/lib/runtime/entities";
+import { op } from "@/lib/i18n/operationalTexts";
 import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 
@@ -10,28 +11,28 @@ function buildMoments(thread: ConversationThread): Moment[] {
   const moments: Moment[] = [];
 
   if (thread.flags.paymentRisk) {
-    moments.push({ id: "pay", text: "Tugobo AI is monitoring payment status…", tone: "amber" });
+    moments.push({ id: "pay", text: op("momentPaymentMonitor"), tone: "amber" });
   }
   if (thread.flags.recoveryActive) {
-    moments.push({ id: "rec", text: "Alternate payment route being prepared…", tone: "violet" });
+    moments.push({ id: "rec", text: op("momentRecoveryPrep"), tone: "violet" });
   }
   if (thread.flags.vipEscalation) {
-    moments.push({ id: "vip", text: "AI recommends human takeover for this guest", tone: "rose" });
+    moments.push({ id: "vip", text: op("momentVipEscalation"), tone: "rose" });
   }
   if (thread.flags.humanTakeover) {
-    moments.push({ id: "staff", text: "Staff assisting — AI on standby", tone: "rose" });
+    moments.push({ id: "staff", text: op("momentStaffAssist"), tone: "rose" });
   }
   if (thread.unread > 0 && !thread.flags.paymentRisk) {
-    moments.push({ id: "avail", text: "Tugobo AI is checking availability…", tone: "blue" });
+    moments.push({ id: "avail", text: op("momentCheckingAvail"), tone: "blue" });
   }
   if (thread.flags.otaConversion) {
-    moments.push({ id: "ota", text: "AI preparing direct rate match offer…", tone: "emerald" });
+    moments.push({ id: "ota", text: op("momentOtaOffer"), tone: "emerald" });
   }
   if (moments.length === 0 && thread.status === "ai_active") {
-    moments.push({ id: "active", text: "AI supervising reservation flow", tone: "blue" });
+    moments.push({ id: "active", text: op("momentAiSupervising"), tone: "blue" });
   }
   if (thread.status === "resolved") {
-    moments.push({ id: "done", text: "Booking confirmed — AI ready for pre-arrival upsell", tone: "emerald" });
+    moments.push({ id: "done", text: op("momentBookingDone"), tone: "emerald" });
   }
 
   return moments.slice(0, 2);
@@ -47,7 +48,7 @@ const TONE_CLASS: Record<Moment["tone"], string> = {
 
 export function AiOperationalMoments({
   thread,
-  pulseActive,
+  pulseActive: _pulseActive,
 }: {
   thread: ConversationThread;
   pulseActive?: boolean;
@@ -56,22 +57,18 @@ export function AiOperationalMoments({
   if (moments.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap gap-2 px-1 pb-2">
       {moments.map((m) => (
-        <div
+        <span
           key={m.id}
           className={cn(
-            "flex items-center gap-2 rounded-lg border px-3 py-2 transition-shadow",
-            TONE_CLASS[m.tone],
-            pulseActive && m.tone === "amber" && "shadow-[0_0_16px_rgba(251,191,36,0.12)]"
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium",
+            TONE_CLASS[m.tone]
           )}
         >
-          <Sparkles
-            className={cn("h-3.5 w-3.5 shrink-0 opacity-90", pulseActive && "animate-pulse")}
-            aria-hidden
-          />
-          <p className="text-[11px] font-medium leading-snug">{m.text}</p>
-        </div>
+          <Sparkles className="h-2.5 w-2.5 shrink-0 opacity-80" />
+          {m.text}
+        </span>
       ))}
     </div>
   );

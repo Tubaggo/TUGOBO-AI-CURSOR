@@ -1,0 +1,225 @@
+"use client";
+
+import { create } from "zustand";
+import type {
+  ChannelFilter,
+  ChannelType,
+  ConversationStage,
+  IngestChannelMessageInput,
+  OperationConversation,
+  OperationMessage,
+} from "@/lib/channels/types";
+import { STAGE_STATUS_LABELS } from "@/lib/channels/channelLabels";
+import {
+  buildGuestMessage,
+  createConversationFromIngest,
+  nowIso,
+} from "@/lib/channels/ingestMessage";
+import { nextSimulatedIncoming } from "@/lib/channels/simulateIncoming";
+import { simulateAIResponse } from "@/lib/channels/simulate-ai-response";
+
+type OperationConversationState = {
+  conversations: OperationConversation[];
+  selectedConversationId: string | null;
+  channelFilter: ChannelFilter;
+  pulsingConversationIds: Record<string, true>;
+  addIncomingMessage: (input: IngestChannelMessageInput) => string;
+  addAIResponse: (conversationId: string, guestMessage: string) => void;
+  selectConversation: (id: string | null) => void;
+  updateConversationStage: (id: string, stage: ConversationStage) => void;
+  setChannelFilter: (filter: ChannelFilter) => void;
+  triggerDemoIncomingMessage: (channel: Exclude<ChannelType, "manual">) => string;
+  simulateAIResponseForConversation: (conversationId: string, guestMessage: string) => void;
+  getConversation: (id: string) => OperationConversation | undefined;
+  clearPulse: (id: string) => void;
+};
+
+function newConversationId(): string {
+  return `op-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function priorityForStage(stage: ConversationStage): OperationConversation["priority"] {
+  if (stage === "human_review" || stage === "payment_problem") return "high";
+  if (stage === "payment_pending" || stage === "offer_sent") return "medium";
+  return "low";
+}
+
+function appendMessage(
+  conv: OperationConversation,
+  message: OperationMessage
+): OperationConversation {
+  return {
+    ...conv,
+    messages: [...conv.messages, message],
+    lastMessage: message.sender === "guest" ? message.content : conv.lastMessage,
+    lastActivityAt: message.timestamp,
+  };
+}
+
+export const useOperationConversationStore = create<OperationConversationState>((set, get) => ({
+  conversations: [],
+  selectedConversationId: null,
+  channelFilter: "all",
+  pulsingConversationIds: {},
+
+  getConversation: (id) => get().conversations.find((c) => c.id === id),
+
+  selectConversation: (id) => set({ selectedConversationId: id }),
+
+  setChannelFilter: (filter) => set({ channelFilter: filter }),
+
+  clearPulse: (id) =>
+    set((state) => {
+      const next = { ...state.pulsingConversationIds };
+      delete next[id];
+      return { pulsingConversationIds: next };
+    }),
+
+  updateConversationStage: (id, stage) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              stage,
+              statusLabel: STAGE_STATUS_LABELS[stage],
+              priority: priorityForStage(stage),
+            }
+          : c
+      ),
+    })),
+
+  addIncomingMessage: (input) => {
+    const state = get();
+    let conversationId = input.conversationId;
+
+    if (!conversationId && input.externalId) {
+      const existing = state.conversations.find((c) => c.externalId === input.externalId);
+      conversationId = existing?.id;
+    }
+
+    if (!conversationId) {
+      conversationId = newConversationId();
+    }
+
+    const guestMsg = buildGuestMessage(conversationId, input);
+    const exists = state.conversations.some((c) => c.id === conversationId);
+
+    set((s) => {
+      const pulsing = { ...s.pulsingConversationIds, [conversationId!]: true as const };
+
+      if (exists) {
+        return {
+          pulsingConversationIds: pulsing,
+          selectedConversationId: s.selectedConversationId ?? conversationId!,
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c;
+            const updated = appendMessage(c, guestMsg);
+            return {
+              ...updated,
+              lastMessage: input.message,
+              channel: input.channel,
+            };
+          }),
+        };
+      }
+
+      const created = createConversationFromIngest(input, conversationId!);
+      const withMsg = appendMessage(created, guestMsg);
+
+      return {
+        pulsingConversationIds: pulsing,
+        selectedConversationId: s.selectedConversationId ?? conversationId!,
+        conversations: [withMsg, ...s.conversations],
+      };
+    });
+
+    window.setTimeout(() => {
+      get().simulateAIResponseForConversation(conversationId!, input.message);
+    }, 900);
+
+    return conversationId!;
+  },
+
+  addAIResponse: (conversationId, guestMessage) => {
+    get().simulateAIResponseForConversation(conversationId, guestMessage);
+  },
+
+  simulateAIResponseForConversation: (conversationId, guestMessage) => {
+    const conv = get().getConversation(conversationId);
+    if (!conv) return;
+
+    set((s) => ({
+      conversations: s.conversations.map((c) =>
+        c.id === conversationId ? { ...c, aiStatus: "checking" } : c
+      ),
+    }));
+
+    const result = simulateAIResponse(guestMessage, conv);
+    const ts = nowIso();
+
+    window.setTimeout(() => {
+      const systemMessages: OperationMessage[] = result.operationalEvents.map((event, i) => ({
+        id: `sys-${conversationId}-${Date.now()}-${i}`,
+        conversationId,
+        sender: "system" as const,
+        content: event,
+        timestamp: ts,
+        channel: conv.channel,
+        meta: { operationalEvent: event },
+      }));
+
+      const aiMessage: OperationMessage = {
+        id: `ai-${conversationId}-${Date.now()}`,
+        conversationId,
+        sender: "ai",
+        content: result.replyText,
+        timestamp: nowIso(),
+        channel: conv.channel,
+        meta: {
+          aiGenerated: true,
+          takeoverSuggested: result.requiresHuman,
+          reservationValue: result.bookingValue,
+          paymentLinkSent: result.paymentLinkSent,
+          roomSuggestion: result.roomSuggestion,
+        },
+      };
+
+      set((s) => ({
+        conversations: s.conversations.map((c) => {
+          if (c.id !== conversationId) return c;
+          let next = c;
+          for (const sm of systemMessages) {
+            next = appendMessage(next, sm);
+          }
+          next = appendMessage(next, aiMessage);
+          return {
+            ...next,
+            stage: result.stage,
+            statusLabel: result.statusLabel,
+            requiresHuman: result.requiresHuman,
+            aiStatus: result.aiStatus,
+            bookingValue: result.bookingValue ?? c.bookingValue,
+            lastMessage: result.replyText,
+            priority: priorityForStage(result.stage),
+          };
+        }),
+      }));
+    }, 1400);
+  },
+
+  triggerDemoIncomingMessage: (channel) => {
+    const preset = nextSimulatedIncoming(channel);
+    return get().addIncomingMessage({
+      channel: preset.channel,
+      guestName: preset.guestName,
+      message: preset.message,
+      guestPhone: preset.guestPhone,
+      language: preset.language,
+    });
+  },
+}));
+
+export function ingestChannelMessage(input: IngestChannelMessageInput): string {
+  return useOperationConversationStore.getState().addIncomingMessage(input);
+}

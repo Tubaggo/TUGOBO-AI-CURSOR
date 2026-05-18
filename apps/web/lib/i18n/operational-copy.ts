@@ -3,6 +3,9 @@ import en from "@/messages/en.json";
 import tr from "@/messages/tr.json";
 import type { AttributionKind } from "@/lib/runtime/entities";
 
+export { op, operationalTexts, localeFromGuestLanguage } from "./operationalTexts";
+export type { OperationalTextKey } from "./operationalTexts";
+
 type Messages = typeof tr;
 
 function messagesFor(locale: PanelLocale): Messages {

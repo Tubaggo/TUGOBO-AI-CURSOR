@@ -8,6 +8,10 @@ const envSchema = z.object({
 
   // OpenAI
   OPENAI_API_KEY: z.string().min(1),
+  OPENAI_MODEL: z.string().optional(),
+  /** openai | deepseek — panel hotel assistant */
+  AI_PROVIDER: z.enum(["openai", "deepseek"]).optional(),
+  DEEPSEEK_MODEL: z.string().optional(),
 
   /** DeepSeek (OpenAI-compatible API) — server-only; never NEXT_PUBLIC_ */
   DEEPSEEK_API_KEY: z.string().min(1).optional(),

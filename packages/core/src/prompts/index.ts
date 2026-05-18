@@ -1,7 +1,8 @@
 import type { HotelContext } from "@tugobo/shared";
 import { HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1 } from "./web-intelligence-deepseek-v1";
+import { HOTEL_OPERATIONS_ASSISTANT_V1 } from "./hotel-operations-assistant-v1";
 
-export { HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1 };
+export { HOTEL_OPERATING_INTELLIGENCE_WEB_DEEPSEEK_V1, HOTEL_OPERATIONS_ASSISTANT_V1 };
 
 /**
  * System prompt for the main AI concierge.

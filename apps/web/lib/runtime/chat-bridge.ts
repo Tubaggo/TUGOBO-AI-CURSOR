@@ -9,6 +9,7 @@ import type {
 import { CONVERSATIONS } from "@/app/dashboard/_components/mock-data";
 import type { OperationalTimelineEvent } from "./conversation-runtime";
 import type { ConversationThread, Guest } from "./entities";
+import { op } from "@/lib/i18n/operationalTexts";
 
 export function threadToConversation(thread: ConversationThread, guest?: Guest): Conversation {
   const mock = CONVERSATIONS.find((c) => c.id === thread.id);
@@ -150,7 +151,7 @@ function channelFromLabel(channel: string): ConversationChannel | undefined {
 }
 
 function humanizeOrchestration(title: string, action: string): string {
-  if (/payment|recovery/i.test(title)) return "Preparing alternate payment route…";
-  if (/takeover|staff|desk/i.test(title)) return "Connecting front desk to this conversation…";
+  if (/payment|recovery/i.test(title)) return op("preparingPaymentRoute");
+  if (/takeover|staff|desk/i.test(title)) return op("connectingStaff");
   return action;
 }
