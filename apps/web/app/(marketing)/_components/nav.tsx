@@ -9,21 +9,20 @@ import { DemoButton } from "./demo-modal";
 type NavDropdownItem = { href: string; label: string };
 
 const PLATFORM_ITEMS: NavDropdownItem[] = [
-  { href: "#platform", label: "Platform genel bakış" },
-  { href: "#nasil", label: "Kurulum ve süreç" },
+  { href: "#operasyon", label: "Otel operasyonu" },
+  { href: "#ai-ekip", label: "AI ve ekip kontrolü" },
+  { href: "#gorunurluk", label: "Operasyon takibi" },
 ];
 
 const COZUMLER_ITEMS: NavDropdownItem[] = [
-  { href: "#birlesik-iletisim", label: "Birleşik misafir iletişimi" },
-  { href: "#rezervasyon-akisi", label: "Rezervasyon akışı" },
-  { href: "#operasyon-gorunurlugu", label: "Operasyonel görünürlük" },
-  { href: "#ota-bagimsizlik", label: "Direkt kanal ve OTA" },
+  { href: "#kanallar", label: "Misafir kanalları" },
+  { href: "#rezervasyon-gelir", label: "Rezervasyon ve gelir" },
+  { href: "#guven", label: "Güven" },
 ];
 
 const KAYNAKLAR_ITEMS: NavDropdownItem[] = [
-  { href: "#nasil", label: "Nasıl çalışır" },
-  { href: "#referanslar", label: "Referanslar" },
-  { href: "#fiyat", label: "Fiyatlandırma özeti" },
+  { href: "#fiyat", label: "Fiyatlandırma" },
+  { href: "/#tugobo-panel-onizleme-cta", label: "Canlı panel turu" },
 ];
 
 function DesktopDropdown({ label, items }: { label: string; items: NavDropdownItem[] }) {
@@ -92,6 +91,12 @@ export function Nav() {
     </>
   );
 
+  const mobileLinks = [
+    { title: "Platform", items: PLATFORM_ITEMS },
+    { title: "Çözümler", items: COZUMLER_ITEMS },
+    { title: "Kaynaklar", items: KAYNAKLAR_ITEMS },
+  ];
+
   return (
     <header className="pointer-events-none fixed left-0 right-0 top-0 z-50 pt-4 md:pt-5">
       <div className="pointer-events-auto mx-auto max-w-[1400px] px-4 sm:px-6">
@@ -120,14 +125,14 @@ export function Nav() {
               Giriş yap
             </Link>
             <DemoButton className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98]">
-              Kurulum görüşmesi
+              Tanıtım görüşmesi
               <ChevronRight className="h-3.5 w-3.5 opacity-90" aria-hidden />
             </DemoButton>
           </div>
 
           <div className="flex items-center gap-2 lg:hidden">
             <DemoButton className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-md shadow-blue-600/20 transition-all active:scale-[0.98]">
-              Kurulum
+              Tanıtım
             </DemoButton>
             <button
               type="button"
@@ -144,50 +149,34 @@ export function Nav() {
         {open ? (
           <div className="mt-2 max-h-[min(70vh,calc(100dvh-8rem))] overflow-y-auto rounded-2xl border border-white/[0.08] bg-zinc-950/95 p-4 shadow-2xl backdrop-blur-xl lg:hidden">
             <div className="flex flex-col gap-1 border-b border-white/[0.06] pb-3">
-              <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Platform</p>
-              {PLATFORM_ITEMS.map((item) => (
-                <a
-                  key={item.href + item.label}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
-                >
-                  {item.label}
-                </a>
-              ))}
-              <p className="mt-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Çözümler</p>
-              {COZUMLER_ITEMS.map((item) => (
-                <a
-                  key={item.href + item.label}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
-                >
-                  {item.label}
-                </a>
-              ))}
-              <p className="mt-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Kaynaklar</p>
-              {KAYNAKLAR_ITEMS.map((item) => (
-                <a
-                  key={item.href + item.label}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
-                >
-                  {item.label}
-                </a>
+              {mobileLinks.map((group) => (
+                <div key={group.title}>
+                  <p className="mt-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">
+                    {group.title}
+                  </p>
+                  {group.items.map((item) => (
+                    <a
+                      key={item.href + item.label}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className="block rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                </div>
               ))}
               <a
                 href="#fiyat"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
+                className="block rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
               >
                 Fiyatlar
               </a>
               <a
                 href="#hakkimizda"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
+                className="block rounded-lg px-3 py-2.5 text-[14px] font-medium text-white/65 hover:bg-white/[0.04]"
               >
                 Hakkımızda
               </a>

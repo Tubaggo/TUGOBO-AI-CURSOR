@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import {
-  Bot,
   CheckCircle2,
   TrendingUp,
   Banknote,
@@ -17,1166 +17,653 @@ import {
   BarChart3,
   Layers,
   Users,
-  Sparkles,
-  Inbox,
   Share2,
   Monitor,
   FileText,
+  PauseCircle,
+  Eye,
+  ClipboardCheck,
 } from "lucide-react";
 import { Nav } from "./_components/nav";
-import { DemoAccessButton } from "./_components/demo-access-modal";
 import { DemoButton } from "./_components/demo-modal";
-import { LandingHeroMetrics } from "./_components/landing-hero-metrics";
+import { PanelPreviewButton } from "./_components/landing-panel-preview-modal";
+import { LandingHeroOperationsCenter } from "./_components/landing-hero-operations-center";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const HERO_FEATURE_STRIP = [
-  {
-    icon: MessageSquare,
-    title: "Tüm kanallar tek panelde",
-    subtitle: "WhatsApp, Instagram, Web Chat",
-  },
-  {
-    icon: TrendingUp,
-    title: "Daha fazla direkt rezervasyon",
-    subtitle: "OTA komisyonlarını azaltın",
-  },
-  {
-    icon: Sparkles,
-    title: "AI destekli operasyon katmanı",
-    subtitle: "7/24 yanıt, akıllı yönlendirme",
-  },
-  {
-    icon: BarChart3,
-    title: "Operasyonel görünürlük",
-    subtitle: "Anlık metrikler ve ileri analiz",
-  },
+const HERO_STRIP = [
+  { icon: Monitor, title: "Tek yönetim paneli", subtitle: "Rezervasyon, iletişim ve operasyon bir arada" },
+  { icon: Users, title: "Ekip kontrolü", subtitle: "Onay, devralma ve yönlendirme sizde" },
+  { icon: TrendingUp, title: "Gelir takibi", subtitle: "Direkt rezervasyon ve OTA tasarrufu görünür" },
+  { icon: MessageSquare, title: "Tüm kanallar", subtitle: "WhatsApp, Instagram ve web sitesi" },
 ] as const;
 
-const CAPABILITIES = [
+const UNIFIED_OPS = [
   {
-    icon: Layers,
-    title: "Direkt rezervasyon altyapısı",
-    desc: "Teklif, müsaitlik ve ödeme adımları operasyon kurallarınıza bağlı çalışır; doğrudan kanal gelirini güçlendirir, OTA bağımlılığını azaltır.",
+    icon: Monitor,
+    title: "Merkezi operasyon yönetimi",
+    desc: "Günlük otel işlerinizi tek panelden takip edin. Bekleyen talepler, onaylar ve rezervasyonlar aynı ekranda.",
     accent: "blue",
   },
   {
-    icon: TrendingUp,
-    title: "Pipeline & gelir görünürlüğü",
-    desc: "Fırsatlar, teyitler ve kayıplar tek panelde. Boş geceleri azaltmak için doğru teklifi doğru anda operasyon ritminize göre sunarsınız.",
-    accent: "emerald",
-  },
-  {
     icon: MessageSquare,
-    title: "Birleşik misafir iletişimi",
-    desc: "WhatsApp, Instagram DM ve web üzerindeki talepler aynı operasyon kuyruğuna düşer; kanal fark etmez, hiçbir iş kalemi kaybolmaz.",
+    title: "Misafir iletişimi ve rezervasyon",
+    desc: "Gelen mesajlar kaybolmaz; her talep rezervasyon sürecine bağlanır ve ekip tarafından izlenir.",
     accent: "violet",
   },
   {
-    icon: Sparkles,
-    title: "AI destekli operasyon katmanı",
-    desc: "Politika, fiyat ve bilgilendirme akışları otomatik işlenir; ekip tekrarlayan sorulara takılmadan sahaya odaklanır.",
-    accent: "amber",
-  },
-  {
     icon: BarChart3,
-    title: "Operasyonel görünürlük",
-    desc: "Hacim, dönüşüm, devralma ve SLA sinyalleri canlı. Kararlarınızı sezgisel değil, paneldeki operasyon verisine dayandırın.",
-    accent: "blue",
-  },
-  {
-    icon: Shield,
-    title: "Kontrollü insan devralma",
-    desc: "Hassas vakalarda AI katmanı durur; resepsiyon veya satış aynı bağlamla devreye girer, sistem bekler.",
+    title: "Operasyon görünürlüğü",
+    desc: "Bugün kaç rezervasyon kapandı, ne kadar gelir üretildi, hangi talepler bekliyor — net ve ölçülebilir.",
     accent: "emerald",
   },
-];
+  {
+    icon: Layers,
+    title: "Direkt rezervasyon yönetimi",
+    desc: "Misafiri kendi kanallarınızdan karşılayın; OTA komisyonuna daha az bağımlı, daha yüksek marjlı büyüme.",
+    accent: "amber",
+  },
+] as const;
+
+const AI_SUPERVISED = [
+  {
+    icon: Zap,
+    title: "AI operasyonu destekler",
+    desc: "Müsaitlik, fiyat ve yanıtlar otomatik hazırlanır; rutin iş yükü azalır, ekip sahaya odaklanır.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Hassas adımlarda onay",
+    desc: "İndirim, yüksek tutar veya istisna durumlarında sistem durur; karar ve onay ekibinizdedir.",
+  },
+  {
+    icon: Users,
+    title: "Anında ekip devralması",
+    desc: "Resepsiyon veya satış tek tıkla devreye girer; misafir geçmişi ve son işlemler hazır gelir.",
+  },
+  {
+    icon: PauseCircle,
+    title: "AI duraklat, devam ettir",
+    desc: "Ekip müdahale ederken AI bekler; işlem bitince aynı kayıt üzerinden güvenle devam edilir.",
+  },
+] as const;
 
 const CHANNELS = [
-  { label: "WhatsApp", color: "text-emerald-400", bg: "bg-emerald-500/[0.08] border-emerald-500/[0.15]", dot: "bg-emerald-400", share: "%78" },
-  { label: "Instagram DM", color: "text-rose-400", bg: "bg-rose-500/[0.08] border-rose-500/[0.15]", dot: "bg-rose-400", share: "%14" },
-  { label: "Web Chat", color: "text-blue-400", bg: "bg-blue-500/[0.08] border-blue-500/[0.15]", dot: "bg-blue-400", share: "%6" },
-  { label: "E-mail", color: "text-white/40", bg: "bg-white/[0.04] border-white/[0.08]", dot: "bg-white/30", share: "%2" },
-];
-
-const METRICS = [
-  { icon: CalendarCheck, iconBg: "bg-emerald-500/[0.10]", iconColor: "text-emerald-400", color: "text-emerald-400", value: "47",       label: "Bugün kapanan rezervasyon", trend: "+12 dünden" },
-  { icon: TrendingUp,    iconBg: "bg-blue-500/[0.10]",    iconColor: "text-blue-400",    color: "text-blue-400",    value: "₺68.400",  label: "Doğrudan kanal geliri",      trend: "+₺9.200 geçen hafta" },
-  { icon: Banknote,      iconBg: "bg-amber-500/[0.10]",   iconColor: "text-amber-400",   color: "text-amber-400",   value: "₺10.260",  label: "OTA komisyonu önlendi",      trend: "+₺1.380 bu hafta" },
-  { icon: Clock,         iconBg: "bg-violet-500/[0.10]",  iconColor: "text-violet-400",  color: "text-violet-400",  value: "38s",      label: "Ort. yanıt süresi",          trend: "↓ 12sn hızlı" },
-  { icon: ShieldCheck,   iconBg: "bg-cyan-500/[0.10]",    iconColor: "text-cyan-400",    color: "text-cyan-400",    value: "183",      label: "Önlenen kayıp",             trend: "100% yakalama" },
-];
-
-const STEPS = [
-  {
-    n: "01", icon: MessageSquare, color: "text-blue-400", bg: "bg-blue-500/[0.08]",
-    title: "Talep operasyon kuyruğuna girer",
-    desc: "WhatsApp, Instagram veya web sitenizden gelen her iş kalemi aynı Hotel Operating Intelligence akışına düşer; öncelik ve kanal tek yerden okunur.",
-    tag: "Birleşik misafir iletişimi",
-  },
-  {
-    n: "02", icon: Bot, color: "text-violet-400", bg: "bg-violet-500/[0.08]",
-    title: "AI operasyon katmanı işler",
-    desc: "Politika, müsaitlik ve fiyat kurallarınız uygulanır; teklif ve ödeme adımları direkt rezervasyon altyapınız üzerinden yürür.",
-    tag: "7/24 · Çok dilli · Kontrollü otomasyon",
-  },
-  {
-    n: "03", icon: CheckCircle2, color: "text-emerald-400", bg: "bg-emerald-500/[0.08]",
-    title: "Rezervasyon ve gelir kapanır",
-    desc: "Ödeme linki veya onaylı rezervasyon operasyon panelinize işlenir; ekip uyurken bile doğrudan kanal geliri üretmeye devam edersiniz.",
-    tag: "Komisyon %0 · Operasyonel görünürlük",
-  },
-];
-
-const PROPERTY_TYPES = [
-  "🏨 Butik Otel", "🏖️ Tatil Köyü", "🌿 Bungalov", "🏡 Villa",
-  "🏔️ Dağ Evi", "⛵ Tekne / Yat", "🏢 Apart Otel", "🌾 Çiftlik Evi",
-  "💼 Seyahat Acentesi", "🏩 Pansiyon",
-];
-
-const TESTIMONIALS = [
-  {
-    quote: "Tugobo kurduğumuzdan beri Booking.com'a bağımlılığımız belirgin şekilde düştü. Misafirler artık doğrudan bize yazıp rezervasyon yaptırıyor.",
-    name: "Hasan Karaoğlu", role: "Sahip · Bungalov Türkiye, Ölüdeniz",
-    initials: "HK", color: "bg-violet-700",
-  },
-  {
-    quote: "Almanca, Rusça ve Arapça bilen personelimiş yoktu. Tugobo’nun operasyon katmanı herkese kendi dilinde anlık yanıt veriyor; panelden pipeline’ı takip ediyoruz. Rezervasyon dönüşümümüz ikiye katlandı.",
-    name: "Selin Aydın", role: "Genel Müdür · Boutique Hotel Kapadokya",
-    initials: "SA", color: "bg-rose-700",
-  },
-  {
-    quote: "Gece 02:00'de gelen bir talep bile operasyon kuyruğundan düşmüyor. Sabah kalktığımda onaylı rezervasyon ve özet zaten panelde.",
-    name: "Mehmet Kaya", role: "Sahip · Villa Bodrum",
-    initials: "MK", color: "bg-emerald-700",
-  },
-];
-
-const UNIFIED_SURFACE_CHANNELS = [
   {
     icon: MessageSquare,
     title: "WhatsApp",
-    desc: "Rezervasyon ve ön sorularınızı işletme hattınız üzerinden operasyon kuyruğuna düşürür; SLA ve öncelik kuralları tek omurgada.",
+    desc: "En yoğun kanalınız. Talepler doğrudan operasyon paneline düşer; ekip önceliği ve durumu görür.",
     accent: "emerald",
   },
   {
     icon: Share2,
     title: "Instagram DM",
-    desc: "Story ve DM trafiği aynı gelen kutuya bağlanır; kampanya ve organik talepler pipeline’da kaybolmaz.",
+    desc: "Kampanya ve DM mesajları aynı merkezde. Hangi konuşmanın beklemede olduğu her zaman bellidir.",
     accent: "rose",
   },
   {
     icon: Monitor,
-    title: "Web chat",
-    desc: "Sitenizden gelen talepler doğrudan rezervasyon motoruna bağlanır; kanal etiketi ve kaynak bilgisi panelde saklı kalır.",
+    title: "Web sitesi",
+    desc: "Siteden gelen talepler rezervasyon sürecine bağlanır; kaynak ve aşama bilgisi kayıt altında kalır.",
     accent: "blue",
   },
-  {
-    icon: Inbox,
-    title: "Tek operasyon gelen kutusu",
-    desc: "Tüm kanallar tek sıra, tek öncelik modeli ve tek devralma çizgisi. Ekip WhatsApp ile web arasında bağlam kaybetmez.",
-    accent: "violet",
-  },
 ] as const;
 
-const RESERVATION_STAGES = [
+const RESERVATION_REVENUE = [
   {
-    stageEn: "Inquiry",
-    title: "Talep",
-    desc: "İlk temas, tarih ve kişi sayısı; otomatik etiketleme ve öncelik skoru.",
-    icon: MessageSquare,
-    color: "text-slate-300",
-    bg: "bg-white/[0.04] border-white/[0.08]",
-  },
-  {
-    stageEn: "Qualified",
-    title: "Nitelendirildi",
-    desc: "Politika, müsaitlik ve risk kontrolleri tamam; satışa hazır fırsat olarak işaretlenir.",
-    icon: Sparkles,
-    color: "text-violet-300",
-    bg: "bg-violet-500/[0.07] border-violet-500/[0.18]",
-  },
-  {
-    stageEn: "Offer Sent",
-    title: "Teklif gönderildi",
-    desc: "Fiyat, oda tipi ve koşullar kayıt altında; süre ve hatırlatma kuralları devreye girer.",
     icon: FileText,
-    color: "text-blue-300",
-    bg: "bg-blue-500/[0.07] border-blue-500/[0.18]",
+    title: "Rezervasyon süreci",
+    desc: "Talep → teklif → ödeme → onay adımları standarttır. Ekip hangi misafirin hangi aşamada olduğunu görür.",
   },
   {
-    stageEn: "Payment Pending",
-    title: "Ödeme bekleniyor",
-    desc: "Güvenli ödeme linki veya provizyon adımı; tahsilat durumu canlı izlenir.",
     icon: Banknote,
-    color: "text-amber-300",
-    bg: "bg-amber-500/[0.07] border-amber-500/[0.18]",
-  },
-  {
-    stageEn: "Confirmed",
-    title: "Onaylı rezervasyon",
-    desc: "Konfirme kayıt, referans ve gelir satırı; CRM ve muhasebe entegrasyonlarına hazır çıktı.",
-    icon: CalendarCheck,
-    color: "text-emerald-300",
-    bg: "bg-emerald-500/[0.08] border-emerald-500/[0.22]",
-  },
-] as const;
-
-const OPS_VISIBILITY = [
-  {
-    icon: ShieldCheck,
-    title: "Kaçırılmayan talepler",
-    desc: "Gece ve yoğun saatlerde düşen iş kalemleri kuyrukta tutulur; sessiz kayıplar için erken uyarı.",
-  },
-  {
-    icon: BarChart3,
-    title: "Dönüşüm görünürlüğü",
-    desc: "Aşama bazlı huni ve kanal kırılımı; hangi kaynak gerçekten odaya dönüşüyor tek ekranda.",
-  },
-  {
-    icon: Bot,
-    title: "AI ile yürütülen konuşmalar",
-    desc: "Otomasyon katmanının üstlendiği hacim, müdahale gerektiren vakalar ve ortalama çözüm süresi.",
-  },
-  {
-    icon: Users,
-    title: "İnsan devralma izi",
-    desc: "Kim, ne zaman devraldı; çözüm notları ve misafir memnuniyeti aynı zaman çizelgesinde.",
+    title: "Gelir takibi",
+    desc: "Direkt rezervasyon geliri, bekleyen ödemeler ve günlük kapanışlar panelde özetlenir.",
   },
   {
     icon: TrendingUp,
-    title: "Gelir görünürlüğü",
-    desc: "Doğrudan kanal cirosu, tahsilat bekleyen tutarlar ve OTA’dan kaçınan komisyon tahmini.",
+    title: "OTA tasarrufu",
+    desc: "Komisyon ödemek yerine kendi kanallarınızdan satış yapın; tasarruf ve marj etkisini takip edin.",
+  },
+  {
+    icon: CalendarCheck,
+    title: "Dolu geceleri artırın",
+    desc: "Bekleyen talepleri kaçırmayın; gece ve hafta sonu trafiğinde bile operasyon devam eder.",
   },
 ] as const;
 
-const OTA_INDEPENDENCE = [
+const VISIBILITY = [
+  { icon: CalendarCheck, title: "Onaylı rezervasyonlar", desc: "Günlük ve haftalık kapanış sayıları." },
+  { icon: TrendingUp, title: "Direkt gelir", desc: "Kendi kanallarınızdan gelen ciro." },
+  { icon: Banknote, title: "OTA komisyon tasarrufu", desc: "Platforma gitmeyen marj." },
+  { icon: Clock, title: "Yanıt süresi", desc: "Misafir bekleme süresi ve SLA takibi." },
+  { icon: ShieldCheck, title: "Kaçırılmayan talepler", desc: "Bekleyen ve riskli işlerin listesi." },
+] as const;
+
+const TRUST = [
+  { icon: Eye, title: "Şeffaf operasyon", desc: "Ekip ve yönetim aynı panelde aynı gerçeği görür." },
+  { icon: Shield, title: "Kayıt altında işlemler", desc: "Kim onayladı, kim devraldı — geriye dönük izlenebilir." },
+  { icon: Users, title: "Ekip kontrolünde AI", desc: "AI yardımcıdır; son söz ve yetki otelde kalır." },
+  { icon: BarChart3, title: "Ölçülebilir sonuçlar", desc: "Rezervasyon ve gelir rakamları net raporlanır." },
+] as const;
+
+const TESTIMONIALS = [
   {
-    title: "OTA bağımlılığını azaltın",
-    desc: "Misafiri kendi kanallarınızda karşılayın; komisyon yükünü büyüme yerine marjınıza çevirin.",
+    quote:
+      "Gece gelen talepler artık kaçmıyor. Operasyon yükü belirgin şekilde azaldı; ekip aynı panelden koordine oluyor.",
+    role: "Genel Müdür",
+    property: "Butik otel · Ege",
   },
   {
-    title: "Direkt rezervasyonu artırın",
-    desc: "Tekliften ödemeye standart rezervasyon akışı; markanız üzerinden kapanan her gece için net iz.",
+    quote:
+      "Direkt rezervasyon oranımız yükseldi. OTA tasarrufunu ve bekleyen onayları aynı ekranda görmek yönetimi kolaylaştırdı.",
+    role: "Satış ve gelir",
+    property: "Şehir oteli · Akdeniz",
   },
   {
-    title: "Reklam trafiğini rezervasyona bağlayın",
-    desc: "Meta ve arama reklamlarından gelen DM ve form taleplerini pipeline’da ölçün; ROAS’i oda bazında görün.",
-  },
-  {
-    title: "Misafir ilişkisini sahiplenin",
-    desc: "Veri ve iletişim geçmişi otelde kalır; tekrar konaklama ve upsell için doğrudan erişim.",
+    quote:
+      "AI süreçleri hızlandırıyor ama kontrol bizde. Onay ve devralma modeli ekibin güvenini artırdı.",
+    role: "Operasyon Müdürü",
+    property: "Resort · Antalya",
   },
 ] as const;
+
+const ACCENT_RING: Record<string, string> = {
+  blue: "border-blue-500/[0.15] bg-blue-500/[0.04] hover:border-blue-500/[0.25]",
+  emerald: "border-emerald-500/[0.15] bg-emerald-500/[0.04] hover:border-emerald-500/[0.25]",
+  violet: "border-violet-500/[0.15] bg-violet-500/[0.04] hover:border-violet-500/[0.25]",
+  amber: "border-amber-500/[0.15] bg-amber-500/[0.04] hover:border-amber-500/[0.25]",
+  rose: "border-rose-500/[0.15] bg-rose-500/[0.04] hover:border-rose-500/[0.25]",
+};
+
+const ACCENT_ICON: Record<string, string> = {
+  blue: "bg-blue-500/[0.10] text-blue-400",
+  emerald: "bg-emerald-500/[0.10] text-emerald-400",
+  violet: "bg-violet-500/[0.10] text-violet-400",
+  amber: "bg-amber-500/[0.10] text-amber-400",
+  rose: "bg-rose-500/[0.10] text-rose-400",
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function SectionIntro({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mx-auto mb-14 max-w-3xl text-center">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-blue-400/65">{eyebrow}</span>
+      <h2 className="mt-3 mb-4 text-[32px] font-bold tracking-tight md:text-[34px]">{title}</h2>
+      <p className="text-[15px] leading-relaxed text-white/40">{description}</p>
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+  accent = "blue",
+}: {
+  icon: typeof Monitor;
+  title: string;
+  desc: string;
+  accent?: string;
+}) {
+  return (
+    <div className={`rounded-2xl border p-6 transition-colors duration-300 ${ACCENT_RING[accent] ?? ACCENT_RING.blue}`}>
+      <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${ACCENT_ICON[accent] ?? ACCENT_ICON.blue}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <h3 className="mb-2 text-[15px] font-semibold text-white">{title}</h3>
+      <p className="text-[13px] leading-relaxed text-white/38">{desc}</p>
+    </div>
+  );
+}
+
+function SectionShell({
+  id,
+  children,
+  className = "",
+}: {
+  id?: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section id={id} className={`border-t border-white/[0.05] ${className}`}>
+      <div className="mx-auto max-w-[1400px] px-6 py-24">{children}</div>
+    </section>
+  );
+}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#030712] bg-gradient-to-b from-[#020617] via-[#050a18] to-[#030712] text-white antialiased selection:bg-blue-500/30">
-
-      {/* ── Nav ─────────────────────────────────────────────────────────────── */}
       <Nav />
 
-      {/* ── Hero ────────────────────────────────────────────────────────────── */}
-      <section id="tugobo-hero" className="relative overflow-hidden pb-12 pt-[5.5rem] sm:pt-28 md:pt-32">
-        <div className="absolute inset-0 lp-grid opacity-[0.65] pointer-events-none" />
-        <div className="absolute inset-0 lp-noise pointer-events-none mix-blend-overlay" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(59,130,246,0.14),transparent_55%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(99,102,241,0.06),transparent_50%)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_35%,transparent_25%,#030712_88%)] pointer-events-none" />
+      {/* 1. Hero */}
+      <section id="tugobo-hero" className="relative overflow-hidden pb-16 pt-[5.5rem] sm:pt-28 md:pb-20 md:pt-32">
+        <div className="pointer-events-none absolute inset-0 lp-grid opacity-[0.5]" />
+        <div className="pointer-events-none absolute inset-0 lp-hero-aurora" />
+        <div className="pointer-events-none absolute inset-0 lp-noise" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_-10%,rgba(59,130,246,0.1),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_80%,transparent_20%,#030712_90%)]" />
 
-        <div className="relative mx-auto flex max-w-[1400px] flex-col px-4 sm:px-6">
-          <div className="flex min-h-[min(72vh,calc(100dvh-10rem))] flex-col justify-center py-10 md:py-14">
-            <div className="mx-auto max-w-[900px] text-center">
-              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-white/55 shadow-[0_0_0_1px_rgba(255,255,255,0.02)_inset] backdrop-blur-md sm:text-[13px]">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.7)]" />
-                Hotel Operating Intelligence • Dijital Otel İşletim Sistemi
-              </div>
-
-              <h1 className="text-balance text-[2.35rem] font-extrabold leading-[1.05] tracking-[-0.035em] sm:text-5xl md:text-6xl lg:text-[4.25rem] lg:leading-[1.02]">
-                <span className="text-white">Misafir iletişimini</span>
-                <br />
-                <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                  operasyon ve direkt
-                  <br />
-                  rezervasyon
-                </span>{" "}
-                <span className="text-white">sisteminde birleştirin.</span>
-              </h1>
-
-              <p className="mx-auto mt-8 max-w-[760px] text-pretty text-[15px] leading-[1.7] text-white/45 md:text-[17px]">
-                Tugobo AI bir sohbet botu değil; birleşik misafir iletişimi, AI destekli operasyon katmanı ve direkt
-                rezervasyon altyapısı sunan Dijital Otel İşletim Sistemi&apos;dir. Canlı panel ile operasyonel görünürlük;
-                OTA bağımlılığını azaltan doğrudan kanal geliri.
-              </p>
-
-              <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-                <DemoButton
-                  id="tugobo-demo-talep"
-                  className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl px-8 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_40px_-8px_rgba(99,102,241,0.55)] transition-all active:scale-[0.98] sm:min-w-[240px]"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 transition-[filter] duration-300 group-hover:brightness-110" />
-                  <span className="absolute inset-0 opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-40 bg-gradient-to-r from-blue-400 to-violet-500" />
-                  <Zap className="relative h-4 w-4 shrink-0" />
-                  <span className="relative">Operasyon turu planlayın</span>
-                </DemoButton>
-                <DemoAccessButton
-                  id="tugobo-dashboard-cta"
-                  className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.03] px-8 py-3.5 text-[15px] font-medium text-white/65 backdrop-blur-sm transition-all hover:border-white/[0.2] hover:bg-white/[0.06] hover:text-white/90 active:scale-[0.98] sm:min-w-[220px]"
-                >
-                  Canlı operasyon paneli
-                  <ArrowRight className="h-4 w-4 shrink-0 opacity-70" />
-                </DemoAccessButton>
-              </div>
-              <p className="mt-4 text-[12px] text-white/25">30 dakikada sistem turu · Taahhüt yok · Türkçe destek</p>
+        <div className="relative mx-auto max-w-[1400px] px-4 sm:px-6">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12 xl:gap-16">
+            <div className="py-6 text-center lg:py-10 lg:text-left">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.12] bg-white/[0.05] px-4 py-2 text-[12px] font-medium text-white/60 shadow-[0_0_24px_-8px_rgba(59,130,246,0.35)] backdrop-blur-sm sm:text-[13px]">
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-emerald-400" />
+              Bu otelin dijital operasyon merkezi
             </div>
 
-            <div className="mx-auto mt-14 grid max-w-[1100px] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {HERO_FEATURE_STRIP.map(({ icon: Icon, title, subtitle }) => (
+            <h1 className="text-balance text-[2.1rem] font-extrabold leading-[1.06] tracking-[-0.03em] sm:text-[2.75rem] lg:text-[3.25rem] xl:text-[3.5rem]">
+              Rezervasyon, iletişim ve operasyon{" "}
+              <span className="bg-gradient-to-r from-white via-white to-white/75 bg-clip-text text-transparent">
+                tek panelde.
+              </span>
+            </h1>
+
+            <p className="mx-auto mt-6 max-w-[540px] text-pretty text-[15px] leading-[1.75] text-white/42 lg:mx-0 md:text-[17px]">
+              AI operasyonu sürekli destekler: misafir talepleri, rezervasyon süreci ve gelir görünürlüğü aynı
+              merkezde. Ekip iş yükü azalır —{" "}
+              <span className="text-white/65">operasyonun kontrolü her zaman sizde kalır.</span>
+            </p>
+
+            <div className="mt-9 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center lg:justify-start">
+              <DemoButton
+                id="tugobo-demo-talep"
+                className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl px-8 py-3.5 text-[15px] font-semibold text-white shadow-[0_0_32px_-8px_rgba(59,130,246,0.55)] transition-all active:scale-[0.98] sm:min-w-[240px]"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 transition-[filter] group-hover:brightness-110" />
+                <Zap className="relative h-4 w-4 shrink-0" />
+                <span className="relative">Operasyon turu planlayın</span>
+              </DemoButton>
+              <PanelPreviewButton
+                id="tugobo-panel-onizleme-cta"
+                className="flex items-center justify-center gap-2 rounded-xl border border-white/[0.14] bg-white/[0.04] px-8 py-3.5 text-[15px] font-medium text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-all hover:border-blue-500/30 hover:bg-white/[0.07] hover:text-white active:scale-[0.98] sm:min-w-[220px]"
+              >
+                Canlı paneli inceleyin
+                <ArrowRight className="h-4 w-4 shrink-0 opacity-75" />
+              </PanelPreviewButton>
+            </div>
+            <p className="mt-4 text-[12px] text-white/28">30 dakika · Taahhüt yok · Türkçe destek</p>
+
+            <div className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {HERO_STRIP.map(({ icon: Icon, title, subtitle }) => (
                 <div
                   key={title}
-                  className="flex gap-3 rounded-xl border border-white/[0.07] bg-zinc-950/50 px-5 py-5 backdrop-blur-sm"
+                  className="flex gap-3 rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-3 text-left backdrop-blur-sm"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.03]">
-                    <Icon className="h-4 w-4 text-white/35" aria-hidden />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-gradient-to-br from-white/[0.06] to-transparent">
+                    <Icon className="h-3.5 w-3.5 text-blue-400/70" aria-hidden />
                   </div>
-                  <div className="min-w-0 text-left">
-                    <p className="text-[14px] font-semibold tracking-tight text-white/90">{title}</p>
-                    <p className="mt-1 text-[12px] leading-snug text-white/38">{subtitle}</p>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-white/85">{title}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-white/35">{subtitle}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* ── Dashboard preview (hero image) ────────────────────────────────── */}
-        <div className="relative mx-auto mt-4 max-w-[1400px] px-4 sm:px-6 lg:mt-8">
-          {/* Glow border wrapper */}
-          <div className="lp-glow-border animate-lp-float">
-            <div className="rounded-[17px] overflow-hidden bg-zinc-950 shadow-2xl shadow-black/60">
-
-              {/* Browser chrome */}
-              <div className="flex items-center gap-3 px-5 py-3 bg-zinc-900/80 border-b border-white/[0.06]">
-                <div className="flex gap-1.5 shrink-0">
-                  <div className="w-3 h-3 rounded-full bg-white/[0.08]" />
-                  <div className="w-3 h-3 rounded-full bg-white/[0.08]" />
-                  <div className="w-3 h-3 rounded-full bg-white/[0.08]" />
-                </div>
-                <div className="flex-1 mx-3 px-3 py-1 bg-white/[0.04] rounded-md text-center border border-white/[0.06]">
-                  <span className="text-[11px] text-white/25 font-mono">
-                    Hotel Operating Intelligence Preview · conversations
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shrink-0">
-                  <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
-                  <span className="text-[10px] font-semibold text-blue-400">CANLI</span>
-                </div>
-              </div>
-
-              {/* Demo bar */}
-              <div className="flex items-center justify-between px-5 py-2 bg-zinc-950/90 border-b border-white/[0.04] text-[11px]">
-                <div className="flex items-center gap-2 text-white/20">
-                  <span>Grand Hotel Demo</span>
-                  <span className="text-white/10">·</span>
-                  <span>Operations preview</span>
-                </div>
-                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.07] text-white/35">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  Preview data
-                </div>
-              </div>
-
-              {/* Metrics bar — syncs with ConciergeWebChat sales demo (client) */}
-              <LandingHeroMetrics />
-
-              {/* Main area: 2 column */}
-              <div className="flex h-[280px] overflow-hidden">
-                {/* Left: conv list */}
-                <div className="w-[240px] shrink-0 border-r border-white/[0.05] bg-zinc-950/60 flex flex-col">
-                  <div className="px-3 py-2 border-b border-white/[0.04]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-semibold text-white/60">Konuşmalar</span>
-                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                        <Bot className="w-2.5 h-2.5 text-blue-400" />
-                        <span className="text-[9px] text-blue-400 font-semibold">4 closing</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1">
-                      {[["4","AI","text-blue-400 bg-blue-500/[0.07] border-blue-500/[0.12]"],["€3.4k","Pipeline","text-amber-400 bg-amber-500/[0.07] border-amber-500/[0.12]"],["3","Onaylı","text-emerald-400 bg-emerald-500/[0.07] border-emerald-500/[0.12]"]].map(([v,l,cls],i) => (
-                        <div key={i} className={`rounded-md border px-1.5 py-1.5 text-center ${cls}`}>
-                          <p className="text-[12px] font-bold leading-none tabular-nums">{v}</p>
-                          <p className="text-[8px] text-white/30 mt-0.5 uppercase tracking-wider">{l}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-hidden divide-y divide-white/[0.03]">
-                    {[
-                      { init:"AY",col:"bg-violet-600",flag:"🇹🇷",name:"Ahmet Yılmaz",rev:"₺18.000",rc:"text-emerald-400/80",msg:"Superior Oda için ödeme...",sts:"AI",stc:"bg-blue-500/10 text-blue-400",t:"2m",w:false },
-                      { init:"SM",col:"bg-rose-500",flag:"🇫🇷",name:"Sophie Martin",rev:"€660",rc:"text-amber-400/80",msg:"Parfait! Je vais payer...",sts:"AI",stc:"bg-blue-500/10 text-blue-400",t:"5m",w:false },
-                      { init:"EP",col:"bg-sky-600",flag:"🇷🇺",name:"Elena Petrov",rev:"",rc:"",msg:"Жду ответа по номеру...",sts:"Bekliyor",stc:"bg-amber-500/10 text-amber-400",t:"43m",w:true },
-                      { init:"HM",col:"bg-blue-700",flag:"🇩🇪",name:"Hans Mueller",rev:"€780",rc:"text-emerald-400/80",msg:"Bestätigt. Wir freuen uns!",sts:"Onaylı",stc:"bg-emerald-500/10 text-emerald-400",t:"18m",w:false },
-                    ].map((c,i) => (
-                      <div key={i} className={`px-3 py-2.5 border-l-2 ${c.w ? "border-amber-400/30 bg-amber-500/[0.02]" : i===0 ? "border-amber-400/60 bg-white/[0.04]" : "border-transparent"}`}>
-                        <div className="flex items-start gap-2">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${c.col}`}>{c.init}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1">
-                                <span className="text-[11px] font-medium text-white/75 truncate">{c.name}</span>
-                                <span className="text-[9px]">{c.flag}</span>
-                              </div>
-                              <span className={`text-[10px] font-semibold ${c.rc}`}>{c.rev}</span>
-                            </div>
-                            <p className="text-[10px] text-white/30 truncate">{c.msg}</p>
-                            <div className="flex items-center gap-1 mt-1">
-                              <span className={`text-[9px] font-medium px-1 py-0.5 rounded-full flex items-center gap-0.5 ${c.stc}`}>
-                                {c.sts === "AI" && <Bot className="w-2 h-2" />}
-                                {c.sts === "Onaylı" && <CheckCircle2 className="w-2 h-2" />}
-                                {c.sts}
-                              </span>
-                              <span className="text-[9px] text-white/20">{c.t}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right: active chat */}
-                <div className="flex-1 flex flex-col bg-zinc-950/40 overflow-hidden">
-                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.05] bg-zinc-950/30">
-                    <div className="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">AY</div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[12px] font-semibold text-white">Ahmet Yılmaz</span>
-                        <span className="text-[10px]">🇹🇷</span>
-                        <span className="flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400"><Bot className="w-2 h-2" />AI aktif</span>
-                      </div>
-                      <p className="text-[10px] text-white/30">Misafir kanalı · 7 mesaj</p>
-                    </div>
-                    <div className="ml-auto">
-                      <button className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                        <Users className="w-2.5 h-2.5" /> Devral
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex-1 px-4 py-3 space-y-2.5 overflow-hidden">
-                    {/* Guest message */}
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-violet-600 flex items-center justify-center text-[8px] font-bold text-white shrink-0 mt-0.5">AY</div>
-                      <div className="bg-zinc-800/70 border border-white/[0.06] rounded-xl rounded-bl-sm px-3 py-2 max-w-[75%]">
-                        <p className="text-[11px] text-white/80">22-26 Temmuz arası Superior Oda için rezervasyon yaptırmak istiyorum.</p>
-                      </div>
-                    </div>
-                    {/* AI response */}
-                    <div className="flex items-end justify-end gap-2">
-                      <div className="max-w-[78%]">
-                        <div className="bg-blue-600 rounded-xl rounded-br-sm px-3 py-2">
-                          <p className="text-[11px] text-white leading-relaxed">Merhaba Ahmet Bey! 😊 22-26 Temmuz (4 gece) için Superior Oda müsait.<br /><br />₺4.200 × 4 gece = <strong>₺16.800</strong><br /><br />Güvenli ödeme linki gönderildi 🔐</p>
-                        </div>
-                        <div className="flex items-center justify-end gap-1 mt-0.5 mr-0.5">
-                          <Bot className="w-2 h-2 text-white/20" />
-                          <p className="text-[9px] text-white/25">Tugobo · ops layer · 08:15</p>
-                        </div>
-                      </div>
-                      <div className="w-5 h-5 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0 mb-3">
-                        <Bot className="w-2.5 h-2.5 text-blue-400" />
-                      </div>
-                    </div>
-                    {/* Confirmed */}
-                    <div className="flex justify-center">
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        <span className="text-[10px] font-medium text-emerald-400">Rezervasyon onaylandı · ₺16.800 · #GH4821</span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Reply bar hint */}
-                  <div className="px-4 py-2.5 border-t border-white/[0.05] flex items-center gap-2 bg-zinc-950/30">
-                    <div className="flex-1 px-3 py-1.5 bg-white/[0.04] border border-white/[0.07] rounded-lg text-[10px] text-white/20">Operasyon katmanı işliyor…</div>
-                    <div className="flex gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:0ms]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:250ms]" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-typing-dot [animation-delay:500ms]" />
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
 
-          {/* Floating toast */}
-          <div className="absolute -bottom-4 -right-2 md:right-4 animate-msg-in hidden md:flex items-start gap-3 pl-3.5 pr-5 py-3 rounded-xl border border-emerald-500/25 bg-zinc-900/95 shadow-2xl shadow-black/60 backdrop-blur-sm">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-[12px] font-semibold text-white/90">Ödeme onaylandı 🎉</p>
-              <p className="text-[11px] text-white/40">Sophie Martin · €660 · az önce</p>
+            <div className="relative lg:py-6">
+              <LandingHeroOperationsCenter />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Thin stats strip ────────────────────────────────────────────────── */}
-      <div className="border-y border-white/[0.05] bg-zinc-900/40 mt-12">
-        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
-          {[
-            ["3.200+", "Onaylı rezervasyon", "bu yıl"],
-            ["₺42M", "Üretilen gelir", "doğrudan"],
-            ["₺6.8M", "OTA komisyonu önlendi", "bu yıl"],
-            ["38s", "Ort. yanıt süresi", "vs. 4h sektör"],
-            ["47", "Aktif konaklama", "Türkiye geneli"],
-          ].map(([v, l, s], i) => (
-            <div key={i} className="flex flex-col items-center py-5 px-4 text-center border-r border-white/[0.04] last:border-r-0">
-              <span className="text-[22px] font-bold tabular-nums">{v}</span>
-              <span className="text-[11px] text-white/40 mt-0.5">{l}</span>
-              <span className="text-[10px] text-white/20">{s}</span>
-            </div>
+      {/* 2. Unified hotel operations */}
+      <SectionShell id="operasyon" className="bg-zinc-900/15">
+        <SectionIntro
+          eyebrow="Otel operasyonu"
+          title="Tüm otel operasyonunuz tek merkezde"
+          description="Dağınık mesajlar, kayıp talepler ve belirsiz rezervasyon süreçleri yerine; misafir iletişimi, rezervasyon ve gelir takibi aynı yönetim panelinde birleşir."
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          {UNIFIED_OPS.map((item) => (
+            <FeatureCard key={item.title} {...item} />
           ))}
         </div>
-      </div>
+      </SectionShell>
 
-      {/* ── Platform capabilities ────────────────────────────────────────────── */}
-      <section id="platform" className="max-w-[1400px] mx-auto px-6 py-24">
-        <div className="text-center mb-14">
-          <span className="text-[11px] font-semibold text-blue-400/60 uppercase tracking-widest">Digital Hotel Operating System</span>
-          <h2 className="text-[36px] font-bold tracking-tight mt-3 mb-4">
-            Operasyonu, iletişimi ve direkt rezervasyonu tek panelden yönetin.
-          </h2>
-          <p className="text-white/40 max-w-xl mx-auto text-[15px] leading-relaxed">
-            Hotel Operating Intelligence; kanal trafiği, AI katmanı ve ekip devralmasını aynı görünür akışta toplar.
-            Operasyonel görünürlük ve birleşik misafir iletişimi bir arada.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {CAPABILITIES.map((cap, i) => {
-            const accentMap: Record<string, string> = {
-              blue: "border-blue-500/[0.12] hover:border-blue-500/[0.20]",
-              emerald: "border-emerald-500/[0.12] hover:border-emerald-500/[0.20]",
-              violet: "border-violet-500/[0.12] hover:border-violet-500/[0.20]",
-              amber: "border-amber-500/[0.12] hover:border-amber-500/[0.20]",
-            };
-            const iconMap: Record<string, string> = {
-              blue: "bg-blue-500/[0.08] text-blue-400",
-              emerald: "bg-emerald-500/[0.08] text-emerald-400",
-              violet: "bg-violet-500/[0.08] text-violet-400",
-              amber: "bg-amber-500/[0.08] text-amber-400",
-            };
-            return (
-              <div
-                key={i}
-                className={`group rounded-2xl border bg-zinc-900/50 p-6 transition-all duration-300 hover:bg-zinc-900/80 ${accentMap[cap.accent]}`}
-              >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${iconMap[cap.accent]}`}>
-                  <cap.icon className="w-4 h-4" />
-                </div>
-                <h3 className="text-[15px] font-semibold text-white mb-2">{cap.title}</h3>
-                <p className="text-[13px] text-white/40 leading-relaxed">{cap.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Unified Communication (enterprise layer) ───────────────────────── */}
-      <section id="birlesik-iletisim" className="border-t border-white/[0.05] bg-zinc-900/25">
-        <div className="max-w-[1400px] mx-auto px-6 py-24">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-[11px] font-semibold text-blue-400/70 uppercase tracking-widest">
-              Unified Communication
-            </span>
-            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
-              WhatsApp, Instagram DM ve web chat — tek operasyon gelen kutusu.
+      {/* 3. Human-supervised AI */}
+      <SectionShell id="ai-ekip" className="bg-zinc-950">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-amber-400/75">AI + ekip iş birliği</span>
+            <h2 className="mt-3 mb-4 text-[32px] font-bold leading-tight tracking-tight md:text-[34px]">
+              AI operasyonu destekler,
+              <br />
+              kontrol sizde kalır.
             </h2>
-            <p className="text-white/40 text-[15px] leading-relaxed">
-              Kanal sayısı arttıkça operasyon karmaşıklığı artar. Tugobo, tüm misafir yüzeylerini{" "}
-              <span className="text-white/55">Hotel Operating Intelligence</span> omurgasında birleştirir;
-              öncelik, etiket ve devralma tek çizelgede kalır.
+            <p className="mb-6 text-[15px] leading-relaxed text-white/40">
+              Sistem gece gündüz misafir taleplerini işler, teklif hazırlar ve süreci takip eder. Önemli kararlarda
+              durur ve ekibinizi bilgilendirir — otomatik değil,{" "}
+              <span className="text-white/55">sizin kurallarınıza göre çalışan bir operasyon sistemi.</span>
             </p>
+            <blockquote className="border-l-2 border-amber-500/35 pl-4 text-[14px] italic text-white/35">
+              &ldquo;AI operasyonu sürekli çalışıyor, ama operasyonun kontrolü hâlâ bende.&rdquo;
+            </blockquote>
           </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
-            {UNIFIED_SURFACE_CHANNELS.map((ch) => {
-              const ring =
-                ch.accent === "emerald"
-                  ? "border-emerald-500/[0.18] bg-emerald-500/[0.06]"
-                  : ch.accent === "rose"
-                    ? "border-rose-500/[0.18] bg-rose-500/[0.06]"
-                    : ch.accent === "blue"
-                      ? "border-blue-500/[0.18] bg-blue-500/[0.06]"
-                      : "border-violet-500/[0.18] bg-violet-500/[0.06]";
-              const ic =
-                ch.accent === "emerald"
-                  ? "text-emerald-400"
-                  : ch.accent === "rose"
-                    ? "text-rose-400"
-                    : ch.accent === "blue"
-                      ? "text-blue-400"
-                      : "text-violet-400";
-              return (
-                <div
-                  key={ch.title}
-                  className={`rounded-2xl border p-6 transition-colors duration-300 hover:bg-zinc-900/60 ${ring}`}
-                >
-                  <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-zinc-950/50`}>
-                    <ch.icon className={`h-5 w-5 ${ic}`} />
-                  </div>
-                  <h3 className="text-[15px] font-semibold text-white mb-2">{ch.title}</h3>
-                  <p className="text-[13px] text-white/38 leading-relaxed">{ch.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-14 items-start">
-            <div>
-              <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">
-                Kanal hacmi (örnek dağılım)
-              </span>
-              <h3 className="text-[22px] font-bold tracking-tight text-white mt-3 mb-4">
-                Operasyon ekibi için tek sıra
-              </h3>
-              <p className="text-white/40 text-[14px] leading-relaxed mb-8">
-                Aşağıdaki dağılım gösterim amaçlıdır; canlı kurulumda kendi kanal kırılımınız raporlanır.
-                Önemli olan: hangi kanaldan gelirse gelsin aynı rezervasyon motoruna ve aynı SLA kurallarına bağlanmasıdır.
-              </p>
-
-              <div className="space-y-3">
-                {CHANNELS.map((ch, i) => (
-                  <div key={i} className={`flex items-center justify-between px-4 py-3.5 rounded-xl border ${ch.bg}`}>
-                    <div className="flex items-center gap-3">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${ch.dot}`} />
-                      <span className={`text-[14px] font-medium ${ch.color}`}>{ch.label}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] text-white/30">Türkiye örneği:</span>
-                      <span className={`text-[13px] font-bold tabular-nums ${ch.color}`}>{ch.share}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="rounded-2xl border border-white/[0.08] bg-zinc-900/80 overflow-hidden">
-                <div className="px-4 py-3.5 border-b border-white/[0.06] bg-zinc-950/40 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-white/60">Operational Inbox</span>
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/70">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    4 aktif yüzey · tek kuyruk
-                  </div>
-                </div>
-                <div className="p-4 space-y-3">
-                  {[
-                    { ch: "WhatsApp", flag: "🇹🇷", name: "Mehmet B.", msg: "Bungalov arıyorum, Temmuz için...", dot: "bg-emerald-400", time: "şimdi", unread: 2, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
-                    { ch: "Instagram DM", flag: "🇫🇷", name: "Claire D.", msg: "Je cherche une chambre pour 2...", dot: "bg-rose-400", time: "1m", unread: 1, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
-                    { ch: "Web Chat", flag: "🇩🇪", name: "Klaus W.", msg: "Haben Sie ein Doppelzimmer?", dot: "bg-blue-400", time: "8m", unread: 0, sts: "Onaylı", stc: "bg-emerald-500/10 text-emerald-400" },
-                    { ch: "WhatsApp", flag: "🇸🇦", name: "Ahmed R.", msg: "هل لديك غرفة متاحة في أغسطس؟", dot: "bg-emerald-400", time: "14m", unread: 0, sts: "Ops", stc: "bg-blue-500/10 text-blue-400" },
-                  ].map((row, i) => (
-                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-colors">
-                      <div className="flex flex-col items-center gap-1.5 shrink-0 pt-0.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${row.dot}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-medium text-white/75">{row.name}</span>
-                            <span className="text-[10px]">{row.flag}</span>
-                            <span className="text-[9px] text-white/20">{row.ch}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {row.unread > 0 && (
-                              <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-[8px] font-bold text-white">{row.unread}</span>
-                            )}
-                            <span className="text-[10px] text-white/20">{row.time}</span>
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-white/30 truncate">{row.msg}</p>
-                        <span className={`inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded-full mt-1 ${row.stc}`}>
-                          <Bot className="w-2 h-2" />{row.sts}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Reservation flow (pipeline stages) ─────────────────────────────── */}
-      <section id="rezervasyon-akisi" className="border-t border-white/[0.05] bg-zinc-950">
-        <div className="max-w-[1400px] mx-auto px-6 py-24">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-[11px] font-semibold text-violet-400/70 uppercase tracking-widest">
-              Reservation Flow
-            </span>
-            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
-              Talepten onaya standart rezervasyon bandı.
-            </h2>
-            <p className="text-white/40 text-[15px] leading-relaxed">
-              Her konuşma aşamalara ayrılır; ekip hangi misafirin hangi aşamada beklediğini panelden okur.
-              Bu model, direkt kanal ve OTA dışı büyümeyi ölçülebilir kılar.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-2">
-            {RESERVATION_STAGES.map((st, i) => (
-              <div key={st.stageEn} className="flex flex-1 min-w-0 flex-col md:flex-row md:items-stretch">
-                <div
-                  className={`flex flex-1 flex-col rounded-2xl border p-5 transition-colors duration-300 hover:border-white/[0.12] ${st.bg}`}
-                >
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <st.icon className={`h-5 w-5 shrink-0 ${st.color}`} />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-white/25">{st.stageEn}</span>
-                  </div>
-                  <h3 className={`text-[15px] font-semibold leading-snug mb-2 ${st.color}`}>{st.title}</h3>
-                  <p className="text-[12px] text-white/38 leading-relaxed">{st.desc}</p>
-                </div>
-                {i < RESERVATION_STAGES.length - 1 ? (
-                  <div className="hidden md:flex items-center justify-center px-1 shrink-0">
-                    <ArrowRight className="h-4 w-4 text-white/12" aria-hidden />
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Operations visibility ───────────────────────────────────────────── */}
-      <section id="operasyon-gorunurlugu" className="border-t border-white/[0.05] bg-zinc-900/20">
-        <div className="max-w-[1400px] mx-auto px-6 py-24">
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-[11px] font-semibold text-emerald-400/65 uppercase tracking-widest">
-              Operations Visibility
-            </span>
-            <h2 className="text-[34px] font-bold tracking-tight mt-3 mb-4">
-              Otelin operasyonu için kurumsal düzeyde görünürlük.
-            </h2>
-            <p className="text-white/40 text-[15px] leading-relaxed">
-              Kararlar tahmine değil; konuşma hacmi, aşama geçişleri, devralma ve gelir sinyallerine dayanır.
-              Aşağıdaki başlıklar canlı panelde modül olarak sunulur.
-            </p>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {OPS_VISIBILITY.map((item) => (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {AI_SUPERVISED.map((item) => (
               <div
                 key={item.title}
-                className="rounded-2xl border border-white/[0.07] bg-zinc-950/50 p-6 flex flex-col hover:border-white/[0.11] hover:bg-zinc-900/40 transition-all duration-300"
+                className="rounded-2xl border border-amber-500/[0.12] bg-amber-500/[0.03] p-5"
               >
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03]">
-                  <item.icon className="h-5 w-5 text-white/45" />
-                </div>
-                <h3 className="text-[14px] font-semibold text-white mb-2 leading-snug">{item.title}</h3>
-                <p className="text-[12px] text-white/35 leading-relaxed flex-1">{item.desc}</p>
+                <item.icon className="mb-3 h-5 w-5 text-amber-400/90" />
+                <h3 className="mb-1.5 text-[14px] font-semibold text-white">{item.title}</h3>
+                <p className="text-[12px] leading-relaxed text-white/38">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
-      </section>
+      </SectionShell>
 
-      {/* ── OTA independence & direct channel ───────────────────────────────── */}
-      <section id="ota-bagimsizlik" className="border-t border-white/[0.06] bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(16,185,129,0.08),transparent_55%)] bg-zinc-950">
-        <div className="max-w-[1400px] mx-auto px-6 py-24">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-widest">
-              Direct channel & guest ownership
-            </span>
-            <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
-              OTA&apos;ya ödenen marjı, kendi operasyonunuza geri alın.
-            </h2>
-            <p className="text-white/40 text-[15px] leading-relaxed">
-              Tugobo; reklam ve organik trafiği tek rezervasyon bandına bağlayarak{" "}
-              <span className="text-white/55">direkt konaklama gelirini</span> artırır ve{" "}
-              <span className="text-white/55">misafir ilişkisini otelde tutmanızı</span> sağlar.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 lg:grid-cols-4">
-            {OTA_INDEPENDENCE.map((p) => (
-              <div
-                key={p.title}
-                className="rounded-2xl border border-emerald-500/[0.12] bg-emerald-500/[0.03] p-6 hover:border-emerald-500/[0.2] transition-colors duration-300"
-              >
-                <h3 className="text-[15px] font-semibold text-emerald-100/95 mb-2 leading-snug">{p.title}</h3>
-                <p className="text-[13px] text-white/40 leading-relaxed">{p.desc}</p>
-              </div>
-            ))}
-          </div>
+      {/* 4. Multi-channel */}
+      <SectionShell id="kanallar" className="bg-zinc-900/15">
+        <SectionIntro
+          eyebrow="Çok kanallı iletişim"
+          title="Misafir nereden yazarsa yazsın — tek merkezden yönetin"
+          description="WhatsApp, Instagram ve web siteniz ayrı ayrı takip edilmez. Tüm mesajlar operasyon panelinize düşer; ekip kanal fark etmeden aynı süreçle çalışır."
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          {CHANNELS.map((ch) => (
+            <FeatureCard key={ch.title} {...ch} />
+          ))}
         </div>
-      </section>
+      </SectionShell>
 
-      {/* ── How it works ────────────────────────────────────────────────────── */}
-      <section id="nasil" className="max-w-[1400px] mx-auto px-6 py-24">
-        <div className="text-center mb-14">
-          <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Süreç</span>
-          <h2 className="text-[32px] font-bold tracking-tight mt-3">Üç adımda Digital Hotel Operating System kurulumu.</h2>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-5 relative">
-          <div className="hidden md:block absolute top-14 left-[33%] right-[33%] h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
-          {STEPS.map((s, i) => (
-            <div key={i} className="rounded-2xl border border-white/[0.07] bg-zinc-900/50 p-7 text-center">
-              <div className="inline-flex items-center gap-2 mb-5">
-                <span className="text-[11px] font-bold text-white/20 uppercase tracking-widest">{s.n}</span>
-              </div>
-              <div className={`w-11 h-11 rounded-2xl ${s.bg} flex items-center justify-center mx-auto mb-4`}>
-                <s.icon className={`w-5 h-5 ${s.color}`} />
-              </div>
-              <h3 className="text-[16px] font-semibold text-white mb-2">{s.title}</h3>
-              <p className="text-[13px] text-white/40 leading-relaxed mb-4">{s.desc}</p>
-              <div className="inline-flex px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                <span className="text-[11px] text-white/30">{s.tag}</span>
-              </div>
+      {/* 5. Reservation & revenue */}
+      <SectionShell id="rezervasyon-gelir" className="bg-zinc-950">
+        <SectionIntro
+          eyebrow="Rezervasyon ve gelir"
+          title="Rezervasyon süreci ve gelir takibi birlikte"
+          description="Misafir talebinden onaylı rezervasyona kadar her adım görünür. Direkt satış gelirinizi ve OTA tasarrufunuzu aynı panelden takip edin."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {RESERVATION_REVENUE.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-emerald-500/[0.12] bg-emerald-500/[0.03] p-6"
+            >
+              <item.icon className="mb-4 h-5 w-5 text-emerald-400" />
+              <h3 className="mb-2 text-[15px] font-semibold text-white">{item.title}</h3>
+              <p className="text-[13px] leading-relaxed text-white/38">{item.desc}</p>
             </div>
           ))}
         </div>
-      </section>
+      </SectionShell>
 
-      {/* ── Revenue impact ──────────────────────────────────────────────────── */}
-      <section className="border-y border-white/[0.05] bg-zinc-950">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="text-center py-6 border-b border-white/[0.04]">
-            <span className="text-[11px] font-medium text-white/20 uppercase tracking-widest">Tugobo kullanan işletmelerde · bu hafta (örnek)</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5">
-            {METRICS.map((m, i) => (
-              <div key={i} className="flex items-center gap-3 px-5 py-5 border-r border-white/[0.04] last:border-r-0">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${m.iconBg}`}>
-                  <m.icon className={`w-3.5 h-3.5 ${m.iconColor}`} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className={`text-[17px] font-bold tabular-nums ${m.color}`}>{m.value}</span>
-                    <span className="text-[10px] text-emerald-400/50">↑ {m.trend}</span>
-                  </div>
-                  <p className="text-[10px] text-white/35 mt-0.5 truncate">{m.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Property types ──────────────────────────────────────────────────── */}
-      <section className="max-w-[1400px] mx-auto px-6 py-20">
-        <div className="text-center mb-10">
-          <h2 className="text-[26px] font-bold tracking-tight mb-3">
-            Her format için tasarlandı.
-          </h2>
-          <p className="text-white/35 text-[14px]">
-            Türkiye&apos;deki her türlü konaklama işletmesi için eksiksiz destek.
-          </p>
-        </div>
-        <div className="flex flex-wrap justify-center gap-2.5">
-          {PROPERTY_TYPES.map((type, i) => (
-            <div key={i} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/[0.07] text-[13px] text-white/50 hover:text-white/70 hover:border-white/[0.12] transition-all">
-              {type}
+      {/* 6. Live visibility */}
+      <SectionShell id="gorunurluk" className="bg-zinc-900/15">
+        <SectionIntro
+          eyebrow="Canlı operasyon takibi"
+          title="Otelinizde bugün ne oluyor — tek bakışta"
+          description="Yönetici ve operasyon ekibi aynı rakamları görür. Tahmin değil; günlük rezervasyon, gelir ve bekleyen işler net şekilde raporlanır."
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {VISIBILITY.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-white/[0.07] bg-zinc-950/50 p-5 text-center sm:text-left"
+            >
+              <item.icon className="mx-auto mb-3 h-5 w-5 text-white/40 sm:mx-0" />
+              <h3 className="mb-1 text-[13px] font-semibold text-white">{item.title}</h3>
+              <p className="text-[11px] text-white/35">{item.desc}</p>
             </div>
           ))}
         </div>
-      </section>
+      </SectionShell>
 
-      {/* ── Testimonials ────────────────────────────────────────────────────── */}
-      <section id="referanslar" className="border-t border-white/[0.05] bg-zinc-900/20">
-        <div className="max-w-[1400px] mx-auto px-6 py-20">
-          <div className="text-center mb-12">
-            <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Referanslar</span>
-            <h2 className="text-[28px] font-bold tracking-tight mt-3">
-              Neden Digital Hotel Operating System?
-            </h2>
+      {/* 7. Trust */}
+      <SectionShell id="guven" className="bg-zinc-950">
+        <SectionIntro
+          eyebrow="Güven"
+          title="Otellerin güvenebileceği bir operasyon sistemi"
+          description="Kurumsal işletmeler için tasarlandı: şeffaf süreçler, kayıt altı işlemler ve ekip kontrolünde AI desteği."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST.map((item) => (
+            <div key={item.title} className="rounded-2xl border border-white/[0.08] bg-zinc-900/40 p-6">
+              <item.icon className="mb-4 h-5 w-5 text-blue-400/80" />
+              <h3 className="mb-2 text-[15px] font-semibold text-white">{item.title}</h3>
+              <p className="text-[13px] leading-relaxed text-white/38">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </SectionShell>
+
+      {/* 8. Social proof */}
+      <SectionShell id="referanslar" className="bg-zinc-900/15">
+        <SectionIntro
+          eyebrow="Otel işletmecilerinden"
+          title="Operasyon yükü azalır, görünürlük artar"
+          description="Butik otellerden şehir otellerine — ekip koordinasyonu, direkt rezervasyon ve AI destekli süreçlerde ölçülebilir sonuçlar."
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          {TESTIMONIALS.map((t) => (
+            <blockquote
+              key={t.property}
+              className="rounded-2xl border border-white/[0.08] bg-zinc-950/60 p-6 backdrop-blur-sm"
+            >
+              <p className="mb-5 text-[14px] leading-relaxed text-white/55">&ldquo;{t.quote}&rdquo;</p>
+              <footer>
+                <p className="text-[13px] font-semibold text-white/80">{t.role}</p>
+                <p className="text-[11px] text-white/30">{t.property}</p>
+              </footer>
+            </blockquote>
+          ))}
+        </div>
+      </SectionShell>
+
+      {/* 9. Pricing */}
+      <SectionShell id="fiyat" className="bg-zinc-950">
+        <SectionIntro
+          eyebrow="Fiyatlar"
+          title="Personel maliyetinden düşük, getirisi ölçülebilir"
+          description="İşletmenizin büyüklüğüne göre paketler. Tüm planlarda Türkçe destek ve operasyon paneli dahil."
+        />
+        <div className="grid items-start gap-5 md:grid-cols-3">
+          <div className="rounded-2xl border border-white/[0.07] bg-zinc-900/50 p-7">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-white/30">Starter</p>
+            <div className="mb-1 flex items-baseline gap-1">
+              <span className="text-[38px] font-bold tabular-nums">₺2.990</span>
+              <span className="text-sm text-white/30">/ay</span>
+            </div>
+            <p className="mb-6 text-[12px] text-white/30">1–10 oda · 500 konuşma/ay</p>
+            <ul className="mb-8 space-y-2.5">
+              {["WhatsApp", "Operasyon paneli", "Türkçe + 1 dil", "Gelir ve rezervasyon takibi", "E-posta destek"].map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/55">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400/70" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <DemoButton className="block w-full rounded-xl border border-white/[0.10] py-2.5 text-center text-[13px] font-medium text-white/50 transition-all hover:border-white/[0.20] hover:text-white/80">
+              Görüşme talep et
+            </DemoButton>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="rounded-2xl border border-white/[0.07] bg-zinc-900/60 p-7 flex flex-col justify-between">
-                <div>
-                  <div className="flex gap-0.5 mb-4">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <span key={j} className="text-amber-400/80 text-[12px]">★</span>
-                    ))}
-                  </div>
-                  <p className="text-[14px] text-white/55 leading-relaxed italic mb-6">&ldquo;{t.quote}&rdquo;</p>
-                </div>
-                <div className="flex items-center gap-3 pt-4 border-t border-white/[0.05]">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0 ${t.color}`}>{t.initials}</div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-white/80">{t.name}</p>
-                    <p className="text-[11px] text-white/30">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+
+          <div className="relative rounded-2xl border border-blue-500/30 bg-blue-500/[0.04] p-7">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+              <span className="rounded-full bg-blue-600 px-3.5 py-1 text-[11px] font-semibold text-white shadow-lg shadow-blue-500/25">
+                En Popüler
+              </span>
+            </div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-blue-400/70">Growth</p>
+            <div className="mb-1 flex items-baseline gap-1">
+              <span className="text-[38px] font-bold tabular-nums">₺5.990</span>
+              <span className="text-sm text-white/30">/ay</span>
+            </div>
+            <p className="mb-6 text-[12px] text-white/30">11–30 oda · 2.000 konuşma/ay</p>
+            <ul className="mb-8 space-y-2.5">
+              {[
+                "WhatsApp + Instagram DM",
+                "Operasyon paneli",
+                "7 dil desteği",
+                "OTA komisyon takibi",
+                "Direkt rezervasyon",
+                "Öncelikli destek",
+              ].map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/70">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-400" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <DemoButton className="block w-full rounded-xl bg-blue-600 py-2.5 text-center text-[13px] font-semibold text-white transition-all hover:bg-blue-500">
+              Görüşme talep et
+            </DemoButton>
+          </div>
+
+          <div className="rounded-2xl border border-white/[0.07] bg-zinc-900/50 p-7">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-white/30">Enterprise</p>
+            <div className="mb-1 flex items-baseline gap-1">
+              <span className="text-[38px] font-bold">Özel</span>
+            </div>
+            <p className="mb-6 text-[12px] text-white/30">30+ oda · Sınırsız konuşma</p>
+            <ul className="mb-8 space-y-2.5">
+              {["Tüm kanallar", "Özel kurulum", "Sınırsız dil", "API erişimi", "SLA garantisi", "Dedicated destek"].map((f) => (
+                <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/55">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400/70" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <DemoButton className="block w-full rounded-xl border border-white/[0.10] py-2.5 text-center text-[13px] font-medium text-white/50 transition-all hover:border-white/[0.20] hover:text-white/80">
+              Görüşme talep et
+            </DemoButton>
           </div>
         </div>
-      </section>
+        <p className="mt-8 text-center text-[12px] text-white/25">
+          30 gün ücretsiz deneme · Sözleşme yok · İstediğiniz zaman iptal
+        </p>
+      </SectionShell>
 
-      {/* ── Pricing ─────────────────────────────────────────────────────────── */}
-      <section id="fiyat" className="border-t border-white/[0.05] bg-zinc-900/20">
-        <div className="max-w-[1400px] mx-auto px-6 py-24">
-          <div className="text-center mb-14">
-            <span className="text-[11px] font-semibold text-white/25 uppercase tracking-widest">Fiyatlar</span>
-            <h2 className="text-[32px] font-bold tracking-tight mt-3 mb-4">
-              Personel maliyetinden düşük, getirisi daha yüksek.
-            </h2>
-            <p className="text-white/40 text-[15px] max-w-md mx-auto">
-              İşletmenizin büyüklüğüne göre esnek paketler. Tüm planlarda Türkçe destek dahil.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-5 items-start">
-            {/* Starter */}
-            <div className="rounded-2xl border border-white/[0.07] bg-zinc-900/50 p-7">
-              <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-3">Starter</p>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-[38px] font-bold tabular-nums">₺2.990</span>
-                <span className="text-white/30 text-sm">/ay</span>
-              </div>
-              <p className="text-[12px] text-white/30 mb-6">1–10 oda · 500 konuşma/ay</p>
-              <ul className="space-y-2.5 mb-8">
-                {[
-                  "WhatsApp entegrasyonu",
-                  "Hotel Operating Intelligence",
-                  "Türkçe + 1 dil",
-                  "Operasyonel görünürlük",
-                  "E-posta destek",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/55">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400/70 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <DemoButton className="block w-full text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all">
-                Operasyon turu talep et
-              </DemoButton>
-            </div>
-
-            {/* Growth — highlighted */}
-            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/[0.04] p-7 relative">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="px-3.5 py-1 rounded-full bg-blue-600 text-[11px] font-semibold text-white shadow-lg shadow-blue-500/30">
-                  En Popüler
-                </span>
-              </div>
-              <p className="text-[11px] font-semibold text-blue-400/70 uppercase tracking-widest mb-3">Growth</p>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-[38px] font-bold tabular-nums">₺5.990</span>
-                <span className="text-white/30 text-sm">/ay</span>
-              </div>
-              <p className="text-[12px] text-white/30 mb-6">11–30 oda · 2.000 konuşma/ay</p>
-              <ul className="space-y-2.5 mb-8">
-                {[
-                  "WhatsApp + Instagram DM",
-                  "Hotel Operating Intelligence",
-                  "7 dil desteği",
-                  "Gelişmiş operasyon analitiği",
-                  "OTA komisyon takibi",
-                  "Direkt rezervasyon entegrasyonu",
-                  "Öncelikli destek",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/70">
-                    <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <DemoButton className="block w-full text-center py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[13px] font-semibold transition-all">
-                Operasyon turu talep et
-              </DemoButton>
-            </div>
-
-            {/* Enterprise */}
-            <div className="rounded-2xl border border-white/[0.07] bg-zinc-900/50 p-7">
-              <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-3">Enterprise</p>
-              <div className="flex items-baseline gap-1 mb-1">
-                <span className="text-[38px] font-bold">Özel</span>
-              </div>
-              <p className="text-[12px] text-white/30 mb-6">30+ oda · Sınırsız konuşma</p>
-              <ul className="space-y-2.5 mb-8">
-                {[
-                  "Tüm kanallar",
-                  "Özel AI persona",
-                  "Sınırsız dil",
-                  "API erişimi",
-                  "Özel entegrasyonlar",
-                  "SLA garantisi",
-                  "Dedicated destek",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-[13px] text-white/55">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400/70 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <DemoButton className="block w-full text-center py-2.5 rounded-xl border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/[0.20] text-[13px] font-medium transition-all">
-                Görüşme talep et
-              </DemoButton>
-            </div>
-          </div>
-
-          <p className="text-center text-[12px] text-white/25 mt-8">
-            Tüm planlar · 30 gün ücretsiz deneme · Sözleşme yok · İstediğiniz zaman iptal
-          </p>
-        </div>
-      </section>
-
-      {/* ── CTA ─────────────────────────────────────────────────────────────── */}
+      {/* 10. CTA */}
       <section className="relative overflow-hidden border-t border-white/[0.05]">
-        <div className="absolute inset-0 lp-grid opacity-60 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(59,130,246,0.06),transparent)] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_30%_at_50%_50%,transparent_40%,#09090b_80%)] pointer-events-none" />
-
-        <div className="relative max-w-3xl mx-auto px-6 py-28 text-center">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[12px] text-emerald-400 font-medium mb-7">
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-            Türkiye&apos;deki oteliniz için özel kurulum · 30 dakika
-          </div>
-
-          <h2 className="text-[44px] font-bold leading-[1.1] tracking-[-0.02em] mb-5">
-            Bu hafta hangi taleplerin<br />operasyon kuyruğunda beklediğini görün.
+        <div className="pointer-events-none absolute inset-0 lp-grid opacity-50" />
+        <div className="relative mx-auto max-w-3xl px-6 py-28 text-center">
+          <h2 className="mb-5 text-[36px] font-bold leading-[1.12] tracking-[-0.02em] md:text-[42px]">
+            Otel operasyonunuzu
+            <br />
+            birlikte planlayalım.
           </h2>
-
-          <p className="text-white/40 text-[16px] leading-relaxed mb-10 max-w-lg mx-auto">
-            30 dakikalık sistem turunda işletmenize özel Digital Hotel Operating System akışını birlikte çizeriz.
-            Taahhüt yok. Sözleşme yok.
+          <p className="mx-auto mb-10 max-w-lg text-[16px] leading-relaxed text-white/40">
+            30 dakikalık tanıtımda işletmenize özel paneli, rezervasyon sürecinizi ve ekip kontrol modelinizi birlikte
+            gözden geçiririz. Taahhüt yok.
           </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-            <DemoButton className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-[15px] transition-all active:scale-[0.97] shadow-xl shadow-blue-500/20">
-              <Zap className="w-4 h-4" />
-              Operasyon turu planlayın
+          <div className="mb-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <DemoButton className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-9 py-4 text-[15px] font-bold shadow-lg shadow-blue-500/15 transition-all hover:bg-blue-500 active:scale-[0.97] sm:w-auto">
+              <Zap className="h-4 w-4" />
+              Tanıtım görüşmesi planlayın
             </DemoButton>
             <a
               href="https://wa.me/905000000000"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-white/[0.10] text-white/45 hover:text-white/75 hover:border-white/[0.18] text-[15px] font-medium transition-all"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/[0.10] px-9 py-4 text-[15px] font-medium text-white/45 transition-all hover:border-white/[0.18] hover:text-white/75 sm:w-auto"
             >
-              <Phone className="w-4 h-4" />
+              <Phone className="h-4 w-4" />
               WhatsApp&apos;tan ulaşın
             </a>
           </div>
-
           <div className="flex flex-wrap items-center justify-center gap-6 text-[12px] text-white/25">
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> Taahhüt yok</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> 30dk kurulum</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3" /> Türkçe destek</span>
-            <span className="flex items-center gap-1.5"><Shield className="w-3 h-3" /> Veri güvenliği</span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3" /> Taahhüt yok
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="h-3 w-3" /> 30 dk kurulum
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Shield className="h-3 w-3" /> Veri güvenliği
+            </span>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      {/* Footer */}
       <footer className="border-t border-white/[0.06] bg-gradient-to-b from-zinc-950 to-[#070709]">
-        <div className="max-w-[1400px] mx-auto px-6 pt-14 pb-8">
-
-          {/* 4-column grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
-
-            {/* Col 1 — Brand */}
+        <div className="mx-auto max-w-[1400px] px-6 pb-8 pt-14">
+          <div className="mb-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <Link href="/" className="inline-flex items-center group mb-5">
-                <Image
-                  src="/Logo.png"
-                  alt="Tugobo AI"
-                  width={240}
-                  height={52}
-                  className="h-[44px] w-auto opacity-[0.95] group-hover:opacity-100 transition-opacity [filter:drop-shadow(0_0_12px_rgba(255,255,255,0.07))]"
-                />
+              <Link href="/" className="mb-5 inline-flex">
+                <Image src="/Logo.png" alt="Tugobo AI" width={240} height={52} className="h-[44px] w-auto opacity-95" />
               </Link>
-              <p className="text-[13px] text-white/30 leading-relaxed mt-1 max-w-[220px]">
-                Digital Hotel Operating System: birleşik misafir iletişimi, AI operasyon katmanı ve direkt rezervasyon altyapısı — Hotel Operating Intelligence ile tek çatı altında.
+              <p className="max-w-[220px] text-[13px] leading-relaxed text-white/30">
+                AI destekli dijital otel operasyon sistemi. Rezervasyon, misafir iletişimi ve gelir takibi — tek panelde,
+                ekip kontrolünde.
               </p>
             </div>
-
-            {/* Col 2 — Ürün */}
             <div>
-              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
-                Ürün
-              </p>
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-white/20">Ürün</p>
               <ul className="space-y-3">
                 {[
-                  { label: "Platform", href: "#platform" },
-                  { label: "Birleşik iletişim", href: "#birlesik-iletisim" },
-                  { label: "Rezervasyon bandı", href: "#rezervasyon-akisi" },
-                  { label: "Operasyon görünürlüğü", href: "#operasyon-gorunurlugu" },
-                  { label: "Direkt kanal & OTA", href: "#ota-bagimsizlik" },
-                  { label: "Örnek operasyon paneli", href: "/#tugobo-preview-erisim" },
+                  { label: "Otel operasyonu", href: "#operasyon" },
+                  { label: "AI ve ekip kontrolü", href: "#ai-ekip" },
+                  { label: "Kanallar", href: "#kanallar" },
+                  { label: "Rezervasyon ve gelir", href: "#rezervasyon-gelir" },
+                  { label: "Operasyon takibi", href: "#gorunurluk" },
+                  { label: "Güven", href: "#guven" },
+                  { label: "Canlı panel turu", href: "/#tugobo-panel-onizleme-cta" },
                   { label: "Fiyatlar", href: "#fiyat" },
                 ].map(({ label, href }) => (
                   <li key={label}>
-                    <Link
-                      href={href}
-                      className="text-[13px] text-white/38 hover:text-white/65 transition-colors"
-                    >
+                    <Link href={href} className="text-[13px] text-white/38 transition-colors hover:text-white/65">
                       {label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
-
-            {/* Col 3 — Şirket */}
             <div id="hakkimizda">
-              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
-                Şirket
-              </p>
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-white/20">Şirket</p>
               <ul className="space-y-3">
                 {[
                   { label: "Hakkımızda", href: "#hakkimizda" },
-                  { label: "İletişim",   href: "mailto:hello@tugobo.ai" },
-                  { label: "WhatsApp",   href: "https://wa.me/905000000000" },
-                  { label: "E-posta",    href: "mailto:hello@tugobo.ai" },
+                  { label: "İletişim", href: "mailto:hello@tugobo.ai" },
+                  { label: "WhatsApp", href: "https://wa.me/905000000000" },
                 ].map(({ label, href }) => (
                   <li key={label}>
-                    <Link
-                      href={href}
-                      className="text-[13px] text-white/38 hover:text-white/65 transition-colors"
-                    >
+                    <Link href={href} className="text-[13px] text-white/38 transition-colors hover:text-white/65">
                       {label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </div>
-
-            {/* Col 4 — Neden Tugobo */}
             <div>
-              <p className="text-[11px] font-semibold text-white/20 uppercase tracking-widest mb-4">
-                Neden Tugobo
-              </p>
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-white/20">Neden Tugobo</p>
               <ul className="space-y-3">
                 {[
-                  { icon: Globe,        label: "Türkçe destek"        },
-                  { icon: Zap,          label: "30 dakikada kurulum"  },
-                  { icon: CheckCircle2, label: "Taahhüt yok"          },
-                  { icon: Shield,       label: "Veri güvenliği"       },
+                  { icon: Globe, label: "Türkçe destek" },
+                  { icon: Zap, label: "30 dakikada kurulum" },
+                  { icon: CheckCircle2, label: "Taahhüt yok" },
+                  { icon: Shield, label: "Veri güvenliği" },
                 ].map(({ icon: Icon, label }) => (
                   <li key={label} className="flex items-center gap-2.5 text-[13px] text-white/38">
-                    <Icon className="w-3.5 h-3.5 text-white/18 shrink-0" />
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-white/18" />
                     {label}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-
-          {/* Divider + bottom row */}
-          <div className="pt-6 border-t border-white/[0.05] flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex flex-col items-center justify-between gap-2 border-t border-white/[0.05] pt-6 sm:flex-row">
             <span className="text-[12px] text-white/18">© 2026 Tugobo AI</span>
             <span className="text-[12px] text-white/18">Türkiye&apos;deki oteller için üretildi 🇹🇷</span>
           </div>
-
         </div>
       </footer>
-
     </div>
   );
 }

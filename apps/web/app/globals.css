@@ -356,6 +356,38 @@
   padding: 1px;
 }
 
+.lp-glass-panel {
+  background: linear-gradient(
+    165deg,
+    rgba(15, 23, 42, 0.92) 0%,
+    rgba(9, 12, 24, 0.96) 45%,
+    rgba(6, 10, 20, 0.98) 100%
+  );
+  backdrop-filter: blur(20px);
+}
+
+.lp-hero-aurora {
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 20%, rgba(59, 130, 246, 0.14), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 85% 30%, rgba(139, 92, 246, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(16, 185, 129, 0.06), transparent 55%);
+}
+
+.lp-hero-mockup-stage {
+  position: relative;
+  perspective: 1200px;
+}
+
+.lp-hero-mockup-stage::before {
+  content: "";
+  position: absolute;
+  inset: -12% -8% -20%;
+  background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(59, 130, 246, 0.18), transparent 65%);
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(28px);
+}
+
 /* Fade-up entry (used on section headings) */
 @keyframes lp-fade-up {
   from { opacity: 0; transform: translateY(16px); }

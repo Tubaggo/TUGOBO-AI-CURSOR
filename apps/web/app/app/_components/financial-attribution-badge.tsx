@@ -1,6 +1,7 @@
 import { Bot, User, Sparkles } from "lucide-react";
 import type { FinancialAttribution } from "@/lib/operational/types";
 import { formatEur } from "@/lib/operational/format";
+import { attributionKindLabel } from "@/lib/i18n/operational-copy";
 import { cn } from "@/lib/utils";
 
 const KIND_STYLES: Record<string, { ring: string; text: string }> = {
@@ -36,7 +37,7 @@ export function FinancialAttributionBadge({
     >
       <Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
       <span className="truncate max-w-[220px]">
-        {attribution.label} · {formatEur(attribution.amountEur)}
+        {attributionKindLabel(attribution.kind)} · {formatEur(attribution.amountEur)}
       </span>
     </span>
   );

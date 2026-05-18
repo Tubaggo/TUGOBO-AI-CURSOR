@@ -102,12 +102,4 @@ export function buildAIReasoning(
   return map[type];
 }
 
-export function escalationLabel(level: EscalationLevel): string {
-  const labels: Record<EscalationLevel, string> = {
-    none: "Normal",
-    watch: "Watch",
-    urgent: "Urgent",
-    critical: "Critical",
-  };
-  return labels[level];
-}
+export { escalationLabel } from "@/lib/i18n/runtime-copy";

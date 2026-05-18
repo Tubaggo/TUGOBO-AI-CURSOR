@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   DollarSign,
@@ -37,6 +38,7 @@ import { OperationsFeedRuntimeItem } from "../_components/operational-intelligen
 import { useMutationPulse } from "@/lib/runtime/hooks/use-mutation-pulse";
 
 export default function OverviewPage() {
+  const t = useTranslations("overview");
   const mounted = useOperationalRuntime(selectMounted);
   const m = useOperationalRuntime(selectRevenueMetrics);
   const feed = useOperationalRuntime(selectOperationsFeed);
@@ -47,93 +49,93 @@ export default function OverviewPage() {
   const dash = mounted ? "" : "—";
   const metricCards = [
     {
-      label: "Revenue recovered today",
+      label: t("metrics.revenueRecoveredToday"),
       value: mounted ? formatEur(m.revenueRecoveredToday, true) : dash,
       delta: "+€840",
       icon: DollarSign,
       iconColor: "text-emerald-400",
       iconBg: "bg-emerald-500/10",
-      sub: "payment + abandonment recovery",
+      sub: t("metrics.revenueRecoveredSub"),
     },
     {
-      label: "AI influenced revenue",
+      label: t("metrics.aiInfluencedRevenue"),
       value: mounted ? formatEur(m.aiInfluencedRevenue, true) : dash,
       delta: "+12%",
       icon: Sparkles,
       iconColor: "text-violet-400",
       iconBg: "bg-violet-500/10",
-      sub: "attributed pipeline value",
+      sub: t("metrics.aiInfluencedSub"),
     },
     {
-      label: "OTA commission avoided",
+      label: t("metrics.otaCommissionAvoided"),
       value: mounted ? formatEur(m.otaCommissionAvoided) : dash,
       delta: "+€212",
       icon: PiggyBank,
       iconColor: "text-amber-400",
       iconBg: "bg-amber-500/10",
-      sub: "direct conversion savings",
+      sub: t("metrics.otaCommissionSub"),
     },
     {
-      label: "Upsell revenue generated",
+      label: t("metrics.upsellRevenue"),
       value: mounted ? formatEur(m.upsellRevenueGenerated) : dash,
       delta: "+€95 ADR",
       icon: TrendingUp,
       iconColor: "text-blue-400",
       iconBg: "bg-blue-500/10",
-      sub: "post-confirmation bundles",
+      sub: t("metrics.upsellSub"),
     },
     {
-      label: "Payment recovery revenue",
+      label: t("metrics.paymentRecovery"),
       value: mounted ? formatEur(m.paymentRecoveryRevenue) : dash,
-      delta: "3 flows",
+      delta: "3",
       icon: Banknote,
       iconColor: "text-cyan-400",
       iconBg: "bg-cyan-500/10",
-      sub: "failed payment rescued",
+      sub: t("metrics.paymentRecoverySub"),
     },
     {
-      label: "Human takeover saved",
+      label: t("metrics.humanTakeoverSaved"),
       value: mounted ? formatEur(m.humanTakeoverSavedRevenue, true) : dash,
-      delta: "91% success",
+      delta: "91%",
       icon: UserPlus,
       iconColor: "text-rose-400",
       iconBg: "bg-rose-500/10",
-      sub: "assisted close attribution",
+      sub: t("metrics.humanTakeoverSub"),
     },
     {
-      label: "Revenue at risk",
+      label: t("metrics.revenueAtRisk"),
       value: mounted ? formatEur(m.revenueAtRisk) : dash,
-      delta: "2 active",
+      delta: "2",
       icon: ShieldAlert,
       iconColor: "text-amber-400",
       iconBg: "bg-amber-500/10",
-      sub: "payment + cancellation exposure",
+      sub: t("metrics.revenueAtRiskSub"),
       variant: "risk" as const,
     },
     {
-      label: "Recovery success rate",
+      label: t("metrics.recoverySuccessRate"),
       value: mounted ? formatPct(m.recoverySuccessRate) : dash,
       delta: "+4%",
       icon: Zap,
       iconColor: "text-emerald-400",
       iconBg: "bg-emerald-500/10",
-      sub: "booking recovery engine",
+      sub: t("metrics.recoverySuccessSub"),
     },
     {
-      label: "Direct booking conversion",
+      label: t("metrics.directBookingConversion"),
       value: mounted ? formatEur(m.directBookingConversionValue, true) : dash,
-      delta: "+5 closes",
+      delta: "+5",
       icon: Bot,
       iconColor: "text-blue-400",
       iconBg: "bg-blue-500/10",
-      sub: "AI-supervised direct channel",
+      sub: t("metrics.directBookingSub"),
     },
   ];
 
   const executiveStrip = [
-    { label: "AI generated revenue", value: mounted ? formatEur(m.aiGeneratedRevenue, true) : dash },
-    { label: "Escalated revenue exposure", value: mounted ? formatEur(m.escalatedRevenueExposure) : dash },
-    { label: "Occupancy influence", value: mounted ? `+${m.occupancyInfluencePct}%` : dash },
+    { label: t("executive.aiGeneratedRevenue"), value: mounted ? formatEur(m.aiGeneratedRevenue, true) : dash },
+    { label: t("executive.escalatedExposure"), value: mounted ? formatEur(m.escalatedRevenueExposure) : dash },
+    { label: t("executive.occupancyInfluence"), value: mounted ? `+${m.occupancyInfluencePct}%` : dash },
   ];
 
   return (
@@ -148,7 +150,7 @@ export default function OverviewPage() {
             <div className="mb-4 flex items-center justify-between">
               <MotionRecoveryEngineHeader />
               <Link href="/app/conversations" className="text-xs text-emerald-400 hover:text-emerald-300">
-                Orchestrate →
+                {t("recovery.link")}
               </Link>
             </div>
             <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1">
@@ -161,8 +163,8 @@ export default function OverviewPage() {
         </div>
         <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[1fr_380px]">
           <div className="rounded-xl border border-white/[0.06] bg-zinc-900 p-5">
-            <h2 className="text-sm font-semibold text-white mb-1">AI impact metrics</h2>
-            <p className="text-[11px] text-white/35 mb-4">Operational health · revenue attribution layer</p>
+            <h2 className="text-sm font-semibold text-white mb-1">{t("aiImpact.title")}</h2>
+            <p className="text-[11px] text-white/35 mb-4">{t("aiImpact.subtitle")}</p>
             <AiImpactPanel />
           </div>
           <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden flex flex-col max-h-[520px]">
@@ -170,8 +172,8 @@ export default function OverviewPage() {
               <div className="flex items-center gap-2">
                 <Radio className="h-4 w-4 text-emerald-400/80" />
                 <div>
-                  <h2 className="text-sm font-semibold text-white">AI operational intelligence</h2>
-                  <p className="text-[10px] text-white/30">Mission-critical · financially aware</p>
+                  <h2 className="text-sm font-semibold text-white">{t("feed.title")}</h2>
+                  <p className="text-[10px] text-white/30">{t("feed.subtitle")}</p>
                 </div>
               </div>
             </div>
@@ -210,28 +212,29 @@ export default function OverviewPage() {
 }
 
 function OverviewHeader() {
+  const t = useTranslations("overview");
+  const tCommon = useTranslations("common");
+
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-400/50">
-          Operational intelligence runtime
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-400/50">
+          {t("eyebrow")}
         </p>
-        <h1 className="text-xl font-semibold tracking-tight text-white">Executive revenue overview</h1>
-        <p className="mt-0.5 text-sm text-white/38">
-          Live orchestration · synchronized graph · financial causality across every path
-        </p>
+        <h1 className="text-xl font-semibold tracking-tight text-white">{t("title")}</h1>
+        <p className="mt-0.5 text-sm text-white/38">{t("description")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
           <MotionOverviewLiveDot />
-          <span className="text-xs font-medium text-emerald-400">Runtime synchronized</span>
+          <span className="text-xs font-medium text-emerald-400">{tCommon("liveOperations")}</span>
         </div>
         <Link
-          href="/app/ai-brain"
-          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500"
+          href="/app/conversations"
+          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-500"
         >
           <Bot className="h-3.5 w-3.5" />
-          AI Brain
+          {tCommon("openConversations")}
         </Link>
       </div>
     </div>
@@ -257,23 +260,25 @@ function MotionOverviewMetricGrid({
 }
 
 function MotionRecoveryEngineHeader() {
+  const t = useTranslations("overview");
   return (
     <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/28">Booking recovery engine</p>
-      <h2 className="text-sm font-semibold text-white mt-0.5">Recovery journeys · live</h2>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/28">{t("recovery.eyebrow")}</p>
+      <h2 className="text-sm font-semibold text-white mt-0.5">{t("recovery.title")}</h2>
     </div>
   );
 }
 
 function MotionRevenueStoriesHeader() {
+  const t = useTranslations("overview");
   return (
     <div className="mb-4 flex items-center justify-between">
       <div>
-        <h2 className="text-sm font-semibold text-white">Revenue storytelling</h2>
-        <p className="text-[11px] text-white/35">Live narratives · AI + human attribution</p>
+        <h2 className="text-sm font-semibold text-white">{t("stories.title")}</h2>
+        <p className="text-[11px] text-white/35">{t("stories.subtitle")}</p>
       </div>
       <Link href="/app/ai-brain/audit" className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
-        Audit trail <ChevronRight className="h-3 w-3" />
+        {t("stories.auditLink")} <ChevronRight className="h-3 w-3" />
       </Link>
     </div>
   );
@@ -294,12 +299,13 @@ function MotionOverviewReservationsPanel({
 }: {
   reservations: ReturnType<typeof selectReservations>;
 }) {
+  const t = useTranslations("overview");
   return (
     <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
-        <h2 className="text-sm font-semibold text-white">Pipeline · financial lifecycle</h2>
+        <h2 className="text-sm font-semibold text-white">{t("reservations.title")}</h2>
         <Link href="/app/reservations" className="text-xs text-blue-400 hover:text-blue-300">
-          View all →
+          {t("reservations.viewAll")}
         </Link>
       </div>
       <div className="divide-y divide-white/[0.04]">
@@ -347,7 +353,7 @@ function MotionOverviewConversationsPanel({
   return (
     <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
-        <h2 className="text-sm font-semibold text-white">Guest orchestration · revenue exposure</h2>
+        <h2 className="text-sm font-semibold text-white">Active guest operations</h2>
         <Link href="/app/conversations" className="text-xs text-blue-400 hover:text-blue-300">
           Inbox →
         </Link>

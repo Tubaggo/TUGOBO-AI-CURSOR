@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   Search,
@@ -49,16 +50,21 @@ import {
 import { StatusBadge, LeadBadge, LanguageFlag } from "../_components/badges";
 import { MessageRow, ChatTypingIndicator } from "@/app/dashboard/_components/chat";
 import { cn } from "@/lib/utils";
+import {
+  useLivePanelOverlay,
+  type LiveConvOverlay,
+  type LiveQueueStats,
+} from "@/lib/panel/use-live-panel-overlay";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 type Tab = "all" | ConversationStatus;
 
 const TABS: { id: Tab; label: string; count: number }[] = [
-  { id: "all", label: "All", count: 8 },
+  { id: "all", label: "Tümü", count: 8 },
   { id: "ai_active", label: "AI", count: 4 },
-  { id: "human_takeover", label: "Attention", count: 2 },
-  { id: "resolved", label: "Resolved", count: 2 },
+  { id: "human_takeover", label: "Bekleyen", count: 2 },
+  { id: "resolved", label: "Kapandı", count: 2 },
 ];
 
 const CONV_REVENUE: Record<string, { value: string; status: "confirmed" | "pending" | "quoted" }> = {
@@ -114,40 +120,40 @@ const OPS_PHASES: {
 }[] = [
   {
     phase: "triage",
-    label: "Triage",
-    sub: "classifying intent + routing",
+    label: "Talep",
+    sub: "misafir talebi alındı",
     icon: Sparkles,
     wrap: "bg-violet-500/10 border-violet-500/18",
     text: "text-violet-300/80",
   },
   {
     phase: "checking_availability",
-    label: "Availability",
-    sub: "checking room inventory",
+    label: "Müsaitlik",
+    sub: "oda kontrolü",
     icon: RefreshCw,
     wrap: "bg-sky-500/10 border-sky-500/18",
     text: "text-sky-200/80",
   },
   {
     phase: "generating_offer",
-    label: "Offer",
-    sub: "generating best option",
+    label: "Teklif",
+    sub: "fiyat hazırlanıyor",
     icon: Sparkles,
     wrap: "bg-blue-500/10 border-blue-500/18",
     text: "text-blue-200/80",
   },
   {
     phase: "awaiting_payment",
-    label: "Payment",
-    sub: "awaiting secure checkout",
+    label: "Ödeme",
+    sub: "ödeme bekleniyor",
     icon: CreditCard,
     wrap: "bg-amber-500/10 border-amber-500/18",
     text: "text-amber-200/80",
   },
   {
     phase: "follow_up_scheduled",
-    label: "Follow-up",
-    sub: "reminder scheduled",
+    label: "Takip",
+    sub: "hatırlatma planlandı",
     icon: CheckCheck,
     wrap: "bg-emerald-500/10 border-emerald-500/18",
     text: "text-emerald-200/80",
@@ -159,7 +165,7 @@ const METRIC_DEFS = [
   {
     icon: CalendarCheck,
     key: "bookings" as const,
-    label: "Direct bookings today",
+    label: "Günlük rezervasyon",
     color: "text-emerald-400",
     iconBg: "bg-emerald-500/[0.12]",
     borderColor: "border-emerald-500/[0.10]",
@@ -167,7 +173,7 @@ const METRIC_DEFS = [
   {
     icon: TrendingUp,
     key: "revenue" as const,
-    label: "Revenue recovered (direct)",
+    label: "Direkt gelir",
     color: "text-blue-400",
     iconBg: "bg-blue-500/[0.12]",
     borderColor: "border-blue-500/[0.10]",
@@ -175,7 +181,7 @@ const METRIC_DEFS = [
   {
     icon: Banknote,
     key: "ota" as const,
-    label: "OTA commission saved",
+    label: "OTA tasarrufu",
     color: "text-amber-400",
     iconBg: "bg-amber-500/[0.12]",
     borderColor: "border-amber-500/[0.10]",
@@ -183,7 +189,7 @@ const METRIC_DEFS = [
   {
     icon: Zap,
     key: "response" as const,
-    label: "Avg response time",
+    label: "Ort. yanıt süresi",
     color: "text-violet-400",
     iconBg: "bg-violet-500/[0.12]",
     borderColor: "border-violet-500/[0.10]",
@@ -191,7 +197,7 @@ const METRIC_DEFS = [
   {
     icon: ShieldCheck,
     key: "leads" as const,
-    label: "Missed leads prevented",
+    label: "Bekleyen onay",
     color: "text-cyan-400",
     iconBg: "bg-cyan-500/[0.12]",
     borderColor: "border-cyan-500/[0.10]",
@@ -300,12 +306,18 @@ type ToastData = { title: string; sub?: string; type: "success" | "new" };
 
 export default function ConversationsPage() {
   const pathname = usePathname();
-  const panelBase = pathname.startsWith("/demo/otel-paneli") ? "/demo/otel-paneli" : "/dashboard";
+  const panelBase = pathname.startsWith("/demo/otel-paneli")
+    ? "/demo/otel-paneli"
+    : pathname.startsWith("/app")
+      ? "/app"
+      : "/dashboard";
+  const isLivePanel = panelBase === "/app";
   const reservationsHref = `${panelBase}/reservations`;
 
   const [activeTab, setActiveTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string>("c2");
+  const live = useLivePanelOverlay(selected);
   const [opsTick, setOpsTick] = useState(0);
 
   // Demo mode
@@ -736,12 +748,29 @@ export default function ConversationsPage() {
       {/* Toast */}
       <Toast toast={toast} />
 
-      {/* ── Demo Mode toggle bar ─────────────────────────────────────────── */}
+      {isLivePanel ? (
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.03] bg-zinc-950/90 px-5 py-2.5">
+          <div className="flex items-center gap-2 text-[11px] text-white/35">
+            <span className="font-medium text-white/55">Grand Hotel Demo</span>
+            <span className="text-white/15">·</span>
+            <span>Live hotel operations</span>
+            {live.mounted ? (
+              <span className="ml-1 flex items-center gap-1 text-emerald-400/75">
+                <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+                AI-assisted
+              </span>
+            ) : null}
+          </div>
+          <Link href="/app/operations" className="text-[11px] font-medium text-blue-400/80 hover:text-blue-300">
+            Operations center →
+          </Link>
+        </div>
+      ) : (
       <div className="shrink-0 flex items-center justify-between px-5 py-2.5 border-b border-white/[0.03] bg-zinc-950/90">
         <div className="flex items-center gap-2 text-[11px] text-white/20">
           <span>Grand Hotel Demo</span>
           <span className="text-white/10">·</span>
-          <span>Operations preview</span>
+          <span>Operasyon paneli önizlemesi</span>
           {demoMode && (
             <span className="flex items-center gap-1 text-blue-400/60 ml-1">
               <span className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
@@ -767,6 +796,7 @@ export default function ConversationsPage() {
           Demo Mode {demoMode ? "ON" : "OFF"}
         </button>
       </div>
+      )}
 
       {/* ── ROI metrics bar ──────────────────────────────────────────────── */}
       <MetricsBar
@@ -792,6 +822,9 @@ export default function ConversationsPage() {
         localLastMsgs={localLastMsgs}
         localStatuses={localStatuses}
         localTyping={localTyping}
+        locale="tr"
+        queueStats={isLivePanel ? live.queueStats : undefined}
+        convOverlays={isLivePanel ? live.convOverlays : undefined}
       />
 
       {/* ── Center: chat ─────────────────────────────────────────────────── */}
@@ -838,7 +871,6 @@ export default function ConversationsPage() {
                     <ChannelGlyph channel={selectedConv.channel} className="h-3 w-3 opacity-80" />
                     {channelLabel(selectedConv.channel)}
                   </span>
-                  <OpsLiveChip phase={opsPhase} pulseKey={opsPulseAt} />
                 </div>
               </div>
             </div>
@@ -935,6 +967,10 @@ export default function ConversationsPage() {
           onTakeover={handleTakeover}
           onHandToAI={handleHandToAI}
           reservationsHref={reservationsHref}
+          locale="tr"
+          aiConfidence={isLivePanel ? live.cognition?.financial.revenueConfidence : undefined}
+          guestSummary={isLivePanel ? live.cognition?.interpretation : undefined}
+          suggestedAction={isLivePanel ? live.cognition?.recommendedAction : undefined}
         />
       )}
       </div>{/* end 3-column area */}
@@ -1085,15 +1121,15 @@ function MetricsBar({
               <span className="absolute inset-0 rounded-full bg-emerald-400/70 animate-live-pulse" />
               <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400/90" />
             </span>
-            Live ops
+            Canlı operasyon
           </span>
           <span className="text-white/10">·</span>
           <span className={cn("text-white/22", opsPulseAt ? "animate-tick-fade" : "")}>
-            sync {timeAgoCompact(nowMs, lastSyncAt)} ago
+            güncellendi {timeAgoCompact(nowMs, lastSyncAt)} önce
           </span>
         </div>
         <div className="flex items-center gap-2 text-[10px] text-white/18">
-          <span className="hidden sm:inline">Ops signals are simulated</span>
+          <span className="hidden sm:inline">Örnek veri</span>
           <span className="h-3 w-px bg-white/10" />
           <span className="font-medium text-white/22">demo</span>
         </div>
@@ -1198,6 +1234,9 @@ function ConvList({
   localLastMsgs,
   localStatuses,
   localTyping,
+  locale = "tr",
+  queueStats,
+  convOverlays,
 }: {
   activeTab: Tab;
   setActiveTab: (t: Tab) => void;
@@ -1210,39 +1249,58 @@ function ConvList({
   localLastMsgs: Record<string, string>;
   localStatuses: Record<string, ConversationStatus>;
   localTyping: Record<string, boolean>;
+  locale?: "tr" | "en";
+  queueStats?: LiveQueueStats;
+  convOverlays?: Record<string, LiveConvOverlay>;
 }) {
+  const t = useTranslations("conversations");
+  const tCommon = useTranslations("common");
+  const headerStats = queueStats
+    ? [
+        { label: t("stats.active"), value: queueStats.activeCount, color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
+        { label: t("stats.atRisk"), value: queueStats.pendingRevenue, color: "text-amber-400", bg: "bg-amber-500/[0.06] border-amber-500/[0.1]" },
+        { label: t("stats.confirmed"), value: queueStats.confirmedCount, color: "text-emerald-400", bg: "bg-emerald-500/[0.06] border-emerald-500/[0.1]" },
+      ]
+    : [
+        { label: "Aktif", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
+        { label: "Bekleyen gelir", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.06] border-amber-500/[0.1]" },
+        { label: "Onaylı", value: "3", color: "text-emerald-400", bg: "bg-emerald-500/[0.06] border-emerald-500/[0.1]" },
+      ];
+
   return (
     <div className="flex w-[300px] shrink-0 flex-col overflow-hidden border-r border-white/[0.03] bg-zinc-950/35">
       {/* Header */}
       <div className="border-b border-white/[0.03] px-4 pb-5 pt-6">
         <div className="mb-1.5 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-sm font-semibold tracking-tight text-white">Guest threads</h1>
+            <h1 className="text-sm font-semibold tracking-tight text-white">
+              {t("title")}
+            </h1>
             <p className="mt-1 text-[11px] leading-relaxed text-white/30">
               Grand Hotel Demo
               <span className="mx-1.5 text-white/12">·</span>
-              <span className="text-blue-400/75">Ops layer active</span>
+              <span className="text-blue-400/75">{t("subtitle")}</span>
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">
             <div className="flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/[0.08] px-2.5 py-1 transition-colors duration-200 hover:border-blue-500/30 hover:bg-blue-500/[0.11]">
               <Bot className="h-2.5 w-2.5 text-blue-400" />
-              <span className="text-[10px] font-semibold text-blue-400/95">4 closing</span>
+              <span className="text-[10px] font-semibold text-blue-400/95">
+                {queueStats
+                  ? t("activeProcesses", { count: queueStats.activeCount })
+                  : t("activeProcesses", { count: 4 })}
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400/90" />
-              <span className="text-[9px] font-medium uppercase tracking-wide text-white/22">Live</span>
+              <span className="text-[9px] font-medium uppercase tracking-wide text-white/22">{tCommon("live")}</span>
             </div>
           </div>
         </div>
 
         {/* KPI stats */}
         <div className="mb-4 mt-5 grid grid-cols-3 gap-2.5">
-          {[
-            { label: "Ops active", value: "4", color: "text-blue-400", bg: "bg-blue-500/[0.06] border-blue-500/[0.1]" },
-            { label: "Pipeline", value: "€3.4k", color: "text-amber-400", bg: "bg-amber-500/[0.06] border-amber-500/[0.1]" },
-            { label: "Confirmed", value: "3", color: "text-emerald-400", bg: "bg-emerald-500/[0.06] border-emerald-500/[0.1]" },
-          ].map((stat) => (
+          {headerStats.map((stat) => (
             <div
               key={stat.label}
               className={cn(
@@ -1273,7 +1331,7 @@ function ConvList({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search guests or messages…"
+            placeholder={t("searchPlaceholder")}
             className="w-full rounded-lg border border-white/[0.06] bg-white/[0.035] py-2 pl-9 pr-3 text-[12px] text-white placeholder:text-white/22 transition-[border-color,background-color,box-shadow] duration-200 focus:bg-white/[0.05] focus:outline-none focus:ring-1 focus:ring-blue-500/25 focus:border-blue-500/35"
           />
         </div>
@@ -1348,10 +1406,11 @@ function ConvList({
         {filtered.map((conv) => {
           const revenue = CONV_REVENUE[conv.id];
           const isSelected = selected === conv.id;
-          const unread = localUnreads[conv.id] ?? conv.unread;
-          const lastMsg = localLastMsgs[conv.id] ?? conv.lastMessage;
+          const overlay = convOverlays?.[conv.id];
+          const unread = localUnreads[conv.id] ?? overlay?.unread ?? conv.unread;
+          const lastMsg = localLastMsgs[conv.id] ?? overlay?.lastMessage ?? conv.lastMessage;
           const hasUnread = unread > 0;
-          const effectiveConvStatus = localStatuses[conv.id] ?? conv.status;
+          const effectiveConvStatus = localStatuses[conv.id] ?? overlay?.status ?? conv.status;
           const isAiHandling = effectiveConvStatus === "ai_active";
           const isAiWorking = isAiHandling && (localTyping[conv.id] ?? CHAT_THREADS[conv.id]?.aiTyping ?? false);
           // Show waiting indicator only for human_takeover with unread messages
@@ -1457,6 +1516,16 @@ function ConvList({
                     <div className={cn("flex min-w-0 flex-wrap items-center gap-1.5", !isSelected && "opacity-[0.85]")}>
                       <StatusBadge status={effectiveConvStatus} />
                       <LeadBadge status={conv.leadStatus} />
+                      {overlay?.paymentRisk ? (
+                        <span className="rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-amber-200/90">
+                          {t("paymentBadge")}
+                        </span>
+                      ) : null}
+                      {overlay?.recoveryActive ? (
+                        <span className="rounded border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5 text-[8px] font-semibold text-violet-200/85">
+                          AI
+                        </span>
+                      ) : null}
                     </div>
                     {revenue && (
                       <span
@@ -1481,7 +1550,7 @@ function ConvList({
           );
         })}
         {filtered.length === 0 && (
-          <p className="py-14 text-center text-sm text-white/22">No conversations found</p>
+          <p className="py-14 text-center text-sm text-white/22">{t("noConversations")}</p>
         )}
       </div>
     </div>
@@ -1500,6 +1569,10 @@ function GuestSidebar({
   onTakeover,
   onHandToAI,
   reservationsHref,
+  locale = "tr",
+  aiConfidence,
+  guestSummary,
+  suggestedAction,
 }: {
   conv: Conversation;
   thread: ChatThread;
@@ -1510,15 +1583,22 @@ function GuestSidebar({
   onTakeover: () => void;
   onHandToAI: () => void;
   reservationsHref: string;
+  locale?: "tr" | "en";
+  aiConfidence?: number;
+  guestSummary?: string;
+  suggestedAction?: string;
 }) {
+  const t = useTranslations("conversations");
+  const tCommon = useTranslations("common");
   const r = effectiveReservation;
   const showPaymentBtn = r && (r.status === "pending_payment" || r.status === "quoted");
+  const confidence = aiConfidence ?? 87;
 
   return (
     <div className="conv-scroll flex w-[284px] shrink-0 flex-col overflow-y-auto bg-zinc-950/40">
       {/* Guest profile */}
       <div className="border-b border-white/[0.03] px-5 py-6">
-        <SidebarLabel>Guest</SidebarLabel>
+        <SidebarLabel>{t("guest")}</SidebarLabel>
         <div className="mb-5 flex items-center gap-4">
           <div className="relative shrink-0">
             <div
@@ -1563,7 +1643,7 @@ function GuestSidebar({
       {/* Booking summary */}
       {r && (
         <div className="border-b border-white/[0.03] px-5 py-6">
-          <SidebarLabel>Booking</SidebarLabel>
+          <SidebarLabel>{t("reservation")}</SidebarLabel>
           <div
             className={cn(
               "rounded-xl border p-5 transition-all duration-500",
@@ -1587,10 +1667,10 @@ function GuestSidebar({
                 )}
               >
                 {r.status === "confirmed"
-                  ? "Confirmed"
+                  ? tCommon("confirmed")
                   : r.status === "pending_payment"
-                  ? "Pending payment"
-                  : "Quote sent"}
+                  ? tCommon("pendingPayment")
+                  : tCommon("quoteSent")}
               </span>
             </div>
             <p className="text-[12px] font-semibold text-white/88 mb-4 leading-snug">{r.room}</p>
@@ -1620,7 +1700,7 @@ function GuestSidebar({
 
       {/* Quick actions */}
       <div className="border-b border-white/[0.03] px-5 py-6">
-        <SidebarLabel>Quick Actions</SidebarLabel>
+        <SidebarLabel>{t("quickActions")}</SidebarLabel>
         <div className="flex flex-col gap-3">
           {showPaymentBtn && (
             <button
@@ -1634,9 +1714,9 @@ function GuestSidebar({
               )}
             >
               {sentLink ? (
-                <><CheckCircle2 className="w-4 h-4 shrink-0" />Payment link sent!</>
+                <><CheckCircle2 className="w-4 h-4 shrink-0" />{t("paymentLinkSent")}</>
               ) : (
-                <><CreditCard className="w-4 h-4 shrink-0" />Send payment link</>
+                <><CreditCard className="w-4 h-4 shrink-0" />{t("sendPaymentLink")}</>
               )}
             </button>
           )}
@@ -1647,7 +1727,7 @@ function GuestSidebar({
               className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3.5 py-2.5 text-[12px] font-medium text-white/42 transition-[background-color,color,border-color,transform] duration-200 hover:border-white/[0.09] hover:bg-white/[0.045] hover:text-white/65 active:scale-[0.98]"
             >
               <UserCheck className="w-4 h-4 shrink-0" />
-              Take over chat
+              {t("takeover")}
             </button>
           )}
           {effectiveStatus === "human_takeover" && (
@@ -1657,7 +1737,7 @@ function GuestSidebar({
               className="flex w-full items-center gap-2.5 rounded-xl border border-blue-500/18 bg-blue-500/[0.08] px-3.5 py-2.5 text-[12px] font-medium text-blue-300/90 transition-[background-color,border-color,transform] duration-200 hover:border-blue-500/26 hover:bg-blue-500/[0.12] active:scale-[0.98]"
             >
               <Bot className="w-4 h-4 shrink-0" />
-              Hand back to AI
+              {t("handToAi")}
             </button>
           )}
           {r && (
@@ -1666,7 +1746,7 @@ function GuestSidebar({
               className="flex w-full items-center gap-2.5 rounded-xl border border-white/[0.05] bg-transparent px-3.5 py-2.5 text-[12px] font-medium text-white/34 transition-[background-color,color,border-color,transform] duration-200 hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white/55 active:scale-[0.98]"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
-              View full reservation
+              {t("viewReservation")}
             </Link>
           )}
         </div>
@@ -1674,10 +1754,23 @@ function GuestSidebar({
 
       {/* AI Context */}
       <div className="px-5 py-6 pb-8">
-        <SidebarLabel>AI Context</SidebarLabel>
+        <SidebarLabel>{t("guestSummary")}</SidebarLabel>
         <div className="flex flex-col gap-5">
+          {guestSummary ? (
+            <p className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 text-[11px] leading-relaxed text-white/50">
+              {guestSummary}
+            </p>
+          ) : null}
+          {suggestedAction ? (
+            <div className="rounded-lg border border-cyan-500/18 bg-cyan-500/[0.04] px-3 py-2.5">
+              <p className="text-[9px] font-semibold uppercase tracking-wider text-cyan-400/70">
+                {t("suggestedAction")}
+              </p>
+              <p className="mt-1 text-[11px] font-medium leading-relaxed text-cyan-100/85">{suggestedAction}</p>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-3 text-[11px]">
-            <span className="shrink-0 text-white/26">Lead stage</span>
+            <span className="shrink-0 text-white/26">{t("reservationStage")}</span>
             <span
               className={cn(
                 "px-2.5 py-1 rounded-full font-semibold shrink-0",
@@ -1694,7 +1787,7 @@ function GuestSidebar({
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 text-[11px]">
-            <span className="shrink-0 text-white/26">Handler</span>
+            <span className="shrink-0 text-white/26">{t("handledBy")}</span>
             <span
               className={cn(
                 "flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold transition-all shrink-0",
@@ -1706,7 +1799,7 @@ function GuestSidebar({
               )}
             >
               {effectiveStatus === "ai_active" ? (
-                <><Bot className="w-3 h-3" />Tugobo ops</>
+                <><Bot className="w-3 h-3" />AI destek</>
               ) : effectiveStatus === "human_takeover" ? (
                 <><User className="w-3 h-3" />Staff</>
               ) : (
@@ -1717,13 +1810,13 @@ function GuestSidebar({
           {effectiveStatus === "ai_active" && (
             <div>
               <div className="flex items-center justify-between text-[11px] mb-2">
-                <span className="text-white/26">AI confidence</span>
-                <span className="text-white/56 font-semibold tabular-nums">87%</span>
+                <span className="text-white/26">{t("completionSupport")}</span>
+                <span className="text-white/56 font-semibold tabular-nums">{confidence}%</span>
               </div>
               <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all opacity-[0.9]"
-                  style={{ width: "87%" }}
+                  style={{ width: `${confidence}%` }}
                 />
               </div>
             </div>

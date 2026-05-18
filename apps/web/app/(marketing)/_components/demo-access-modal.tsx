@@ -307,7 +307,7 @@ function DemoAccessModal({ onClose }: { onClose: () => void }) {
           <>
             <div className="px-6 sm:px-7 pt-6 pb-4 shrink-0 border-b border-white/[0.06]">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-400/75 mb-2">
-                Hotel Operating Intelligence Preview
+                Operasyon paneli önizlemesi
               </p>
               <h2
                 id={titleId}

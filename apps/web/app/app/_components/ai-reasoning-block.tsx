@@ -1,3 +1,6 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { AIReasoning } from "@/lib/runtime/entities";
 import { escalationLabel } from "@/lib/runtime/graph/reasoning";
 import { Brain } from "lucide-react";
@@ -10,6 +13,8 @@ export function AIReasoningBlock({
   reasoning: AIReasoning;
   compact?: boolean;
 }) {
+  const t = useTranslations("reasoning");
+
   return (
     <div
       className={cn(
@@ -25,12 +30,12 @@ export function AIReasoningBlock({
               {reasoning.headline}
             </p>
             {!compact ? (
-              <p className="text-[10px] text-white/30 mt-0.5">Operational reasoning · explainable AI</p>
+              <p className="text-[10px] text-white/30 mt-0.5">{t("subtitle")}</p>
             ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] tabular-nums text-white/35">AI {reasoning.confidence}%</span>
+          <span className="text-[10px] tabular-nums text-white/35">{t("confidence", { pct: reasoning.confidence })}</span>
           <span
             className={cn(
               "rounded-md border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",

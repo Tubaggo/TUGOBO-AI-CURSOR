@@ -1,0 +1,407 @@
+{
+  "nav": {
+    "section": "Otel operasyonu",
+    "overview": "Özet",
+    "conversations": "Konuşmalar",
+    "reservations": "Rezervasyonlar",
+    "payments": "Ödemeler",
+    "operations": "Operasyon",
+    "guests": "Misafir profilleri",
+    "reports": "Raporlar",
+    "settings": "Ayarlar",
+    "notifications": "Bildirimler"
+  },
+  "common": {
+    "live": "Canlı",
+    "liveOperations": "Canlı operasyon",
+    "viewAll": "Tümünü gör",
+    "openConversations": "Konuşmaları aç",
+    "search": "Ara…",
+    "noResults": "Sonuç bulunamadı",
+    "total": "Toplam",
+    "guests": "Misafir",
+    "nights": "gece",
+    "via": "Kanal",
+    "staff": "Ekip",
+    "resolved": "Tamamlandı",
+    "confirmed": "Onaylandı",
+    "pendingPayment": "Ödeme bekleniyor",
+    "quoteSent": "Teklif gönderildi",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "overviewLink": "Operasyon özeti",
+    "saved": "Kurtarıldı",
+    "inProgress": "Devam ediyor",
+    "revenueDelta": "gelir etkisi"
+  },
+  "demo": {
+    "bannerTitle": "Örnek operasyon paneli",
+    "bannerPreview": "Canlı ürün önizlemesi",
+    "bannerSubtitle": "Dijital otel operasyon merkezi önizlemesi",
+    "loginCta": "Canlı hesap için giriş yapın →"
+  },
+  "overview": {
+    "eyebrow": "Otel operasyonu",
+    "title": "Operasyon özeti",
+    "description": "Konuşmalar, rezervasyonlar, ödemeler ve günlük otel performansı",
+    "metrics": {
+      "revenueRecoveredToday": "Bugün kurtarılan gelir",
+      "revenueRecoveredSub": "ödeme ve yarım kalan rezervasyonlar",
+      "aiInfluencedRevenue": "AI destekli gelir",
+      "aiInfluencedSub": "rezervasyon sürecindeki katkı",
+      "otaCommissionAvoided": "OTA komisyonundan tasarruf",
+      "otaCommissionSub": "doğrudan kanal dönüşümü",
+      "upsellRevenue": "Ek satış geliri",
+      "upsellSub": "onay sonrası paketler",
+      "paymentRecovery": "Ödeme kurtarma geliri",
+      "paymentRecoverySub": "başarısız ödemeler kurtarıldı",
+      "humanTakeoverSaved": "Ekip müdahalesiyle kurtarılan",
+      "humanTakeoverSub": "destekli kapanış",
+      "revenueAtRisk": "Riskteki gelir",
+      "revenueAtRiskSub": "ödeme ve iptal riski",
+      "recoverySuccessRate": "Kurtarma başarı oranı",
+      "recoverySuccessSub": "rezervasyon tamamlama",
+      "directBookingConversion": "Doğrudan rezervasyon",
+      "directBookingSub": "doğrudan kanal satışları"
+    },
+    "executive": {
+      "aiGeneratedRevenue": "AI katkılı gelir",
+      "escalatedExposure": "Dikkat gerektiren gelir",
+      "occupancyInfluence": "Doluluk etkisi"
+    },
+    "recovery": {
+      "eyebrow": "Rezervasyon tamamlama",
+      "title": "Devam eden süreçler",
+      "link": "Konuşmalara git →"
+    },
+    "aiImpact": {
+      "title": "AI performansı",
+      "subtitle": "Kapanış, kurtarma ve destek özeti"
+    },
+    "feed": {
+      "title": "Operasyon özeti",
+      "subtitle": "Önemli gelişmeler ve gelir etkisi"
+    },
+    "stories": {
+      "title": "Günün öne çıkanları",
+      "subtitle": "AI ve ekip katkıları",
+      "auditLink": "Kayıtlar"
+    },
+    "reservations": {
+      "title": "Rezervasyon süreci",
+      "viewAll": "Tümünü gör →"
+    },
+    "conversations": {
+      "title": "Aktif görüşmeler",
+      "viewAll": "Tümünü gör →"
+    }
+  },
+  "reservations": {
+    "eyebrow": "Rezervasyonlar",
+    "title": "Rezervasyon süreci",
+    "description": "Talepler, teklifler, ödemeler ve onaylar — tek ekranda",
+    "summary": {
+      "inProcess": "Süreçte",
+      "pendingApproval": "Onay bekleyen",
+      "confirmedValue": "Onaylı tutar",
+      "atRisk": "Risk altında"
+    },
+    "footer": "Misafir ilerledikçe aşamalar güncellenir",
+    "timelineTitle": "Rezervasyon geçmişi",
+    "tabs": {
+      "all": "Tümü",
+      "inquiry": "Yeni talep",
+      "quote": "Teklif gönderildi",
+      "payment_pending": "Ödeme bekleniyor",
+      "payment_risk": "Ödeme sorunu",
+      "recovery": "Rezervasyon kurtarma",
+      "confirmation": "Onaylandı",
+      "upsell": "Ek satış"
+    },
+    "riskLabel": "Risk"
+  },
+  "payments": {
+    "eyebrow": "Ödemeler",
+    "title": "Ödeme merkezi",
+    "description": "Bekleyen ödemeler, ödeme sorunları ve kurtarma işlemleri — tek ekranda.",
+    "cards": {
+      "pending": "Bekleyen ödemeler",
+      "pendingSub": "misafir ödemesi bekleniyor",
+      "atRisk": "Riskli ödemeler",
+      "atRiskSub": "başarısız veya takılmış",
+      "activeRecovery": "İşlemdeki kurtarmalar",
+      "activeRecoverySub": "devam eden işlemler",
+      "recoveredToday": "Bugün kurtarılan gelir",
+      "recoveredTodaySub": "başarılı ödeme kurtarmaları"
+    },
+    "pendingSection": {
+      "title": "Bekleyen ve riskli ödemeler",
+      "subtitle": "Ödeme bağlantıları, teklifler ve checkout"
+    },
+    "otaSection": {
+      "title": "OTA ve direkt rezervasyon",
+      "subtitle": "Komisyon tasarrufu ve direkt ödeme",
+      "commissionAvoided": "Tasarruf edilen komisyon",
+      "directConversion": "Direkt rezervasyon oranı",
+      "otaRisk": "OTA komisyon riski",
+      "activeRecoveries": "Aktif kurtarmalar",
+      "viewConversations": "OTA görüşmelerini aç"
+    },
+    "recoverySection": {
+      "title": "Kurtarma işlemleri",
+      "subtitle": "Alternatif ödeme · ekip desteği · misafir takibi"
+    },
+    "empty": "Aktif ödeme işlemi yok",
+    "monitoring": "Ödeme izleniyor · {amount} risk altında",
+    "linkActive": "Ödeme bağlantısı aktif · misafir bekleniyor"
+  },
+  "operations": {
+    "eyebrow": "Operasyon merkezi",
+    "title": "Operasyon merkezi",
+    "description": "Uyarılar, ekip koordinasyonu ve bekleyen işlemler — otel operasyonu tek ekranda.",
+    "stats": {
+      "unreadWarnings": "Okunmamış uyarı",
+      "activeInterventions": "Aktif müdahale",
+      "staffAssisting": "Ekip desteği",
+      "supportLevel": "Destek düzeyi"
+    },
+    "queue": {
+      "title": "Bekleyen işlemler",
+      "subtitle": "İnsan desteği veya dikkat gerektiren konular"
+    },
+    "slaWatch": "takip",
+    "liveFeed": "Canlı operasyon akışı",
+    "quickAccess": "Hızlı erişim",
+    "quickLinks": {
+      "conversations": "Aktif görüşmeleri aç",
+      "conversationsSub": "Misafir mesajları ve devir",
+      "payments": "Ödeme merkezi",
+      "paymentsSub": "Bekleyen ödemeler ve kurtarma",
+      "reservations": "Rezervasyon süreci",
+      "reservationsSub": "Aşamalar ve onaylar"
+    },
+    "activeInterventions": "Devam eden müdahaleler",
+    "staffCoordination": "Ekip koordinasyonu",
+    "staffCoordinationSub": "Ekip yanıt veriyor · AI destekliyor",
+    "feedTag": "OPERASYON"
+  },
+  "guests": {
+    "eyebrow": "Misafirler",
+    "title": "Misafir profilleri",
+    "description": "Geçmiş, tercihler ve rezervasyon özeti — misafir bazında",
+    "openConversation": "Görüşmeyi aç →",
+    "segments": {
+      "standard": "Standart",
+      "vip": "VIP",
+      "ota_origin": "OTA kaynaklı"
+    },
+    "metrics": {
+      "ltv": "Toplam değer",
+      "aiInfluenced": "AI destekli gelir",
+      "recoveries": "Kurtarmalar",
+      "vipRescues": "VIP kurtarmalar",
+      "otaConversions": "Direkt dönüşümler"
+    },
+    "memoryTitle": "Misafir geçmişi",
+    "memoryLive": "Güncel",
+    "intelligence": {
+      "risk": "Durum",
+      "completionSupport": "Tamamlama desteği {score}%",
+      "recoveryRate": "Kurtarma {ratio}%",
+      "memorySaved": "Geçmiş kayıtlı",
+      "loyalty": "Sadakat {pct}%",
+      "directPotential": "Direkt potansiyel {pct}%"
+    },
+    "memoryVariants": {
+      "updated": "Geçmiş güncellendi",
+      "pattern": "Benzer misafir davranışı algılandı",
+      "confidence": "Rezervasyon ihtimali yükseldi",
+      "escalation": "İnsan desteği gerekebilir",
+      "recovery": "Ödeme süreci olumlu ilerliyor",
+      "preference": "Tercih notu"
+    }
+  },
+  "conversations": {
+    "title": "Misafir operasyonu",
+    "subtitle": "Rezervasyon merkezi",
+    "activeProcesses": "{count} aktif süreç",
+    "stats": {
+      "active": "Aktif",
+      "atRisk": "Bekleyen gelir",
+      "confirmed": "Onaylı"
+    },
+    "otaInsight": "OTA kanalı rezervasyon başına",
+    "otaSaved": "bu hafta tasarruf",
+    "searchPlaceholder": "Misafir veya mesaj ara…",
+    "waitingForStaff": "{count} misafir ekip bekliyor",
+    "guestWaiting": "misafir ekip bekliyor",
+    "guestsWaiting": "misafir ekip bekliyor",
+    "working": "yanıtlıyor",
+    "waiting": "Bekliyor",
+    "noConversations": "Görüşme bulunamadı",
+    "paymentBadge": "Ödeme",
+    "guest": "Misafir",
+    "reservation": "Rezervasyon",
+    "quickActions": "Hızlı işlemler",
+    "sendPaymentLink": "Ödeme bağlantısı gönder",
+    "paymentLinkSent": "Ödeme bağlantısı gönderildi",
+    "takeover": "Görüşmeyi devral",
+    "handToAi": "AI'ya devret",
+    "viewReservation": "Rezervasyonu aç",
+    "guestSummary": "Misafir özeti",
+    "suggestedAction": "Önerilen işlem",
+    "reservationStage": "Rezervasyon durumu",
+    "handledBy": "Yanıtlayan",
+    "aiSupport": "AI destek",
+    "completionSupport": "Tamamlama desteği",
+    "speaker": "konuşuyor",
+    "messages": "mesaj",
+    "takeOver": "Devral",
+    "viewBooking": "Rezervasyonu gör"
+  },
+  "panel": {
+    "operationSummary": "Operasyon özeti",
+    "companionHint": "Yanında · sonraki adım",
+    "supervision": {
+      "staffLed": "Ekip yanıt veriyor · AI destekliyor",
+      "recoveryActive": "Rezervasyon tamamlanmaya çalışılıyor",
+      "aiSupervising": "AI görüşmeyi destekliyor"
+    },
+    "reservationStage": "Rezervasyon durumu",
+    "completionSupport": "Tamamlama desteği",
+    "closeLikelihood": "Tamamlanma olasılığı",
+    "interventionStatus": "Müdahale durumu",
+    "recoveryConfidence": "Tamamlama güveni",
+    "guestSummary": "Misafir özeti",
+    "operationalStatus": "Operasyon durumu",
+    "channel": "Kanal",
+    "lastActivity": "Son hareket",
+    "handler": "Yanıtlayan",
+    "paymentRisk": "Ödeme durumu",
+    "paymentFriction": "Ödeme sıkıntısı var — takip ediliyor.",
+    "noPaymentRisk": "Ödeme sorunu görünmüyor.",
+    "atStake": "risk altında",
+    "suggestedAction": "Önerilen işlem",
+    "recoveryInProgress": "Rezervasyon süreci devam ediyor",
+    "aiAssistedOps": "AI destekli rezervasyon takibi",
+    "riskLevel": "{level} müdahale ihtimali"
+  },
+  "aiImpact": {
+    "title": "AI performansı",
+    "subtitle": "Kapanış, kurtarma ve destek özeti",
+    "revenueInfluenced": "Katkılı gelir",
+    "confidenceStability": "Destek istikrarı",
+    "aiCloseRate": "AI kapanış oranı",
+    "aiAssistedRecovery": "AI destekli kurtarma",
+    "autonomousResolution": "AI çözüm oranı",
+    "humanTakeoverSuccess": "Ekip müdahalesi başarısı",
+    "interventionPrevention": "Erken müdahale başarısı",
+    "guestRecoveryRate": "Misafir kurtarma oranı"
+  },
+  "alerts": {
+    "revenueAtStake": "Risk altındaki gelir: {amount}",
+    "completionSupport": "Tamamlama desteği: {pct}%",
+    "affectedAreas": "Etkilenen alanlar",
+    "operationalState": "Durum",
+    "severity": {
+      "critical": "KRİTİK",
+      "warning": "UYARI",
+      "info": "BİLGİ",
+      "success": "TAMAMLANDI"
+    },
+    "statuses": {
+      "recovery_active": "Kurtarma devam ediyor",
+      "monitoring": "İzleniyor",
+      "staff_assist": "Ekip desteği",
+      "resolved": "Tamamlandı"
+    }
+  },
+  "recovery": {
+    "kinds": {
+      "failed_payment": "Ödeme kurtarma",
+      "abandoned_booking": "Yarım kalan rezervasyon kurtarıldı",
+      "ota_to_direct": "OTA → direkt rezervasyon",
+      "escalation_cancellation": "İptal önlendi",
+      "takeover_rescue": "Ekip müdahalesi kurtardı"
+    },
+    "phases": {
+      "risk": "risk",
+      "ai_intervention": "AI desteği",
+      "escalation": "ekip desteği",
+      "recovery": "kurtarma",
+      "confirmation": "onay"
+    },
+    "aiRationale": "AI özeti",
+    "saved": "Kurtarıldı {amount}",
+    "inProgress": "Kurtarma devam ediyor"
+  },
+  "attribution": {
+    "kinds": {
+      "payment_recovery": "Ödeme kurtarma",
+      "ai_upsell": "Ek satış",
+      "vip_intervention": "VIP müdahale",
+      "direct_conversion": "Direkt rezervasyon",
+      "takeover_rescue": "Ekip kurtardı",
+      "ota_commission": "OTA komisyon tasarrufu",
+      "escalation_prevention": "İptal önlendi",
+      "abandoned_recovery": "Yarım rezervasyon kurtarıldı"
+    }
+  },
+  "lifecycle": {
+    "stages": {
+      "inquiry": "Yeni talep",
+      "quote": "Teklif gönderildi",
+      "payment_pending": "Ödeme bekleniyor",
+      "payment_risk": "Ödeme sorunu",
+      "escalation": "İnsan desteği",
+      "recovery": "Rezervasyon kurtarma",
+      "confirmation": "Onaylandı",
+      "upsell": "Ek satış",
+      "retention": "Konaklama öncesi",
+      "review_recovery": "Değerlendirme takibi"
+    }
+  },
+  "graph": {
+    "nodes": {
+      "revenue": "Gelir",
+      "reservation": "Rezervasyon",
+      "thread": "Görüşme",
+      "guest": "Misafir",
+      "recovery": "Kurtarma",
+      "alert": "Uyarılar",
+      "audit": "Kayıtlar",
+      "ai_action": "AI işlemleri",
+      "memory": "Misafir geçmişi",
+      "timeline": "Zaman çizelgesi"
+    }
+  },
+  "reasoning": {
+    "subtitle": "AI özeti",
+    "confidence": "Destek {pct}%"
+  },
+  "runtime": {
+    "stages": {
+      "inquiry": "Yeni talep",
+      "availability": "Müsaitlik kontrolü",
+      "offer": "Teklif gönderildi",
+      "payment": "Ödeme bekleniyor",
+      "confirmed": "Rezervasyon tamamlandı",
+      "staff_assist": "Ekip desteği"
+    },
+    "escalation": {
+      "none": "Normal",
+      "watch": "İzlemede",
+      "urgent": "Acil",
+      "critical": "Kritik"
+    },
+    "escalationRisk": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek",
+      "critical": "Kritik"
+    }
+  },
+  "badges": {
+    "vipEscalation": "VIP · destek gerekli"
+  }
+}

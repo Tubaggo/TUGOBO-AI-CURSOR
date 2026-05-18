@@ -1,0 +1,403 @@
+{
+  "nav": {
+    "section": "Hotel operations",
+    "overview": "Overview",
+    "conversations": "Conversations",
+    "reservations": "Reservations",
+    "payments": "Payments",
+    "operations": "Operations",
+    "guests": "Guest profiles",
+    "reports": "Reports",
+    "settings": "Settings",
+    "notifications": "Notifications"
+  },
+  "common": {
+    "live": "Live",
+    "liveOperations": "Live operations",
+    "viewAll": "View all",
+    "openConversations": "Open conversations",
+    "search": "Search…",
+    "noResults": "No results found",
+    "total": "Total",
+    "guests": "Guests",
+    "nights": "nights",
+    "via": "Via",
+    "staff": "Staff",
+    "resolved": "Resolved",
+    "confirmed": "Confirmed",
+    "pendingPayment": "Pending payment",
+    "quoteSent": "Quote sent",
+    "checkIn": "Check-in",
+    "checkOut": "Check-out",
+    "overviewLink": "Operations overview",
+    "saved": "Saved",
+    "inProgress": "In progress",
+    "revenueDelta": "revenue impact"
+  },
+  "demo": {
+    "bannerTitle": "Demo operations panel",
+    "bannerPreview": "Live product preview",
+    "bannerSubtitle": "Digital hotel operations center preview",
+    "loginCta": "Sign in for live account →"
+  },
+  "overview": {
+    "eyebrow": "Hotel operations",
+    "title": "Operations overview",
+    "description": "Conversations, reservations, payments and daily performance",
+    "metrics": {
+      "revenueRecoveredToday": "Revenue recovered today",
+      "revenueRecoveredSub": "payments and incomplete bookings",
+      "aiInfluencedRevenue": "AI-assisted revenue",
+      "aiInfluencedSub": "contribution across booking flow",
+      "otaCommissionAvoided": "OTA commission saved",
+      "otaCommissionSub": "direct channel bookings",
+      "upsellRevenue": "Upsell revenue",
+      "upsellSub": "post-confirmation packages",
+      "paymentRecovery": "Payment recovery revenue",
+      "paymentRecoverySub": "failed payments rescued",
+      "humanTakeoverSaved": "Saved by staff assist",
+      "humanTakeoverSub": "assisted close",
+      "revenueAtRisk": "Revenue at risk",
+      "revenueAtRiskSub": "payment and cancellation risk",
+      "recoverySuccessRate": "Recovery success rate",
+      "recoverySuccessSub": "booking completion",
+      "directBookingConversion": "Direct bookings",
+      "directBookingSub": "direct channel sales"
+    },
+    "executive": {
+      "aiGeneratedRevenue": "AI-attributed revenue",
+      "escalatedExposure": "Revenue needing attention",
+      "occupancyInfluence": "Occupancy influence"
+    },
+    "recovery": {
+      "eyebrow": "Booking completion",
+      "title": "Active processes",
+      "link": "Go to conversations →"
+    },
+    "aiImpact": {
+      "title": "AI performance",
+      "subtitle": "Close, recovery and support summary"
+    },
+    "feed": {
+      "title": "Operations summary",
+      "subtitle": "Key events and revenue impact"
+    },
+    "stories": {
+      "title": "Today's highlights",
+      "subtitle": "AI and team contributions",
+      "auditLink": "Log"
+    },
+    "reservations": {
+      "title": "Reservation flow",
+      "viewAll": "View all →"
+    },
+    "conversations": {
+      "title": "Active conversations",
+      "viewAll": "View all →"
+    }
+  },
+  "reservations": {
+    "eyebrow": "Reservations",
+    "title": "Reservation flow",
+    "description": "Inquiries, quotes, payments and confirmations in one view",
+    "summary": {
+      "inProcess": "In progress",
+      "pendingApproval": "Awaiting approval",
+      "confirmedValue": "Confirmed value",
+      "atRisk": "At risk"
+    },
+    "footer": "Stages update as guests progress",
+    "timelineTitle": "Reservation history",
+    "tabs": {
+      "all": "All",
+      "inquiry": "New inquiry",
+      "quote": "Quote sent",
+      "payment_pending": "Payment pending",
+      "payment_risk": "Payment issue",
+      "recovery": "Booking recovery",
+      "confirmation": "Confirmed",
+      "upsell": "Upsell"
+    },
+    "riskLabel": "Risk"
+  },
+  "payments": {
+    "eyebrow": "Payments",
+    "title": "Payment center",
+    "description": "Pending payments, payment issues and recovery — in one view.",
+    "cards": {
+      "pending": "Pending payments",
+      "pendingSub": "awaiting guest payment",
+      "atRisk": "At-risk payments",
+      "atRiskSub": "failed or stuck",
+      "activeRecovery": "Active recoveries",
+      "activeRecoverySub": "in progress",
+      "recoveredToday": "Recovered today",
+      "recoveredTodaySub": "successful payment recoveries"
+    },
+    "pendingSection": {
+      "title": "Pending and at-risk payments",
+      "subtitle": "Payment links, quotes and checkout"
+    },
+    "otaSection": {
+      "title": "OTA and direct booking",
+      "subtitle": "Commission savings and direct payment",
+      "commissionAvoided": "Commission saved",
+      "directConversion": "Direct booking rate",
+      "otaRisk": "OTA commission risk",
+      "activeRecoveries": "Active recoveries",
+      "viewConversations": "View OTA conversations"
+    },
+    "recoverySection": {
+      "title": "Recovery operations",
+      "subtitle": "Alternate payment · staff assist · guest follow-up"
+    },
+    "empty": "No active payment operations",
+    "monitoring": "Payment monitored · {amount} at risk",
+    "linkActive": "Payment link active · awaiting guest"
+  },
+  "operations": {
+    "eyebrow": "Operations center",
+    "title": "Operations center",
+    "description": "Alerts, team coordination and open items — in one view.",
+    "stats": {
+      "unreadWarnings": "Unread alerts",
+      "activeInterventions": "Active interventions",
+      "staffAssisting": "Staff assisting",
+      "supportLevel": "Support level"
+    },
+    "queue": {
+      "title": "Open queue",
+      "subtitle": "Items needing human attention"
+    },
+    "slaWatch": "watch",
+    "liveFeed": "Live operations feed",
+    "quickAccess": "Quick access",
+    "quickLinks": {
+      "conversations": "Open active conversations",
+      "conversationsSub": "Guest messages and handoff",
+      "payments": "Payment center",
+      "paymentsSub": "Pending payments and recovery",
+      "reservations": "Reservation flow",
+      "reservationsSub": "Stages and confirmations"
+    },
+    "activeInterventions": "Active interventions",
+    "staffCoordination": "Team coordination",
+    "staffCoordinationSub": "Staff-led · AI supporting",
+    "feedTag": "OPERATIONS"
+  },
+  "guests": {
+    "eyebrow": "Guests",
+    "title": "Guest profiles",
+    "description": "History, preferences and booking summary per guest",
+    "openConversation": "Open conversation →",
+    "segments": {
+      "standard": "Standard",
+      "vip": "VIP",
+      "ota_origin": "OTA origin"
+    },
+    "metrics": {
+      "ltv": "Lifetime value",
+      "aiInfluenced": "AI-assisted revenue",
+      "recoveries": "Recoveries",
+      "vipRescues": "VIP rescues",
+      "otaConversions": "Direct conversions"
+    },
+    "memoryTitle": "Guest history",
+    "memoryLive": "Live",
+    "intelligence": {
+      "risk": "Status",
+      "completionSupport": "Completion support {score}%",
+      "recoveryRate": "Recovery {ratio}%",
+      "memorySaved": "History saved",
+      "loyalty": "Loyalty {pct}%",
+      "directPotential": "Direct potential {pct}%"
+    },
+    "memoryVariants": {
+      "updated": "History updated",
+      "pattern": "Similar guest behavior detected",
+      "confidence": "Booking likelihood increased",
+      "escalation": "Staff assist may be needed",
+      "recovery": "Payment progressing well",
+      "preference": "Preference note"
+    }
+  },
+  "conversations": {
+    "title": "Guest operations",
+    "subtitle": "Reservation hub",
+    "activeProcesses": "{count} active",
+    "stats": { "active": "Active", "atRisk": "Pending revenue", "confirmed": "Confirmed" },
+    "otaInsight": "OTA channel costs you",
+    "otaSaved": "saved this week",
+    "searchPlaceholder": "Search guest or message…",
+    "waitingForStaff": "{count} guest waiting for staff",
+    "guestWaiting": "guest waiting",
+    "guestsWaiting": "guests waiting",
+    "working": "replying",
+    "waiting": "Waiting",
+    "noConversations": "No conversations found",
+    "paymentBadge": "Payment",
+    "guest": "Guest",
+    "reservation": "Reservation",
+    "quickActions": "Quick actions",
+    "sendPaymentLink": "Send payment link",
+    "paymentLinkSent": "Payment link sent",
+    "takeover": "Take over",
+    "handToAi": "Hand to AI",
+    "viewReservation": "View reservation",
+    "guestSummary": "Guest summary",
+    "suggestedAction": "Suggested action",
+    "reservationStage": "Reservation stage",
+    "handledBy": "Handled by",
+    "aiSupport": "AI support",
+    "completionSupport": "Completion support",
+    "speaker": "speaker",
+    "messages": "messages",
+    "takeOver": "Take over",
+    "viewBooking": "View booking"
+  },
+  "panel": {
+    "operationSummary": "Operations summary",
+    "companionHint": "Companion · next step",
+    "supervision": {
+      "staffLed": "Staff-led · AI supporting",
+      "recoveryActive": "Completing reservation",
+      "aiSupervising": "AI supporting conversation"
+    },
+    "reservationStage": "Reservation stage",
+    "completionSupport": "Completion support",
+    "closeLikelihood": "Close likelihood",
+    "interventionStatus": "Intervention status",
+    "recoveryConfidence": "Completion confidence",
+    "guestSummary": "Guest summary",
+    "operationalStatus": "Status",
+    "channel": "Channel",
+    "lastActivity": "Last activity",
+    "handler": "Handler",
+    "paymentRisk": "Payment status",
+    "paymentFriction": "Payment issue — being monitored.",
+    "noPaymentRisk": "No payment issue detected.",
+    "atStake": "at risk",
+    "suggestedAction": "Suggested action",
+    "recoveryInProgress": "Reservation in progress",
+    "aiAssistedOps": "AI-assisted reservation tracking",
+    "riskLevel": "{level} intervention likelihood"
+  },
+  "aiImpact": {
+    "title": "AI performance",
+    "subtitle": "Close, recovery and support summary",
+    "revenueInfluenced": "Revenue influenced",
+    "confidenceStability": "Support stability",
+    "aiCloseRate": "AI close rate",
+    "aiAssistedRecovery": "AI-assisted recovery",
+    "autonomousResolution": "AI resolution rate",
+    "humanTakeoverSuccess": "Staff assist success",
+    "interventionPrevention": "Early intervention success",
+    "guestRecoveryRate": "Guest recovery rate"
+  },
+  "alerts": {
+    "revenueAtStake": "Revenue at risk: {amount}",
+    "completionSupport": "Completion support: {pct}%",
+    "affectedAreas": "Affected areas",
+    "operationalState": "Status",
+    "severity": {
+      "critical": "CRITICAL",
+      "warning": "WARNING",
+      "info": "INFO",
+      "success": "DONE"
+    },
+    "statuses": {
+      "recovery_active": "Recovery in progress",
+      "monitoring": "Monitoring",
+      "staff_assist": "Staff assist",
+      "resolved": "Resolved"
+    }
+  },
+  "recovery": {
+    "kinds": {
+      "failed_payment": "Payment recovery",
+      "abandoned_booking": "Abandoned booking saved",
+      "ota_to_direct": "OTA → direct booking",
+      "escalation_cancellation": "Cancellation prevented",
+      "takeover_rescue": "Staff rescue"
+    },
+    "phases": {
+      "risk": "risk",
+      "ai_intervention": "AI assist",
+      "escalation": "staff assist",
+      "recovery": "recovery",
+      "confirmation": "confirmed"
+    },
+    "aiRationale": "AI summary",
+    "saved": "Saved {amount}",
+    "inProgress": "Recovery in progress"
+  },
+  "attribution": {
+    "kinds": {
+      "payment_recovery": "Payment recovery",
+      "ai_upsell": "Upsell",
+      "vip_intervention": "VIP intervention",
+      "direct_conversion": "Direct booking",
+      "takeover_rescue": "Staff rescue",
+      "ota_commission": "OTA commission saved",
+      "escalation_prevention": "Cancellation prevented",
+      "abandoned_recovery": "Abandoned booking saved"
+    }
+  },
+  "lifecycle": {
+    "stages": {
+      "inquiry": "New inquiry",
+      "quote": "Quote sent",
+      "payment_pending": "Payment pending",
+      "payment_risk": "Payment issue",
+      "escalation": "Staff assist",
+      "recovery": "Booking recovery",
+      "confirmation": "Confirmed",
+      "upsell": "Upsell",
+      "retention": "Pre-arrival",
+      "review_recovery": "Review follow-up"
+    }
+  },
+  "graph": {
+    "nodes": {
+      "revenue": "Revenue",
+      "reservation": "Reservation",
+      "thread": "Conversation",
+      "guest": "Guest",
+      "recovery": "Recovery",
+      "alert": "Alerts",
+      "audit": "Log",
+      "ai_action": "AI actions",
+      "memory": "Guest history",
+      "timeline": "Timeline"
+    }
+  },
+  "reasoning": {
+    "subtitle": "AI summary",
+    "confidence": "Support {pct}%"
+  },
+  "runtime": {
+    "stages": {
+      "inquiry": "New inquiry",
+      "availability": "Checking availability",
+      "offer": "Offer ready",
+      "payment": "Payment pending",
+      "confirmed": "Booking confirmed",
+      "staff_assist": "Staff assisting"
+    },
+    "escalation": {
+      "none": "Normal",
+      "watch": "Watch",
+      "urgent": "Urgent",
+      "critical": "Critical"
+    },
+    "escalationRisk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
+  },
+  "badges": {
+    "vipEscalation": "VIP · assist needed"
+  }
+}

@@ -22,7 +22,7 @@ import { StatusBadge, LanguageFlag } from "./badges";
 
 const metrics = [
   {
-    label: "Revenue recovered",
+    label: "Direkt gelir",
     value: "$12.4k",
     delta: "+$2.1k",
     icon: DollarSign,
@@ -31,7 +31,7 @@ const metrics = [
     sub: "direct · rolling 7d",
   },
   {
-    label: "Direct bookings",
+    label: "Direkt rezervasyon",
     value: "18",
     delta: "+5",
     icon: CalendarCheck,
@@ -49,7 +49,7 @@ const metrics = [
     sub: "15% on direct only",
   },
   {
-    label: "Missed leads prevented",
+    label: "Kaçırılmayan talep",
     value: "37",
     delta: "+9",
     icon: ShieldAlert,
@@ -58,13 +58,13 @@ const metrics = [
     sub: "after-hours capture",
   },
   {
-    label: "Avg response time",
+    label: "Ort. yanıt süresi",
     value: "38s",
     delta: "↓ 6s",
     icon: Clock,
     iconColor: "text-violet-400",
     iconBg: "bg-violet-500/10",
-    sub: "ops layer SLA",
+    sub: "misafir bekleme süresi",
   },
 ];
 
@@ -184,7 +184,7 @@ export function DashboardOverview({ linkPrefix }: { linkPrefix: string }) {
         <div className="bg-zinc-900 border border-white/[0.06] rounded-xl p-5 mb-6">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between mb-4">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/28">Reservation pipeline</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/28">Rezervasyon süreci</p>
               <h2 className="text-sm font-semibold text-white mt-0.5">Stage mix · command view</h2>
             </div>
             <Link href={res} className="text-xs text-blue-400 hover:text-blue-300 transition-colors shrink-0">
@@ -217,7 +217,7 @@ export function DashboardOverview({ linkPrefix }: { linkPrefix: string }) {
               <div>
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-white/40" />
-                  <h2 className="text-sm font-semibold text-white">Guest threads</h2>
+                  <h2 className="text-sm font-semibold text-white">Misafir operasyonları</h2>
                 </div>
                 <p className="text-[11px] text-white/30 mt-0.5">Unified queue · AI + staff context preserved</p>
               </div>

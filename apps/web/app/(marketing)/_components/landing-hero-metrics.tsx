@@ -6,7 +6,7 @@ import {
   TrendingUp,
   Banknote,
   Clock,
-  ShieldCheck,
+  ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -32,9 +32,9 @@ const INITIAL_ROWS: HeroMetricRow[] = [
     iconBg: "bg-emerald-500/[0.10]",
     iconColor: "text-emerald-400",
     color: "text-emerald-400",
-    value: "47",
-    label: "Bugün kapanan rezervasyon",
-    trend: "+12 dünden",
+    value: "12",
+    label: "Günlük rezervasyon",
+    trend: "+3 dünden",
   },
   {
     key: "rev",
@@ -43,8 +43,8 @@ const INITIAL_ROWS: HeroMetricRow[] = [
     iconColor: "text-blue-400",
     color: "text-blue-400",
     value: "₺68.400",
-    label: "Doğrudan kanal geliri",
-    trend: "+₺9.200 geçen hafta",
+    label: "Direkt gelir",
+    trend: "+₺9.200",
   },
   {
     key: "ota",
@@ -53,8 +53,8 @@ const INITIAL_ROWS: HeroMetricRow[] = [
     iconColor: "text-amber-400",
     color: "text-amber-400",
     value: "₺10.260",
-    label: "OTA komisyonu önlendi",
-    trend: "+₺1.380 bu hafta",
+    label: "OTA tasarrufu",
+    trend: "+₺1.380",
   },
   {
     key: "lat",
@@ -62,19 +62,19 @@ const INITIAL_ROWS: HeroMetricRow[] = [
     iconBg: "bg-violet-500/[0.10]",
     iconColor: "text-violet-400",
     color: "text-violet-400",
-    value: "38s",
+    value: "38 sn",
     label: "Ort. yanıt süresi",
-    trend: "↓ 12sn hızlı",
+    trend: "↓ 12 sn",
   },
   {
-    key: "loss",
-    icon: ShieldCheck,
-    iconBg: "bg-cyan-500/[0.10]",
-    iconColor: "text-cyan-400",
-    color: "text-cyan-400",
-    value: "183",
-    label: "Önlenen kayıp",
-    trend: "100% yakalama",
+    key: "pending",
+    icon: ClipboardCheck,
+    iconBg: "bg-rose-500/[0.10]",
+    iconColor: "text-rose-400",
+    color: "text-rose-400",
+    value: "3",
+    label: "Bekleyen onay",
+    trend: "2 ödeme",
   },
 ];
 
@@ -93,7 +93,7 @@ function applyDetail(rows: HeroMetricRow[], d: SalesDemoMetricsDetail): HeroMetr
   });
 }
 
-/** Live-updating hero metrics strip (listens to sales demo completion on `/`). */
+/** Live-updating hero KPI strip (listens to sales demo completion on `/`). */
 export function LandingHeroMetrics() {
   const [rows, setRows] = useState<HeroMetricRow[]>(INITIAL_ROWS);
 
@@ -111,25 +111,25 @@ export function LandingHeroMetrics() {
   }, [onDemoMetrics]);
 
   return (
-    <div className="grid grid-cols-5 border-b border-white/[0.06] bg-zinc-950/60">
+    <div className="grid grid-cols-2 border-b border-white/[0.06] bg-gradient-to-b from-zinc-950/90 to-zinc-950/70 sm:grid-cols-5">
       {rows.map((m) => (
         <div
           key={m.key}
-          className="flex items-center gap-2.5 px-4 py-3 border-r border-white/[0.04] last:border-r-0"
+          className="flex items-center gap-2 border-b border-white/[0.04] px-3 py-2.5 last:border-b-0 sm:border-b-0 sm:border-r sm:px-3.5 sm:py-3 sm:last:border-r-0"
         >
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${m.iconBg}`}>
-            <m.icon className={`w-3 h-3 ${m.iconColor}`} />
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${m.iconBg}`}>
+            <m.icon className={`h-3 w-3 ${m.iconColor}`} />
           </div>
           <div className="min-w-0">
-            <div className="flex items-baseline gap-1 flex-wrap">
+            <div className="flex flex-wrap items-baseline gap-1">
               <span
-                className={`text-[14px] font-bold tabular-nums transition-colors duration-500 ${m.color}`}
+                className={`text-[13px] font-bold tabular-nums transition-colors duration-500 sm:text-[14px] ${m.color}`}
               >
                 {m.value}
               </span>
-              <span className="text-[9px] text-emerald-400/50">↑ {m.trend}</span>
+              <span className="text-[8px] text-emerald-400/55 sm:text-[9px]">↑ {m.trend}</span>
             </div>
-            <p className="text-[9px] text-white/30 truncate">{m.label}</p>
+            <p className="truncate text-[8px] text-white/32 sm:text-[9px]">{m.label}</p>
           </div>
         </div>
       ))}

@@ -1,3 +1,4 @@
+import { memoryVariantLabel } from "@/lib/i18n/operational-copy";
 import type { GuestIntelligence, GuestMemory } from "./types";
 
 export type MemoryRuntimeEventVariant =
@@ -15,14 +16,9 @@ export type MemoryRuntimeEvent = {
   detail: string;
 };
 
-const VARIANT_LABELS: Record<MemoryRuntimeEventVariant, string> = {
-  updated: "Memory updated",
-  pattern: "Pattern matched",
-  confidence: "Confidence increased",
-  escalation: "Escalation sensitivity detected",
-  recovery: "Recovery tolerance upgraded",
-  preference: "Preference signal",
-};
+function variantLabel(variant: MemoryRuntimeEventVariant): string {
+  return memoryVariantLabel(variant);
+}
 
 function classifyLine(line: string): MemoryRuntimeEventVariant {
   const lower = line.toLowerCase();
@@ -53,7 +49,7 @@ export function memoryToRuntimeEvents(
     return {
       id: `mem-ev-${item.section}-${i}`,
       variant,
-      label: VARIANT_LABELS[variant],
+      label: variantLabel(variant),
       detail: item.line,
     };
   });
@@ -62,8 +58,8 @@ export function memoryToRuntimeEvents(
     events.unshift({
       id: "mem-ev-confidence",
       variant: "confidence",
-      label: VARIANT_LABELS.confidence,
-      detail: `Recovery confidence ${intelligence.recoverySuccessRatio}% · AI runtime ${intelligence.aiConfidenceScore}%`,
+      label: variantLabel("confidence"),
+      detail: `Kurtarma ${intelligence.recoverySuccessRatio}% · tamamlama desteği ${intelligence.aiConfidenceScore}%`,
     });
   }
 

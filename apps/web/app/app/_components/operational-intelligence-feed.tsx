@@ -1,17 +1,29 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { OperationalAlert, OperationsFeedItem } from "@/lib/runtime/entities";
 import { formatEur } from "@/lib/operational/format";
-import { NODE_LABELS } from "@/lib/runtime/graph/propagation";
-import { escalationLabel } from "@/lib/runtime/graph/reasoning";
+import {
+  graphNodeLabel,
+  orchestrationStatusLabel,
+  severityBadgeLabel,
+} from "@/lib/i18n/operational-copy";
+import { escalationLabel } from "@/lib/i18n/runtime-copy";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, CheckCircle2, Info, ShieldAlert } from "lucide-react";
 
-const SEVERITY_META = {
-  critical: { icon: ShieldAlert, border: "border-l-rose-500/60", badge: "CRITICAL" },
-  warning: { icon: AlertTriangle, border: "border-l-amber-500/50", badge: "WARNING" },
-  info: { icon: Info, border: "border-l-cyan-500/40", badge: "INTEL" },
-  success: { icon: CheckCircle2, border: "border-l-emerald-500/50", badge: "SECURED" },
+const SEVERITY_ICONS = {
+  critical: ShieldAlert,
+  warning: AlertTriangle,
+  info: Info,
+  success: CheckCircle2,
+} as const;
+
+const SEVERITY_BORDERS = {
+  critical: "border-l-rose-500/60",
+  warning: "border-l-amber-500/50",
+  info: "border-l-cyan-500/40",
+  success: "border-l-emerald-500/50",
 } as const;
 
 export function OperationalIntelligenceFeedItem({
@@ -23,11 +35,12 @@ export function OperationalIntelligenceFeedItem({
   onMarkRead?: () => void;
   compact?: boolean;
 }) {
-  const meta = SEVERITY_META[alert.severity];
-  const Icon = meta.icon;
+  const t = useTranslations("alerts");
+  const severity = alert.severity as keyof typeof SEVERITY_ICONS;
+  const Icon = SEVERITY_ICONS[severity] ?? Info;
   const className = cn(
     "flex w-full gap-3 border-l-2 px-4 py-3 text-left transition-colors",
-    meta.border,
+    SEVERITY_BORDERS[severity] ?? SEVERITY_BORDERS.info,
     onMarkRead && "hover:bg-white/[0.03]",
     !alert.read && "bg-white/[0.02]",
     compact && "px-3 py-2.5"
@@ -38,7 +51,9 @@ export function OperationalIntelligenceFeedItem({
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-white/50" />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[9px] font-bold tracking-wider text-white/35">{meta.badge}</span>
+          <span className="text-[9px] font-bold tracking-wider text-white/35">
+            {severityBadgeLabel(severity)}
+          </span>
           <span className="text-[10px] text-white/25">{alert.timestamp}</span>
         </div>
         <p className={cn("font-semibold text-white/90", compact ? "text-xs" : "text-sm")}>{alert.title}</p>
@@ -63,46 +78,50 @@ export function OperationalIntelligenceFeedItem({
 }
 
 function AlertFeedMeta({ alert }: { alert: OperationalAlert }) {
+  const t = useTranslations("alerts");
+
   return (
-    <MotionRuntimeIntelligenceFeedMetaBlock>
+    <div className="mt-2 space-y-1.5">
       <div className="flex flex-wrap gap-2">
         {alert.financialEur ? (
           <span className="text-[10px] font-semibold tabular-nums text-emerald-400">
-            Revenue exposure: {formatEur(alert.financialEur)}
+            {t("revenueAtStake", { amount: formatEur(alert.financialEur) })}
           </span>
         ) : null}
         {alert.aiConfidence !== undefined ? (
-          <span className="text-[10px] text-blue-300/90">AI Confidence: {alert.aiConfidence}%</span>
+          <span className="text-[10px] text-blue-300/90">
+            {t("completionSupport", { pct: alert.aiConfidence })}
+          </span>
         ) : null}
       </div>
       {alert.affectedSystems && alert.affectedSystems.length > 0 ? (
         <p className="text-[10px] text-white/35">
-          Propagation: {alert.affectedSystems.map((n) => NODE_LABELS[n]).join(" → ")}
+          {t("affectedAreas")}: {alert.affectedSystems.map((n) => graphNodeLabel(n)).join(" → ")}
         </p>
       ) : null}
       {alert.orchestrationStatus ? (
         <p className="text-[10px] text-white/35">
-          Operational state:{" "}
-          <span className="text-cyan-300/80 capitalize">{alert.orchestrationStatus.replace(/_/g, " ")}</span>
+          {t("operationalState")}:{" "}
+          <span className="text-cyan-300/80 capitalize">
+            {orchestrationStatusLabel(alert.orchestrationStatus)}
+          </span>
           {alert.escalationLevel && alert.escalationLevel !== "none"
             ? ` · ${escalationLabel(alert.escalationLevel)}`
             : null}
         </p>
       ) : null}
-    </MotionRuntimeIntelligenceFeedMetaBlock>
+    </div>
   );
 }
 
-function MotionRuntimeIntelligenceFeedMetaBlock({ children }: { children: React.ReactNode }) {
-  return <div className="mt-2 space-y-1.5">{children}</div>;
-}
-
 export function OperationsFeedRuntimeItem({ item }: { item: OperationsFeedItem }) {
+  const t = useTranslations("operations");
+
   return (
     <article className={cn("flex gap-3 border-l-2 px-4 py-3", item.tone)}>
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400/60" />
       <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-bold tracking-wider text-cyan-400/60">OPERATIONS</p>
+        <p className="text-[9px] font-bold tracking-wider text-cyan-400/60">{t("feedTag")}</p>
         <p className="text-xs font-semibold text-white/90">{item.title}</p>
         <p className="mt-0.5 text-[11px] text-white/38">{item.meta}</p>
         <div className="mt-1.5 flex items-center gap-2">

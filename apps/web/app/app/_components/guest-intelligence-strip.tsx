@@ -1,4 +1,7 @@
-import type { Guest, GuestIntelligence } from "@/lib/runtime/entities";
+"use client";
+
+import { useTranslations } from "next-intl";
+import type { GuestIntelligence } from "@/lib/runtime/entities";
 import { cn } from "@/lib/utils";
 
 const RISK_COLORS: Record<GuestIntelligence["orchestrationRiskLevel"], string> = {
@@ -8,6 +11,13 @@ const RISK_COLORS: Record<GuestIntelligence["orchestrationRiskLevel"], string> =
   critical: "text-rose-300 border-rose-500/25 bg-rose-500/10",
 };
 
+const RISK_LABELS: Record<GuestIntelligence["orchestrationRiskLevel"], string> = {
+  low: "Düşük",
+  medium: "Orta",
+  high: "Yüksek",
+  critical: "Kritik",
+};
+
 export function GuestIntelligenceStrip({
   intelligence,
   compact = false,
@@ -15,28 +25,33 @@ export function GuestIntelligenceStrip({
   intelligence: GuestIntelligence;
   compact?: boolean;
 }) {
+  const t = useTranslations("guests.intelligence");
+
   return (
     <div className={cn("flex flex-wrap gap-1.5", compact ? "mt-2" : "mt-3")}>
       <Chip
-        label={`Risk · ${intelligence.orchestrationRiskLevel}`}
+        label={`${t("risk")} · ${RISK_LABELS[intelligence.orchestrationRiskLevel]}`}
         className={RISK_COLORS[intelligence.orchestrationRiskLevel]}
       />
-      <Chip label={`AI ${intelligence.aiConfidenceScore}%`} className="text-blue-300 border-blue-500/25 bg-blue-500/10" />
       <Chip
-        label={`Recovery ${intelligence.recoverySuccessRatio}%`}
+        label={t("completionSupport", { score: intelligence.aiConfidenceScore })}
+        className="text-blue-300 border-blue-500/25 bg-blue-500/10"
+      />
+      <Chip
+        label={t("recoveryRate", { ratio: intelligence.recoverySuccessRatio })}
         className="text-violet-300 border-violet-500/25 bg-violet-500/10"
       />
       {intelligence.memoryAttached ? (
-        <Chip label="Memory attached" className="text-violet-300 border-violet-500/25 bg-violet-500/10" />
+        <Chip label={t("memorySaved")} className="text-violet-300 border-violet-500/25 bg-violet-500/10" />
       ) : null}
       {!compact ? (
         <>
           <Chip
-            label={`Loyalty ${intelligence.loyaltyProbability}%`}
+            label={t("loyalty", { pct: intelligence.loyaltyProbability })}
             className="text-white/50 border-white/10 bg-white/[0.04]"
           />
           <Chip
-            label={`Direct ${intelligence.directBookingPotential}%`}
+            label={t("directPotential", { pct: intelligence.directBookingPotential })}
             className="text-cyan-300 border-cyan-500/25 bg-cyan-500/10"
           />
         </>
@@ -59,8 +74,4 @@ function Chip({ label, className }: { label: string; className: string }) {
       {label}
     </span>
   );
-}
-
-export function GuestIntelligenceStripFromGuest({ guest }: { guest: Guest }) {
-  return <GuestIntelligenceStrip intelligence={guest.intelligence} />;
 }

@@ -1,20 +1,8 @@
 import { Bot, User, MessageCircle, Cog } from "lucide-react";
 import type { LifecycleTimelineEvent } from "@/lib/operational/types";
 import { formatEur } from "@/lib/operational/format";
+import { lifecycleStageLabel } from "@/lib/i18n/operational-copy";
 import { cn } from "@/lib/utils";
-
-const STAGE_LABELS: Record<string, string> = {
-  inquiry: "Inquiry",
-  quote: "Quote",
-  payment_pending: "Payment pending",
-  payment_risk: "Payment risk",
-  escalation: "Escalation",
-  recovery: "Recovery",
-  confirmation: "Confirmation",
-  upsell: "Upsell",
-  retention: "Retention",
-  review_recovery: "Review recovery",
-};
 
 const ACTOR_ICONS = {
   ai: Bot,
@@ -46,7 +34,7 @@ function TimelineRow({ event, isLast }: { event: LifecycleTimelineEvent; isLast:
       <div className={cn("min-w-0 flex-1 pb-3", isLast && "pb-0")}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-white/28">
-            {STAGE_LABELS[event.stage] ?? event.stage}
+            {lifecycleStageLabel(event.stage)}
           </span>
           <span className="text-[10px] text-white/25 tabular-nums">{event.timestamp}</span>
         </div>

@@ -9,7 +9,7 @@ const BADGES: {
   { key: "paymentRisk", label: "Payment risk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
   { key: "recoveryActive", label: "Recovery active", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
   { key: "humanTakeover", label: "Human takeover", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
-  { key: "vipEscalation", label: "VIP escalation", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
+  { key: "vipEscalation", label: "VIP · destek gerekli", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
   { key: "otaConversion", label: "OTA conversion", className: "border-cyan-500/25 bg-cyan-500/10 text-cyan-300" },
   { key: "memoryAttached", label: "Memory attached", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
   { key: "priorRiskDetected", label: "Prior risk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },

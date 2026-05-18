@@ -1,3 +1,4 @@
+import { graphNodeLabel } from "@/lib/i18n/operational-copy";
 import type { OperationalEventType } from "../events/types";
 import type { GraphPropagation, PropagationNode } from "./types";
 
@@ -72,15 +73,11 @@ export function buildGraphPropagation(type: OperationalEventType): GraphPropagat
   };
 }
 
-export const NODE_LABELS: Record<PropagationNode, string> = {
-  revenue: "Revenue",
-  reservation: "Pipeline",
-  thread: "Orchestration",
-  guest: "Guest intel",
-  recovery: "Recovery",
-  alert: "Alerts",
-  audit: "Audit",
-  ai_action: "AI actions",
-  memory: "AI memory",
-  timeline: "Timeline",
-};
+export function nodeLabel(node: PropagationNode): string {
+  return graphNodeLabel(node);
+}
+
+/** @deprecated Use nodeLabel() — kept for imports */
+export const NODE_LABELS: Record<PropagationNode, string> = new Proxy({} as Record<PropagationNode, string>, {
+  get: (_target, prop: string) => graphNodeLabel(prop),
+});

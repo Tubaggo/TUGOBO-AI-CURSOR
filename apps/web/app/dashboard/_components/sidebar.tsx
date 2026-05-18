@@ -4,10 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   MessageSquare,
   Calendar,
+  CreditCard,
+  ClipboardList,
+  UserRound,
+  BarChart3,
   Settings,
   ChevronRight,
   Bell,
@@ -20,21 +25,74 @@ type NavItem = {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
-  exact?: boolean;
   badge: number | null;
+  match: (pathname: string, base: string) => boolean;
 };
 
 export function Sidebar({ basePath = DEFAULT_BASE }: { basePath?: string }) {
   const pathname = usePathname();
+  const t = useTranslations("nav");
 
   const navItems: NavItem[] = useMemo(
     () => [
-      { href: basePath, label: "Ops command", icon: LayoutDashboard, exact: true, badge: null },
-      { href: `${basePath}/conversations`, label: "Guest threads", icon: MessageSquare, badge: 6 },
-      { href: `${basePath}/reservations`, label: "Pipeline", icon: Calendar, badge: null },
-      { href: `${basePath}/settings`, label: "Settings", icon: Settings, badge: null },
+      {
+        href: basePath,
+        label: t("overview"),
+        icon: LayoutDashboard,
+        badge: null,
+        match: (p, base) => p === base || p === `${base}/overview`,
+      },
+      {
+        href: `${basePath}/conversations`,
+        label: t("conversations"),
+        icon: MessageSquare,
+        badge: 6,
+        match: (p) => p.includes("/conversations"),
+      },
+      {
+        href: `${basePath}/reservations`,
+        label: t("reservations"),
+        icon: Calendar,
+        badge: null,
+        match: (p) => p.includes("/reservations"),
+      },
+      {
+        href: `${basePath}/payments`,
+        label: t("payments"),
+        icon: CreditCard,
+        badge: 2,
+        match: (p) => p.includes("/payments"),
+      },
+      {
+        href: `${basePath}/operations`,
+        label: t("operations"),
+        icon: ClipboardList,
+        badge: null,
+        match: (p) => p.includes("/operations"),
+      },
+      {
+        href: `${basePath}/guests`,
+        label: t("guests"),
+        icon: UserRound,
+        badge: null,
+        match: (p) => p.includes("/guests"),
+      },
+      {
+        href: `${basePath}/reports`,
+        label: t("reports"),
+        icon: BarChart3,
+        badge: null,
+        match: (p) => p.includes("/reports"),
+      },
+      {
+        href: `${basePath}/settings`,
+        label: t("settings"),
+        icon: Settings,
+        badge: null,
+        match: (p) => p.includes("/settings"),
+      },
     ],
-    [basePath]
+    [basePath, t]
   );
 
   return (
@@ -67,10 +125,12 @@ export function Sidebar({ basePath = DEFAULT_BASE }: { basePath?: string }) {
         </button>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-2">
-        <p className="px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">Main</p>
-        {navItems.map(({ href, label, icon: Icon, badge, exact }) => {
-          const isActive = exact ? pathname === href : pathname.startsWith(href);
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+        <p className="px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+          {t("section")}
+        </p>
+        {navItems.map(({ href, label, icon: Icon, badge, match }) => {
+          const isActive = match(pathname, basePath);
           return (
             <Link
               key={href}
@@ -108,7 +168,7 @@ export function Sidebar({ basePath = DEFAULT_BASE }: { basePath?: string }) {
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/40 transition-colors hover:bg-white/[0.04] hover:text-white/70"
         >
           <Bell className="h-4 w-4" />
-          <span className="font-medium">Notifications</span>
+          <span className="font-medium">{t("notifications")}</span>
         </button>
         <div className="mt-1 flex items-center gap-2.5 px-3 py-2">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-[10px] font-bold text-white">

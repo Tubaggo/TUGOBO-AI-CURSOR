@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { GuestIntelligence, GuestMemory } from "@/lib/runtime/entities";
 import { memoryToRuntimeEvents } from "@/lib/runtime/graph/memory-events";
 import { useMutationPulse } from "@/lib/runtime/hooks/use-mutation-pulse";
@@ -22,6 +23,7 @@ export function MemoryRuntimePanel({
   memory: GuestMemory;
   intelligence: GuestIntelligence;
 }) {
+  const t = useTranslations("guests");
   const events = memoryToRuntimeEvents(memory, intelligence);
   const isLive = useMutationPulse(4000);
 
@@ -37,12 +39,12 @@ export function MemoryRuntimePanel({
       <div className="mb-3 flex items-center gap-2">
         <Brain className="h-3.5 w-3.5 text-violet-400" />
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-400/90">
-          AI memory runtime
+          {t("memoryTitle")}
         </p>
         {isLive ? (
           <span className="ml-auto flex items-center gap-1 text-[9px] font-semibold text-violet-400">
             <span className="h-1 w-1 animate-pulse rounded-full bg-violet-400" />
-            Live cognition
+            {t("memoryLive")}
           </span>
         ) : null}
       </div>
@@ -64,7 +66,6 @@ export function MemoryRuntimePanel({
   );
 }
 
-/** @deprecated Use MemoryRuntimePanel — kept for backward imports */
 export function AIMemoryPanel({
   memory,
   intelligence,
@@ -82,7 +83,7 @@ export function AIMemoryPanel({
       recoverySuccessRatio: 70,
       loyaltyProbability: 60,
       directBookingPotential: 50,
-      operationalStatus: "Monitoring",
+      operationalStatus: "İzleniyor",
       memoryAttached: true,
     } satisfies GuestIntelligence);
 

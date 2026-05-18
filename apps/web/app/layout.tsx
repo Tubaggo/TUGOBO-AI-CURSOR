@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConciergeWebChat } from "./(marketing)/_components/concierge-web-chat";
 import { DemoAccessModalProvider } from "./(marketing)/_components/demo-access-modal";
 import { DemoModalProvider } from "./(marketing)/_components/demo-modal";
+import { PanelPreviewModalProvider } from "./(marketing)/_components/landing-panel-preview-modal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -72,8 +73,10 @@ export default function RootLayout({
       <body className={`${inter.className} bg-zinc-950`}>
         <DemoModalProvider>
           <DemoAccessModalProvider>
-            {children}
-            <ConciergeWebChat />
+            <PanelPreviewModalProvider>
+              {children}
+              <ConciergeWebChat />
+            </PanelPreviewModalProvider>
           </DemoAccessModalProvider>
         </DemoModalProvider>
       </body>

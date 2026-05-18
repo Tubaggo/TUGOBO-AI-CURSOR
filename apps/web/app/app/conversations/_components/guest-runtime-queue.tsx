@@ -1,22 +1,13 @@
 "use client";
 
 import type { ConversationThread, Guest, RecoveryFlow } from "@/lib/runtime/entities";
-import { deriveGuestRuntimeSignals } from "@/lib/runtime/conversation-runtime";
+import {
+  inferReservationStage,
+  reservationStageLabel,
+  resolveReservation,
+} from "@/lib/runtime/chat-bridge";
 import { cn } from "@/lib/utils";
-import { Activity, ClipboardList, TrendingUp, Wallet } from "lucide-react";
-
-const STATUS_TONE: Record<string, string> = {
-  "PAYMENT FRICTION": "border-amber-500/30 bg-amber-500/10 text-amber-200",
-  "RECOVERY ACTIVE": "border-violet-500/30 bg-violet-500/10 text-violet-200",
-  "HIGH VALUE": "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  "DIRECT BOOKING": "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
-  "ESCALATION RISK": "border-rose-500/30 bg-rose-500/10 text-rose-200",
-  "VIP GUEST": "border-rose-500/25 bg-rose-500/8 text-rose-200",
-  "NEW INQUIRY": "border-blue-500/25 bg-blue-500/10 text-blue-200",
-  "REVIEW RISK": "border-amber-500/25 bg-amber-500/8 text-amber-200",
-  MONITORING: "border-white/10 bg-white/[0.03] text-white/45",
-  "STAFF ASSISTING": "border-rose-500/25 bg-rose-500/10 text-rose-200",
-};
+import { MessageCircle } from "lucide-react";
 
 type GuestRuntimeQueueProps = {
   conversations: ConversationThread[];
@@ -30,18 +21,26 @@ type GuestRuntimeQueueProps = {
 export function GuestRuntimeQueue({
   conversations,
   guests,
-  journeys,
+  journeys: _journeys,
   selectedId,
   onSelect,
   pulseActive,
 }: GuestRuntimeQueueProps) {
   return (
-    <aside className="flex h-full w-[300px] shrink-0 flex-col border-r border-white/[0.04] bg-zinc-950/60">
+    <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-white/[0.04] bg-zinc-950/60">
       <div className="shrink-0 border-b border-white/[0.04] px-4 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-400/55">
-          Active guests
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/35">
+          Guest queue
         </p>
-        <p className="mt-0.5 text-[11px] text-white/32">{conversations.length} conversations</p>
+        <p className="mt-0.5 text-[11px] text-white/32">
+          {conversations.length} active · live routing
+        </p>
+        {pulseActive ? (
+          <span className="mt-2 inline-flex items-center gap-1.5 text-[9px] font-medium text-emerald-400/70">
+            <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+            Syncing
+          </span>
+        ) : null}
       </div>
       <div
         className={cn(
@@ -51,9 +50,10 @@ export function GuestRuntimeQueue({
       >
         {conversations.map((c) => {
           const guest = guests.find((g) => g.id === c.guestId);
-          const journey = journeys.find((j) => j.conversationId === c.id);
-          const signals = deriveGuestRuntimeSignals(c, guest, journey);
+          const reservation = resolveReservation(c.id);
+          const stage = inferReservationStage(c, reservation);
           const selected = c.id === selectedId;
+          const urgent = c.flags.paymentRisk || c.flags.vipEscalation || c.flags.recoveryActive;
 
           return (
             <button
@@ -63,13 +63,14 @@ export function GuestRuntimeQueue({
               className={cn(
                 "relative w-full border-b border-white/[0.03] px-4 py-3.5 text-left transition-all",
                 selected
-                  ? "bg-cyan-500/[0.05] shadow-[inset_2px_0_0_0_rgba(34,211,238,0.7)]"
-                  : "hover:bg-white/[0.02]"
+                  ? "bg-blue-500/[0.05] shadow-[inset_2px_0_0_0_rgba(96,165,250,0.75)]"
+                  : "hover:bg-white/[0.02]",
+                urgent && !selected && "bg-amber-500/[0.02]"
               )}
             >
-              {selected ? (
+              {urgent && pulseActive ? (
                 <span
-                  className="pointer-events-none absolute right-3 top-3 h-1.5 w-1.5 rounded-full bg-cyan-400 animate-runtime-node-sync"
+                  className="pointer-events-none absolute left-0 top-0 h-full w-0.5 bg-amber-400/70 animate-pulse"
                   aria-hidden
                 />
               ) : null}
@@ -78,7 +79,7 @@ export function GuestRuntimeQueue({
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
                     c.avatarColor,
-                    c.flags.recoveryActive && "ring-1 ring-violet-500/40"
+                    c.unread > 0 && "ring-1 ring-blue-400/40"
                   )}
                 >
                   {c.initials}
@@ -89,10 +90,31 @@ export function GuestRuntimeQueue({
                     <span className="shrink-0 text-[10px] tabular-nums text-white/28">{c.time}</span>
                   </div>
                   <p className="mt-0.5 line-clamp-1 text-[11px] text-white/38">{c.lastMessage}</p>
-                  <SignalSection icon={Activity} label="Status" items={signals.operationalStatuses} tone="status" />
-                  <SignalSection icon={TrendingUp} label="Guest" items={signals.behavioral} />
-                  <SignalSection icon={Wallet} label="Revenue" items={signals.financial} tone="financial" />
-                  <SignalSection icon={ClipboardList} label="Now" items={signals.situation} tone="situation" />
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 text-[8px] font-medium text-white/45">
+                      {reservationStageLabel(stage)}
+                    </span>
+                    {c.flags.paymentRisk ? (
+                      <span className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-medium text-amber-200/90">
+                        Payment
+                      </span>
+                    ) : null}
+                    {c.flags.humanTakeover ? (
+                      <span className="rounded border border-rose-500/20 bg-rose-500/10 px-1.5 py-0.5 text-[8px] font-medium text-rose-200/90">
+                        Staff
+                      </span>
+                    ) : null}
+                    {c.unread > 0 ? (
+                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500/20 px-1 text-[9px] font-bold text-blue-300">
+                        {c.unread}
+                      </span>
+                    ) : (
+                      <MessageCircle className="ml-auto h-3 w-3 text-white/18" aria-hidden />
+                    )}
+                  </div>
+                  {guest?.intelligence.operationalStatus ? (
+                    <p className="mt-1 text-[9px] text-white/22">{guest.intelligence.operationalStatus}</p>
+                  ) : null}
                 </div>
               </div>
             </button>
@@ -100,47 +122,5 @@ export function GuestRuntimeQueue({
         })}
       </div>
     </aside>
-  );
-}
-
-function SignalSection({
-  icon: Icon,
-  label,
-  items,
-  tone = "default",
-}: {
-  icon: typeof Activity;
-  label: string;
-  items: string[];
-  tone?: "status" | "financial" | "situation" | "default";
-}) {
-  if (items.length === 0) return null;
-
-  return (
-    <div className="mt-1.5">
-      <div className="mb-0.5 flex items-center gap-1">
-        <Icon className="h-2.5 w-2.5 text-white/22" />
-        <span className="text-[8px] font-semibold uppercase tracking-wider text-white/22">{label}</span>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {items.map((item) => (
-          <span
-            key={item}
-            className={cn(
-              "rounded border px-1.5 py-0.5 text-[8px] font-medium leading-tight",
-              tone === "status"
-                ? STATUS_TONE[item] ?? "border-white/10 bg-white/[0.03] text-white/50"
-                : tone === "financial"
-                  ? "border-emerald-500/15 bg-emerald-500/[0.06] text-emerald-300/80"
-                  : tone === "situation"
-                    ? "border-white/[0.08] bg-white/[0.03] text-white/48"
-                    : "border-white/[0.06] bg-white/[0.02] text-white/42"
-            )}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }

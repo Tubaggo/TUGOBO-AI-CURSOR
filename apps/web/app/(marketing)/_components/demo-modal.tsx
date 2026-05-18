@@ -322,8 +322,8 @@ function DemoRequestModal({ onClose }: { onClose: () => void }) {
                 Kurulum görüşmesi talep edin
               </h2>
               <p id={descId} className="text-[13px] text-white/42 leading-relaxed mt-2">
-                Digital Hotel Operating System ve Hotel Operating Intelligence katmanını 30 dakikalık
-                sistem turunda birlikte değerlendirelim.
+                30 dakikalık operasyon turunda panelinizi, rezervasyon sürecinizi ve ekip kontrol modelinizi
+                birlikte gözden geçirelim.
               </p>
               <p className="text-[11px] text-white/32 mt-3 leading-relaxed">
                 Taahhüt yok · Satış baskısı yok · Otelinize özel operasyon değerlendirmesi
