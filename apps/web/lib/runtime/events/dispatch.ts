@@ -568,8 +568,8 @@ function buildFeedItem(
   const map: Record<OperationalEventType, OperationsFeedItem> = {
     PAYMENT_FAILED: {
       id,
-      title: "Payment risk detected",
-      meta: `${guest} · €${amount} at risk · recovery queued`,
+      title: "Ödeme riski algılandı",
+      meta: `${guest} · €${amount} risk altında · kurtarma sıraya alındı`,
       time: ts(),
       tone: "border-l-amber-400/70 bg-amber-500/[0.04]",
       financialEur: amount,
@@ -577,8 +577,8 @@ function buildFeedItem(
     },
     RECOVERY_STARTED: {
       id,
-      title: "Recovery workflow started",
-      meta: `${guest} · AI sequence active · pipeline synced`,
+      title: "Ödeme kurtarma başlatıldı",
+      meta: `${guest} · alternatif ödeme yolu hazırlanıyor`,
       time: ts(),
       tone: "border-l-violet-400/70 bg-violet-500/[0.04]",
       financialEur: amount,
@@ -586,8 +586,8 @@ function buildFeedItem(
     },
     RECOVERY_SUCCESS: {
       id,
-      title: "Revenue recovered",
-      meta: `${guest} · payment confirmed · exposure cleared`,
+      title: "Ödeme alındı",
+      meta: `${guest} · rezervasyon güvence altına alındı`,
       time: ts(),
       tone: "border-l-emerald-400/65 bg-emerald-500/[0.04]",
       financialEur: amount,
@@ -595,8 +595,8 @@ function buildFeedItem(
     },
     BOOKING_CONFIRMED: {
       id,
-      title: "Booking confirmed",
-      meta: `${guest} · direct pipeline · financial state updated`,
+      title: "Rezervasyon onaylandı",
+      meta: `${guest} · direkt kanal · gelir güncellendi`,
       time: ts(),
       tone: "border-l-emerald-400/65 bg-emerald-500/[0.04]",
       financialEur: amount,
@@ -604,8 +604,8 @@ function buildFeedItem(
     },
     UPSELL_ACCEPTED: {
       id,
-      title: "AI upsell accepted",
-      meta: `${guest} · ADR uplift recorded`,
+      title: "Upsell kabul edildi",
+      meta: `${guest} · ek gelir kaydedildi`,
       time: ts(),
       tone: "border-l-blue-400/70 bg-blue-500/[0.04]",
       financialEur: amount,
@@ -613,8 +613,8 @@ function buildFeedItem(
     },
     VIP_ESCALATION: {
       id,
-      title: "VIP guest escalation",
-      meta: `${guest} · human takeover recommended`,
+      title: "VIP misafir işaretlendi",
+      meta: `${guest} · öncelikli ekip desteği önerildi`,
       time: ts(),
       tone: "border-l-rose-400/60 bg-rose-500/[0.04]",
       financialEur: amount,
@@ -622,8 +622,8 @@ function buildFeedItem(
     },
     OTA_CONVERSION: {
       id,
-      title: "OTA → direct conversion",
-      meta: `${guest} · commission avoided on direct close`,
+      title: "OTA → direkt dönüşüm",
+      meta: `${guest} · komisyon kaybı önlendi`,
       time: ts(),
       tone: "border-l-violet-400/70 bg-violet-500/[0.04]",
       financialEur: amount,
@@ -631,8 +631,8 @@ function buildFeedItem(
     },
     HUMAN_TAKEOVER: {
       id,
-      title: "Human takeover initiated",
-      meta: `${guest} · assisted close · AI context preserved`,
+      title: "İnsan desteği devraldı",
+      meta: `${guest} · görüşme bağlamı korundu`,
       time: ts(),
       tone: "border-l-rose-400/60 bg-rose-500/[0.04]",
       financialEur: amount,

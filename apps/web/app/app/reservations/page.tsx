@@ -16,6 +16,10 @@ import { FinancialAttributionBadge } from "../_components/financial-attribution-
 import type { RevenueLifecycleStage } from "@/lib/operational/types";
 import { lifecycleStageLabel } from "@/lib/i18n/operational-copy";
 import { cn } from "@/lib/utils";
+import { OperationalEmptyState } from "@/app/dashboard/_components/operational-empty-state";
+import { ReservationCardSkeleton } from "@/app/dashboard/_components/skeletons";
+import { op } from "@/lib/i18n/operationalTexts";
+import { CalendarDays } from "lucide-react";
 
 const STAGE_TAB_IDS = [
   "all",
@@ -103,7 +107,22 @@ export default function ReservationsPage() {
               />
             </div>
           </div>
-          <ReservationsList filtered={filtered} expandedId={expandedId} setExpandedId={setExpandedId} />
+          {!mounted ? (
+            <div className="space-y-3 p-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <ReservationCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <OperationalEmptyState
+              icon={CalendarDays}
+              title={op("emptyReservations")}
+              description={op("emptyReservationsDetail")}
+              compact
+            />
+          ) : (
+            <ReservationsList filtered={filtered} expandedId={expandedId} setExpandedId={setExpandedId} />
+          )}
         </div>
         <p className="mt-4 text-center text-[11px] text-white/25">
           <Link href="/app/overview" className="text-blue-400 hover:text-blue-300">

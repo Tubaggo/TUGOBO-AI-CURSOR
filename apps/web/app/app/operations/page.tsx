@@ -18,7 +18,10 @@ import {
 } from "../_components/operational-intelligence-feed";
 import { RecoveryJourneyCard } from "../_components/recovery-journey-card";
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Bot, Clock, Radio, UserCheck, Zap } from "lucide-react";
+import { AlertTriangle, Bot, Clock, Inbox, Radio, UserCheck, Zap } from "lucide-react";
+import { OperationalEmptyState } from "@/app/dashboard/_components/operational-empty-state";
+import { OperationsFeedSkeleton } from "@/app/dashboard/_components/skeletons";
+import { op } from "@/lib/i18n/operationalTexts";
 
 export default function OperationsPage() {
   const t = useTranslations("operations");
@@ -82,14 +85,25 @@ export default function OperationsPage() {
                 {slaRisks.length} {t("slaWatch")}
               </span>
             </div>
-            <div className="divide-y divide-white/[0.04] max-h-[520px] overflow-y-auto conv-scroll">
-              {alerts.map((alert) => (
-                <OperationalIntelligenceFeedItem
-                  key={alert.id}
-                  alert={alert}
-                  onMarkRead={!alert.read ? () => markAlertRead(alert.id) : undefined}
+            <div className="max-h-[520px] overflow-y-auto conv-scroll divide-y divide-white/[0.04]">
+              {!mounted ? (
+                <OperationsFeedSkeleton rows={4} />
+              ) : alerts.length === 0 ? (
+                <OperationalEmptyState
+                  icon={AlertTriangle}
+                  title={op("emptyAlerts")}
+                  description={op("emptyAlertsDetail")}
+                  compact
                 />
-              ))}
+              ) : (
+                alerts.map((alert) => (
+                  <OperationalIntelligenceFeedItem
+                    key={alert.id}
+                    alert={alert}
+                    onMarkRead={!alert.read ? () => markAlertRead(alert.id) : undefined}
+                  />
+                ))
+              )}
             </div>
           </section>
 
@@ -102,9 +116,20 @@ export default function OperationsPage() {
                 </div>
               </div>
               <div className="max-h-[240px] overflow-y-auto conv-scroll divide-y divide-white/[0.03]">
-                {feed.map((item) => (
-                  <OperationsFeedRuntimeItem key={item.id} item={item} />
-                ))}
+                {!mounted ? (
+                  <OperationsFeedSkeleton rows={3} />
+                ) : feed.length === 0 ? (
+                  <OperationalEmptyState
+                    icon={Radio}
+                    title={op("emptyPendingOperations")}
+                    description={op("emptyPendingOperationsDetail")}
+                    compact
+                  />
+                ) : (
+                  feed.map((item) => (
+                    <OperationsFeedRuntimeItem key={item.id} item={item} />
+                  ))
+                )}
               </div>
             </section>
 
@@ -139,6 +164,16 @@ export default function OperationsPage() {
                 <RecoveryJourneyCard key={j.id} journey={j} />
               ))}
             </div>
+          </section>
+        ) : null}
+
+        {mounted && staffTakeovers.length === 0 ? (
+          <section className="mt-8 overflow-hidden rounded-xl border border-white/[0.06] bg-zinc-900">
+            <OperationalEmptyState
+              icon={Inbox}
+              title={op("emptyHumanInterventions")}
+              description={op("emptyHumanInterventionsDetail")}
+            />
           </section>
         ) : null}
 

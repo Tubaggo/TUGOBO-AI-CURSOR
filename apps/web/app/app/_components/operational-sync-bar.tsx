@@ -1,9 +1,11 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useOperationalRuntime, selectLastPropagation } from "@/stores/operational-runtime";
 import { useMutationPulse } from "@/lib/runtime/hooks/use-mutation-pulse";
 
 export function OperationalSyncBar() {
+  const t = useTranslations("syncBar");
   const propagation = useOperationalRuntime(selectLastPropagation);
   const isLive = useMutationPulse(5000);
 
@@ -22,7 +24,7 @@ export function OperationalSyncBar() {
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
         ) : null}
         <span className={isLive ? "font-semibold text-emerald-400" : "text-white/40"}>
-          {isLive ? "Operational graph sync" : "Runtime idle"}
+          {isLive ? t("graphSync") : t("runtimeIdle")}
         </span>
         {propagation ? (
           <span className="truncate text-white/35">· {propagation.summary}</span>

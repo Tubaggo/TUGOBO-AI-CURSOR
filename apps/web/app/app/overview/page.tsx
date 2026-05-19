@@ -35,6 +35,7 @@ import { AiImpactPanel } from "../_components/ai-impact-panel";
 import { OtaRecoveryPanel } from "../_components/ota-recovery-panel";
 import { FinancialAttributionBadge } from "../_components/financial-attribution-badge";
 import { OperationsFeedRuntimeItem } from "../_components/operational-intelligence-feed";
+import { OperationsFeedSkeleton } from "@/app/dashboard/_components/skeletons";
 import { useMutationPulse } from "@/lib/runtime/hooks/use-mutation-pulse";
 
 export default function OverviewPage() {
@@ -177,24 +178,12 @@ export default function OverviewPage() {
                 </div>
               </div>
             </div>
-            <div className="divide-y divide-white/[0.04] overflow-y-auto flex-1">
-              {feed.map((item) => (
-                <div key={item.id} className={`flex gap-3 border-l-2 px-4 py-3 ${item.tone}`}>
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-white/40" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-white/90">{item.title}</p>
-                    <p className="text-[11px] text-white/38 mt-0.5">{item.meta}</p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-[10px] text-white/22">{item.time}</span>
-                      {item.financialEur ? (
-                        <span className="text-[10px] font-semibold text-emerald-400 tabular-nums">
-                          {formatEur(item.financialEur)}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex-1 divide-y divide-white/[0.04] overflow-y-auto">
+              {!mounted ? (
+                <OperationsFeedSkeleton rows={4} />
+              ) : (
+                feed.map((item) => <OperationsFeedRuntimeItem key={item.id} item={item} />)
+              )}
             </div>
           </div>
         </div>
@@ -334,11 +323,14 @@ function MotionOverviewReservationRow({ r }: { r: ReturnType<typeof selectReserv
 }
 
 function MotionOverviewReservationRowRight({ r }: { r: ReturnType<typeof selectReservations>[number] }) {
+  const t = useTranslations("overviewExtras");
   return (
     <div className="flex flex-col items-start gap-1 sm:items-end">
       <span className="text-sm font-bold tabular-nums text-white">{formatEur(r.bookingValueEur)}</span>
       {r.revenueAtRiskEur > 0 ? (
-        <span className="text-[10px] font-medium text-amber-400">At risk {formatEur(r.revenueAtRiskEur)}</span>
+        <span className="text-[10px] font-medium text-amber-400">
+          {t("atRisk", { amount: formatEur(r.revenueAtRiskEur) })}
+        </span>
       ) : null}
       {r.attributions[0] ? <FinancialAttributionBadge attribution={r.attributions[0]} compact /> : null}
     </div>
@@ -350,12 +342,13 @@ function MotionOverviewConversationsPanel({
 }: {
   conversations: ReturnType<typeof selectConversations>;
 }) {
+  const tExtra = useTranslations("overviewExtras");
   return (
     <div className="rounded-xl border border-white/[0.06] bg-zinc-900 overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.05] px-5 py-4">
-        <h2 className="text-sm font-semibold text-white">Active guest operations</h2>
+        <h2 className="text-sm font-semibold text-white">{tExtra("activeGuestOps")}</h2>
         <Link href="/app/conversations" className="text-xs text-blue-400 hover:text-blue-300">
-          Inbox →
+          {tExtra("openInbox")}
         </Link>
       </div>
       <div className="divide-y divide-white/[0.04]">

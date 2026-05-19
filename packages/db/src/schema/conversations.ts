@@ -4,11 +4,18 @@ import {
   text,
   timestamp,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { hotels } from "./hotels";
 import { contacts } from "./contacts";
 import { channels } from "./channels";
-import type { ConversationStatus } from "@tugobo/shared";
+import type {
+  ConversationStatus,
+  ConversationPaymentState,
+  ConversationReservationState,
+  EscalationState,
+  PanelChannelType,
+} from "@tugobo/shared";
 
 export const conversations = pgTable("conversations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -27,6 +34,23 @@ export const conversations = pgTable("conversations", {
     .default("ai_active"),
   assigneeId: uuid("assignee_id"),
   aiPaused: boolean("ai_paused").notNull().default(false),
+  /** Panel-facing channel (web_chat, whatsapp, instagram) */
+  panelChannel: text("panel_channel").$type<PanelChannelType>().notNull().default("web_chat"),
+  externalSessionId: text("external_session_id"),
+  unreadCount: integer("unread_count").notNull().default(0),
+  escalationState: text("escalation_state")
+    .$type<EscalationState>()
+    .notNull()
+    .default("none"),
+  reservationState: text("reservation_state")
+    .$type<ConversationReservationState>()
+    .notNull()
+    .default("none"),
+  paymentState: text("payment_state")
+    .$type<ConversationPaymentState>()
+    .notNull()
+    .default("none"),
+  operatorJoinedAt: timestamp("operator_joined_at"),
   lastMessageAt: timestamp("last_message_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

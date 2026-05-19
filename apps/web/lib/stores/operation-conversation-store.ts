@@ -17,6 +17,8 @@ import {
 } from "@/lib/channels/ingestMessage";
 import { nextSimulatedIncoming } from "@/lib/channels/simulateIncoming";
 import { simulateAIResponse } from "@/lib/channels/simulate-ai-response";
+import { isLiveConversationId } from "@/lib/conversation/live-sync";
+import { isLiveOpsClientEnabled } from "@/lib/runtime/live/config";
 
 type OperationConversationState = {
   conversations: OperationConversation[];
@@ -134,9 +136,14 @@ export const useOperationConversationStore = create<OperationConversationState>(
       };
     });
 
-    window.setTimeout(() => {
-      get().simulateAIResponseForConversation(conversationId!, input.message);
-    }, 900);
+    const skipLocalAi =
+      isLiveOpsClientEnabled() && input.channel === "web_chat";
+
+    if (!skipLocalAi && !isLiveConversationId(conversationId!)) {
+      window.setTimeout(() => {
+        get().simulateAIResponseForConversation(conversationId!, input.message);
+      }, 900);
+    }
 
     return conversationId!;
   },
@@ -148,6 +155,10 @@ export const useOperationConversationStore = create<OperationConversationState>(
   simulateAIResponseForConversation: (conversationId, guestMessage) => {
     const conv = get().getConversation(conversationId);
     if (!conv) return;
+
+    if (isLiveConversationId(conversationId)) {
+      return;
+    }
 
     set((s) => ({
       conversations: s.conversations.map((c) =>

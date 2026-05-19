@@ -7,6 +7,9 @@ import { formatEur } from "@/lib/operational/format";
 import { FinancialAttributionBadge } from "../_components/financial-attribution-badge";
 import { AIMemoryPanel } from "../_components/ai-memory-panel";
 import { GuestIntelligenceStrip } from "../_components/guest-intelligence-strip";
+import { Users } from "lucide-react";
+import { OperationalEmptyState } from "@/app/dashboard/_components/operational-empty-state";
+import { op } from "@/lib/i18n/operationalTexts";
 import type { Guest } from "@/lib/runtime/entities";
 
 export default function GuestsPage() {
@@ -30,11 +33,21 @@ function GuestsPageContent({
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/25">{t("eyebrow")}</p>
         <h1 className="text-xl font-semibold text-white">{t("title")}</h1>
         <p className="mt-0.5 text-sm text-white/40">{t("description")}</p>
-        <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2">
-          {guests.map((g) => (
-            <GuestCard key={g.id} guest={g} mounted={mounted} />
-          ))}
-        </div>
+        {mounted && guests.length === 0 ? (
+          <div className="mt-7 overflow-hidden rounded-xl border border-white/[0.06] bg-zinc-900">
+            <OperationalEmptyState
+              icon={Users}
+              title={op("emptyGuests")}
+              description={op("emptyGuestsDetail")}
+            />
+          </div>
+        ) : (
+          <div className="mt-7 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {guests.map((g) => (
+              <GuestCard key={g.id} guest={g} mounted={mounted} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

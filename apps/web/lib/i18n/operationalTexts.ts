@@ -95,6 +95,9 @@ export const operationalTexts = {
 
     staffAssistingMoment: "Ekip yanıtlıyor — AI beklemede",
     staffLeadingConversation: "Ekip bu görüşmeyi yönetiyor.",
+    humanSupportActive: "İnsan destek aktif",
+    aiSupportContinuing: "AI destek devam ediyor",
+    operatorJoinedConversation: "Operatör görüşmeye katıldı",
     noStaffTakeoverYet: "Henüz ekip devri gerekmedi.",
 
     offerPrepared: "Teklif hazırlandı",
@@ -132,8 +135,40 @@ export const operationalTexts = {
     autoDemoRunning: "Otomatik demo çalışıyor",
     selectConversation: "Bir görüşme seçin",
     loadingThread: "Bu görüşme için mesaj geçmişi yükleniyor…",
-    emptyQueue:
-      "Henüz aktif görüşme yok. Web Chat, WhatsApp veya Instagram'dan gelen talepler burada görünecek.",
+    emptyQueue: "Henüz aktif misafir konuşması yok.",
+    emptyQueueDetail: "Yeni mesajlar burada görünecek.",
+    emptyReservations: "Aktif rezervasyon pipeline'ı boş.",
+    emptyReservationsDetail:
+      "Yeni talepler ve teklifler onaylandıkça bu ekranda görünür.",
+    emptyGuests: "Misafir profilleri operasyon geçmişi oluştukça görünür.",
+    emptyGuestsDetail:
+      "Konuşma ve rezervasyon verisi biriktikçe misafir kartları burada listelenir.",
+    emptyPaymentsPending: "Bekleyen ödeme operasyonu bulunmuyor.",
+    emptyPaymentsPendingDetail:
+      "Ödeme bağlantıları ve kurtarma adımları oluştuğunda burada takip edilir.",
+    emptySelectConversation: "Bir görüşme seçin",
+    emptySelectConversationDetail:
+      "Sol kuyruktan bir görüşme seçerek misafir geçmişini ve önerilen işlemleri görüntüleyin.",
+    emptyPaymentRisks: "Bekleyen ödeme operasyonu bulunmuyor.",
+    emptyPaymentRisksDetail: "Ödeme sorunları oluştuğunda kurtarma akışı burada listelenir.",
+    emptyPendingOperations: "Şu anda kritik operasyon uyarısı yok.",
+    emptyPendingOperationsDetail: "Yeni operasyon sinyalleri anlık olarak bu akışta görünür.",
+    emptyHumanInterventions: "AI destekli süreçler stabil çalışıyor.",
+    emptyHumanInterventionsDetail: "İnsan desteği gerektiğinde ekip koordinasyonu burada listelenir.",
+    emptyAlerts: "Şu anda kritik operasyon uyarısı yok.",
+    emptyAlertsDetail: "Ödeme riski veya SLA ihlali olduğunda uyarılar burada görünür.",
+
+    liveSyncActive: "Operasyon güncellendi",
+    liveSyncIdle: "Canlı operasyon hazır",
+    messageRouting: "Mesaj yönlendiriliyor…",
+    paymentVerifying: "Ödeme doğrulanıyor…",
+
+    aiTypingThinking: "AI düşünüyor…",
+    aiTypingComposing: "AI yanıt hazırlıyor…",
+    aiTypingCheckingAvailability: "AI müsaitlik kontrol ediyor…",
+    aiTypingCheckingPayment: "AI ödeme durumunu kontrol ediyor…",
+    aiTypingPreparingReservation: "AI rezervasyon detaylarını hazırlıyor…",
+
     messagesUnit: "mesaj",
 
     toastNewMessage: "Yeni mesaj · {name}",
@@ -260,6 +295,9 @@ export const operationalTexts = {
 
     staffAssistingMoment: "Staff assisting — AI on standby",
     staffLeadingConversation: "Staff is leading this conversation.",
+    humanSupportActive: "Human support active",
+    aiSupportContinuing: "AI support continues",
+    operatorJoinedConversation: "Operator joined the conversation",
     noStaffTakeoverYet: "No staff takeover needed yet.",
 
     offerPrepared: "Offer prepared",
@@ -297,8 +335,37 @@ export const operationalTexts = {
     autoDemoRunning: "Auto-demo running",
     selectConversation: "Select a conversation",
     loadingThread: "Loading message history…",
-    emptyQueue:
-      "No active conversations yet. Requests from Web Chat, WhatsApp, or Instagram will appear here.",
+    emptyQueue: "No active guest conversations yet.",
+    emptyQueueDetail: "New messages will appear here.",
+    emptyReservations: "Reservation pipeline is empty.",
+    emptyReservationsDetail: "New inquiries and confirmations will appear here.",
+    emptyGuests: "Guest profiles appear as operational history builds.",
+    emptyGuestsDetail: "Profiles list here as conversation and booking data accumulates.",
+    emptyPaymentsPending: "No pending payment operations.",
+    emptyPaymentsPendingDetail: "Payment links and recovery steps will list here when active.",
+    emptySelectConversation: "Select a conversation",
+    emptySelectConversationDetail:
+      "Pick a thread from the queue to view guest context and suggested actions.",
+    emptyPaymentRisks: "No payment risks right now.",
+    emptyPaymentRisksDetail: "Failed or stuck payments will surface here for recovery.",
+    emptyPendingOperations: "Operations are running normally.",
+    emptyPendingOperationsDetail: "New operational signals appear in this feed in real time.",
+    emptyHumanInterventions: "AI-assisted flows are stable.",
+    emptyHumanInterventionsDetail: "Staff coordination items appear here when human support is needed.",
+    emptyAlerts: "No critical operational alerts right now.",
+    emptyAlertsDetail: "Payment risk and SLA items will show here when they need attention.",
+
+    liveSyncActive: "Operations updated",
+    liveSyncIdle: "Live operations ready",
+    messageRouting: "Routing message…",
+    paymentVerifying: "Verifying payment…",
+
+    aiTypingThinking: "AI is thinking…",
+    aiTypingComposing: "AI is preparing a reply…",
+    aiTypingCheckingAvailability: "AI is checking availability…",
+    aiTypingCheckingPayment: "AI is checking payment status…",
+    aiTypingPreparingReservation: "AI is preparing reservation details…",
+
     messagesUnit: "messages",
 
     toastNewMessage: "New message · {name}",

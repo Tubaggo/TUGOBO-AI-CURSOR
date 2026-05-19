@@ -25,6 +25,8 @@ import { RecoveryJourneyCard } from "../_components/recovery-journey-card";
 import { formatEur } from "@/lib/operational/format";
 import { lifecycleStageLabel } from "@/lib/i18n/operational-copy";
 import { cn } from "@/lib/utils";
+import { OperationalEmptyState } from "@/app/dashboard/_components/operational-empty-state";
+import { op } from "@/lib/i18n/operationalTexts";
 import type { Reservation } from "@/lib/runtime/entities";
 
 const PAYMENT_STAGES = ["payment_pending", "payment_risk", "recovery", "quote"] as const;
@@ -101,7 +103,12 @@ export default function PaymentsPage() {
             </div>
             <div className="divide-y divide-white/[0.04]">
               {paymentReservations.length === 0 ? (
-                <p className="px-5 py-8 text-center text-sm text-white/30">{t("empty")}</p>
+                <OperationalEmptyState
+                  icon={ShieldAlert}
+                  title={op("emptyPaymentsPending")}
+                  description={op("emptyPaymentsPendingDetail")}
+                  compact
+                />
               ) : (
                 paymentReservations.map((r) => <PaymentRow key={r.id} reservation={r} />)
               )}

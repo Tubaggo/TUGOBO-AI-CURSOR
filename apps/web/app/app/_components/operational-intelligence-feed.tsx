@@ -118,7 +118,7 @@ export function OperationsFeedRuntimeItem({ item }: { item: OperationsFeedItem }
   const t = useTranslations("operations");
 
   return (
-    <article className={cn("flex gap-3 border-l-2 px-4 py-3", item.tone)}>
+    <article className={cn("flex gap-3 border-l-2 px-4 py-3 animate-feed-item-in", item.tone)}>
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400/60" />
       <div className="min-w-0 flex-1">
         <p className="text-[9px] font-bold tracking-wider text-cyan-400/60">{t("feedTag")}</p>

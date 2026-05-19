@@ -21,6 +21,7 @@ import {
   CreditCard,
   TrendingUp,
   MessageSquare,
+  Inbox,
   CalendarCheck,
   Banknote,
   ShieldCheck,
@@ -74,7 +75,19 @@ import { useOperationConversationsPanel } from "@/lib/panel/use-operation-conver
 import { ChannelBadge, ChannelGlyph, channelDisplayLabel } from "../_components/channel-badge";
 import { ChannelFilters } from "../_components/channel-filters";
 import { DemoIncomingSimulator } from "../_components/demo-incoming-simulator";
+import { DemoOrchestrationPanel } from "../_components/demo-orchestration-panel";
+import { OperationalEmptyState } from "../_components/operational-empty-state";
+import {
+  ConversationSkeleton,
+  QueueSkeleton,
+  SummaryCardSkeleton,
+} from "../_components/skeletons";
+import { usePanelStagedLoad } from "@/lib/panel/use-panel-staged-load";
+import type { AiTypingPhase } from "@/app/dashboard/_components/chat";
 import { op } from "@/lib/i18n/operationalTexts";
+import { useLiveConversationSync } from "@/lib/realtime";
+import { useLiveConversationApi } from "@/lib/runtime/live";
+import { isLiveConversationId } from "@/lib/conversation/live-sync";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -129,6 +142,22 @@ type OpsPhase =
   | "generating_offer"
   | "awaiting_payment"
   | "follow_up_scheduled";
+
+function resolveTypingPhase(phase: OpsPhase): AiTypingPhase {
+  switch (phase) {
+    case "checking_availability":
+      return "checking_availability";
+    case "awaiting_payment":
+      return "checking_payment";
+    case "generating_offer":
+    case "follow_up_scheduled":
+      return "preparing_reservation";
+    case "triage":
+      return "thinking";
+    default:
+      return "composing";
+  }
+}
 
 const OPS_PHASES: {
   phase: OpsPhase;
@@ -317,6 +346,8 @@ export default function ConversationsPage() {
   const live = useLivePanelOverlay(selected);
   const conversationAi = useConversationAi(selected);
   const opPanel = useOperationConversationsPanel();
+  const liveApi = useLiveConversationApi();
+  const liveSync = useLiveConversationSync(isLivePanel ? selected : null);
   const [opsTick, setOpsTick] = useState(0);
 
   // Demo mode
@@ -351,6 +382,9 @@ export default function ConversationsPage() {
   const [lastSyncAt, setLastSyncAt] = useState<number>(() => Date.now());
   const [mobilePane, setMobilePane] = useState<ConversationsMobilePane>("queue");
   const [tabletSummaryOpen, setTabletSummaryOpen] = useState(false);
+  const { isLoading: threadLoading } = usePanelStagedLoad(selected, 260);
+  const { isLoading: queueLoading } = usePanelStagedLoad("queue", 220);
+  const typingPhase = resolveTypingPhase(opsPhase);
 
   function selectConversation(id: string) {
     setSelected(id);
@@ -701,7 +735,11 @@ export default function ConversationsPage() {
         status: "quoted",
       };
       setLocalReservations((prev) => ({ ...prev, [convId]: reservation }));
-      showToast(`Quote created · ${guest.name}`, `${guest.room} · ${guest.currency}${total.toLocaleString()}`, "success");
+      showToast(
+        op("toastQuoteCreated", "tr", { name: guest.name }),
+        `${guest.room} · ${guest.currency}${total.toLocaleString()}`,
+        "success"
+      );
     }, 12500);
 
     // ── 7. AI typing for payment link ───────────────────────────────────────
@@ -717,7 +755,11 @@ export default function ConversationsPage() {
       );
       addMessages(convId, [{ id: `${convId}-ai3`, dir: "out", by: "ai", body: guest.aiPaymentMsg, time: ts() }]);
       const total = guest.pricePerNight * guest.nights;
-      showToast("Payment link sent", `${guest.name} · ${guest.currency}${total.toLocaleString()}`, "success");
+      showToast(
+        op("toastPaymentLinkSent"),
+        `${guest.name} · ${guest.currency}${total.toLocaleString()}`,
+        "success"
+      );
     }, 17500);
 
     // ── 9. Payment confirmed → reservation confirmed + revenue up ───────────
@@ -733,7 +775,11 @@ export default function ConversationsPage() {
         { id: `${convId}-ai4`, dir: "out", by: "ai", body: guest.aiConfirm, time: sysTime },
       ]);
       setLocalStatuses((prev) => ({ ...prev, [convId]: "resolved" }));
-      showToast("Booking confirmed 🎉", `${guest.name} · ${guest.currency}${total.toLocaleString()} received`, "success");
+      showToast(
+        op("toastBookingConfirmed"),
+        `${guest.name} · ${guest.currency}${total.toLocaleString()}`,
+        "success"
+      );
     }, 22000);
 
     // ── Schedule next run (28–38 s from now) ───────────────────────────────
@@ -748,7 +794,7 @@ export default function ConversationsPage() {
     setSentLink(true);
     const r = effectiveReservation;
     showToast(
-      "Payment link sent",
+      op("toastPaymentLinkSent"),
       r && selectedConv
         ? `${selectedConv.contact.name} · ${r.currency}${r.total.toLocaleString()}`
         : undefined
@@ -780,8 +826,8 @@ export default function ConversationsPage() {
       setConfirmedReservations((prev) => ({ ...prev, [selected]: true }));
       addMessages(selected, [sysMsg, aiMsg]);
       showToast(
-        "Payment confirmed",
-        `${selectedConv?.contact.name ?? "Misafir"} · ${r.currency}${r.total.toLocaleString()} received`
+        op("toastPaymentConfirmed"),
+        `${selectedConv?.contact.name ?? "Misafir"} · ${r.currency}${r.total.toLocaleString()}`
       );
     }, 3500);
   }
@@ -790,11 +836,21 @@ export default function ConversationsPage() {
     setLocalStatuses((prev) => ({ ...prev, [selected]: "human_takeover" }));
     setLocalTyping((prev) => ({ ...prev, [selected]: false }));
     useConversationAiStore.getState().setHumanActive(selected);
+    if (liveApi.enabled && isLiveConversationId(selected)) {
+      void liveApi.postTakeover(selected, "takeover");
+      showToast(op("operatorJoinedConversation"), op("humanSupportActive"));
+    }
   }
 
   function handleHandToAI() {
     setLocalStatuses((prev) => ({ ...prev, [selected]: "ai_active" }));
     setReplyText("");
+
+    if (liveApi.enabled && isLiveConversationId(selected)) {
+      void liveApi.postTakeover(selected, "release_to_ai");
+      showToast(op("aiSupportContinuing"));
+      return;
+    }
 
     const lastGuest = [...messagesForConv(selected)]
       .reverse()
@@ -809,6 +865,11 @@ export default function ConversationsPage() {
   function handleSendReply() {
     const trimmed = replyText.trim();
     if (!trimmed) return;
+
+    if (liveApi.enabled && isLiveConversationId(selected)) {
+      void liveApi.postOperatorMessage(selected, trimmed);
+    }
+
     const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     addMessages(selected, [
       { id: `staff-${Date.now()}`, dir: "out", by: "human", body: trimmed, time: now },
@@ -843,7 +904,12 @@ export default function ConversationsPage() {
             <span className="font-medium text-white/55">Grand Hotel Demo</span>
             <span className="text-white/15">·</span>
             <span>{op("liveHotelOps")}</span>
-            {live.mounted ? (
+            {liveSync.enabled ? (
+              <span className="ml-1 flex items-center gap-1 text-emerald-400/75">
+                <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+                {op("liveSyncActive")}
+              </span>
+            ) : live.mounted ? (
               <span className="ml-1 flex items-center gap-1 text-emerald-400/75">
                 <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
                 AI-assisted
@@ -874,6 +940,7 @@ export default function ConversationsPage() {
               showToast(op("newChannelMessage"), op("addedToQueue"), "new");
             }}
           />
+          <DemoOrchestrationPanel onConversationCreated={selectConversation} />
           <button
             onClick={() => setDemoMode((v) => !v)}
             className={cn(
@@ -941,13 +1008,23 @@ export default function ConversationsPage() {
         onChannelFilterChange={opPanel.setChannelFilter}
         isPulsing={opPanel.isPulsing}
         onClearPulse={opPanel.clearPulse}
+        queueLoading={queueLoading}
       />
 
       {/* ── Center: chat ─────────────────────────────────────────────────── */}
-      {selectedConv && thread ? (
+      {selectedConv && thread && threadLoading ? (
+        <ConversationSkeleton
+          className={cn(
+            "min-w-0 flex-1 border-white/[0.03] md:border-r",
+            mobilePane !== "chat" && "hidden md:flex"
+          )}
+        />
+      ) : null}
+
+      {selectedConv && thread && !threadLoading ? (
         <div
           className={cn(
-            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-white/[0.03] bg-zinc-950/15 md:border-r",
+            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-white/[0.03] bg-zinc-950/15 animate-panel-fade-in md:border-r",
             mobilePane !== "chat" && "hidden md:flex"
           )}
         >
@@ -1090,7 +1167,7 @@ export default function ConversationsPage() {
                   />
                 </div>
               )}
-              {isAiTyping && <ChatTypingIndicator />}
+              {isAiTyping && <ChatTypingIndicator phase={typingPhase} locale="tr" />}
               <div className="h-5" />
             </div>
           </div>
@@ -1116,15 +1193,21 @@ export default function ConversationsPage() {
       ) : (
         <div
           className={cn(
-            "flex flex-1 items-center justify-center px-6",
+            "flex flex-1 items-center justify-center",
             mobilePane !== "chat" && "hidden md:flex"
           )}
         >
-          <p className="max-w-sm text-center text-sm leading-relaxed text-white/30">
-            {selectedConv
-              ? "Bu görüşme için mesaj geçmişi yükleniyor…"
-              : "Henüz aktif görüşme yok. Web Chat, WhatsApp veya Instagram'dan gelen talepler burada görünecek."}
-          </p>
+          {selectedConv && threadLoading ? (
+            <ConversationSkeleton className="h-full w-full max-w-none" />
+          ) : (
+            <OperationalEmptyState
+              icon={selectedConv ? MessageSquare : Inbox}
+              title={selectedConv ? op("loadingThread") : op("emptySelectConversation")}
+              description={
+                selectedConv ? op("emptySelectConversationDetail") : op("emptyQueueDetail")
+              }
+            />
+          )}
         </div>
       )}
 
@@ -1141,10 +1224,23 @@ export default function ConversationsPage() {
         />
       ) : null}
 
-      {selectedConv && thread ? (
+      {selectedConv && thread && threadLoading ? (
+        <SummaryCardSkeleton
+          className={cn(
+            "conv-scroll z-50 shrink-0 overflow-y-auto bg-zinc-950/95 animate-panel-fade-in",
+            mobilePane === "summary"
+              ? "flex w-full md:hidden"
+              : tabletSummaryOpen
+                ? "fixed inset-y-0 right-0 flex w-full max-w-[320px] border-l border-white/[0.06] shadow-2xl md:flex lg:hidden"
+                : "hidden lg:flex lg:w-[284px]"
+          )}
+        />
+      ) : null}
+
+      {selectedConv && thread && !threadLoading ? (
         <div
           className={cn(
-            "conv-scroll z-50 flex shrink-0 flex-col overflow-y-auto bg-zinc-950/95",
+            "conv-scroll z-50 flex shrink-0 flex-col overflow-y-auto bg-zinc-950/95 animate-panel-fade-in",
             mobilePane === "summary"
               ? "w-full md:hidden"
               : tabletSummaryOpen
@@ -1500,6 +1596,7 @@ function ConvList({
   onChannelFilterChange,
   isPulsing,
   onClearPulse,
+  queueLoading = false,
   className,
   mobileCompact = false,
 }: {
@@ -1521,6 +1618,7 @@ function ConvList({
   onChannelFilterChange: (f: import("@/lib/channels/types").ChannelFilter) => void;
   isPulsing: (id: string) => boolean;
   onClearPulse: (id: string) => void;
+  queueLoading?: boolean;
   className?: string;
   mobileCompact?: boolean;
 }) {
@@ -1660,8 +1758,10 @@ function ConvList({
 
       {/* List */}
       <div className="conv-scroll flex flex-1 min-h-0 flex-col gap-1.5 overflow-y-auto px-2.5 py-3">
+        {queueLoading ? <QueueSkeleton rows={6} /> : null}
         {/* Waiting guests triage — only visible when staff attention is needed */}
-        {(() => {
+        {!queueLoading &&
+        (() => {
           const waiting = filtered.filter(
             (c) => c.status === "human_takeover" && (localUnreads[c.id] ?? c.unread) > 0
           );
@@ -1691,7 +1791,8 @@ function ConvList({
           );
         })()}
 
-        {filtered.map((conv) => {
+        {!queueLoading &&
+        filtered.map((conv) => {
           const revenue = CONV_REVENUE[conv.id];
           const isSelected = selected === conv.id;
           const overlay = convOverlays?.[conv.id];
@@ -1715,7 +1816,7 @@ function ConvList({
               }}
               className={cn(
                 "group w-full rounded-lg border-l-2 py-3.5 pl-3.5 pr-3.5 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-out",
-                pulsing && "animate-pulse ring-1 ring-blue-500/25",
+                pulsing && "queue-new-glow ring-1 ring-blue-500/20",
                 isSelected
                   ? "border-amber-400/60 bg-white/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.055)]"
                   : isWaiting
@@ -1842,11 +1943,13 @@ function ConvList({
             </button>
           );
         })}
-        {filtered.length === 0 && (
-          <p className="px-4 py-14 text-center text-sm leading-relaxed text-white/22">
-            Henüz aktif görüşme yok. Web Chat, WhatsApp veya Instagram&apos;dan gelen talepler
-            burada görünecek.
-          </p>
+        {!queueLoading && filtered.length === 0 && (
+          <OperationalEmptyState
+            icon={Inbox}
+            title={op("emptyQueue", locale)}
+            description={op("emptyQueueDetail", locale)}
+            compact
+          />
         )}
       </div>
     </div>

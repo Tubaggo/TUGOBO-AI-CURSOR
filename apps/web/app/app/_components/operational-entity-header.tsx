@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { ConversationThread, Guest } from "@/lib/runtime/entities";
 import { formatEur } from "@/lib/operational/format";
 import { ThreadOperationalBadges } from "./thread-operational-badges";
@@ -17,8 +18,9 @@ export function OperationalEntityHeader({
   const secured = conversation.attributions.reduce((sum, a) => sum + a.amountEur, 0);
   const exposure = conversation.revenueExposureEur;
   const confidence = guest?.intelligence.aiConfidenceScore;
+  const t = useTranslations("entityHeader");
   const memorySignal =
-    guest?.memory.recoveryHistory[0] ?? guest?.memory.aiNotes[0] ?? "Runtime monitoring";
+    guest?.memory.recoveryHistory[0] ?? guest?.memory.aiNotes[0] ?? t("runtimeMonitoring");
   const memoryDisplay = memorySignal.length > 42 ? `${memorySignal.slice(0, 40)}…` : memorySignal;
 
   return (
@@ -29,6 +31,7 @@ export function OperationalEntityHeader({
           <MotionRuntimeEntityIdentity
             conversation={conversation}
             operationalStatus={operationalStatus}
+            statusLabel={t("operationalStatus")}
           />
         </div>
         <ThreadOperationalBadges flags={conversation.flags} />
@@ -60,15 +63,17 @@ function MotionRuntimeEntityAvatar({ conversation }: { conversation: Conversatio
 function MotionRuntimeEntityIdentity({
   conversation,
   operationalStatus,
+  statusLabel,
 }: {
   conversation: ConversationThread;
   operationalStatus: string;
+  statusLabel: string;
 }) {
   return (
     <div>
       <h2 className="text-lg font-semibold tracking-tight text-white">{conversation.guestName}</h2>
       <p className="text-[11px] text-cyan-400/80">
-        Operational status: <span className="font-medium text-cyan-300">{operationalStatus}</span>
+        {statusLabel}: <span className="font-medium text-cyan-300">{operationalStatus}</span>
       </p>
       <p className="mt-0.5 text-[11px] text-white/35">
         {conversation.channel} · {conversation.language}
@@ -90,30 +95,35 @@ function MotionRuntimeEntityStats({
   memoryDisplay: string;
   conversation: ConversationThread;
 }) {
+  const t = useTranslations("entityHeader");
   const financialValue =
-    secured > 0 ? `${formatEur(secured)} secured` : exposure > 0 ? `${formatEur(exposure)} at risk` : "Stable";
+    secured > 0
+      ? t("secured", { amount: formatEur(secured) })
+      : exposure > 0
+        ? t("atRisk", { amount: formatEur(exposure) })
+        : t("stable");
   const outcomeValue = conversation.flags.recoveryActive
-    ? "Recovery in flight"
+    ? t("recoveryInFlight")
     : secured > 0
-      ? "Booking retained"
-      : "Orchestrating";
+      ? t("bookingRetained")
+      : t("orchestrating");
 
   return (
     <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-white/[0.06] sm:grid-cols-4">
       <RuntimeStat
         icon={Banknote}
-        label="Financial state"
+        label={t("financialState")}
         value={financialValue}
         tone={exposure > 0 ? "risk" : "revenue"}
       />
       <RuntimeStat
         icon={Sparkles}
-        label="AI runtime"
-        value={confidence !== undefined ? `Confidence ${confidence}%` : "Monitoring"}
+        label={t("aiRuntime")}
+        value={confidence !== undefined ? t("confidence", { pct: confidence }) : t("monitoring")}
         tone="orchestration"
       />
-      <RuntimeStat icon={Brain} label="Memory state" value={memoryDisplay} tone="memory" />
-      <RuntimeStat icon={Target} label="Operational outcome" value={outcomeValue} tone="outcome" />
+      <RuntimeStat icon={Brain} label={t("memoryState")} value={memoryDisplay} tone="memory" />
+      <RuntimeStat icon={Target} label={t("operationalOutcome")} value={outcomeValue} tone="outcome" />
     </div>
   );
 }

@@ -20,6 +20,7 @@ export {
   stageLabel,
 } from "./channelLabels";
 
+export type { UnifiedChannelMessage, UnifiedOutboundMessage } from "./unified-message";
 export { simulateAIResponse } from "./simulate-ai-response";
 export { ingestChannelMessage } from "@/lib/stores/operation-conversation-store";
 export { nextSimulatedIncoming } from "./simulateIncoming";

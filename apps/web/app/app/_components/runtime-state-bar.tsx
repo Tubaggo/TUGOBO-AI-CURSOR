@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   useOperationalRuntime,
   selectRevenueMetrics,
@@ -12,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CalendarCheck, PiggyBank, Zap, ClipboardList, ShieldCheck } from "lucide-react";
 
 export function RuntimeStateBar() {
+  const t = useTranslations("runtimeBar");
   const mounted = useOperationalRuntime(selectMounted);
   const metrics = useOperationalRuntime(selectRevenueMetrics);
   const conversations = useOperationalRuntime(selectConversations);
@@ -28,31 +30,31 @@ export function RuntimeStateBar() {
   const kpis = [
     {
       icon: CalendarCheck,
-      label: "Direct revenue",
+      label: t("directRevenue"),
       value: mounted ? formatEur(metrics.aiInfluencedRevenue, true) : "—",
       color: "text-emerald-400",
     },
     {
       icon: PiggyBank,
-      label: "OTA savings",
+      label: t("otaSavings"),
       value: mounted ? formatEur(metrics.otaCommissionAvoided) : "—",
       color: "text-amber-400",
     },
     {
       icon: Zap,
-      label: "Avg response",
-      value: mounted ? "38s" : "—",
+      label: t("avgResponse"),
+      value: mounted ? "38 sn" : "—",
       color: "text-violet-400",
     },
     {
       icon: ClipboardList,
-      label: "Active operations",
+      label: t("activeOps"),
       value: mounted ? String(activeOps) : "—",
       color: "text-blue-400",
     },
     {
       icon: ShieldCheck,
-      label: "Waiting approvals",
+      label: t("waitingApprovals"),
       value: mounted ? String(pendingApprovals) : "—",
       color: "text-cyan-400",
     },
@@ -73,7 +75,7 @@ export function RuntimeStateBar() {
         {mounted ? (
           <span className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-400/70">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            Live operations
+            {t("liveOperations")}
           </span>
         ) : null}
       </div>

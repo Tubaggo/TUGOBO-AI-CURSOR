@@ -107,6 +107,8 @@
       "atRisk": "At risk"
     },
     "footer": "Stages update as guests progress",
+    "empty": "Reservation pipeline is empty.",
+    "emptyDetail": "New inquiries and confirmations will appear here.",
     "timelineTitle": "Reservation history",
     "tabs": {
       "all": "All",
@@ -151,7 +153,8 @@
       "title": "Recovery operations",
       "subtitle": "Alternate payment · staff assist · guest follow-up"
     },
-    "empty": "No active payment operations",
+    "empty": "No pending payment operations.",
+    "emptyDetail": "Payment links and recovery steps will list here when active.",
     "monitoring": "Payment monitored · {amount} at risk",
     "linkActive": "Payment link active · awaiting guest"
   },
@@ -190,6 +193,8 @@
     "title": "Guest profiles",
     "description": "History, preferences and booking summary per guest",
     "openConversation": "Open conversation →",
+    "empty": "Guest profiles appear as operational history builds.",
+    "emptyDetail": "Profiles list here as conversation and booking data accumulates.",
     "segments": {
       "standard": "Standard",
       "vip": "VIP",
@@ -398,6 +403,93 @@
     }
   },
   "badges": {
-    "vipEscalation": "VIP · assist needed"
+    "vipEscalation": "VIP · assist needed",
+    "paymentRisk": "Payment risk",
+    "recoveryActive": "Recovery active",
+    "humanTakeover": "Staff takeover",
+    "otaConversion": "OTA conversion",
+    "memoryAttached": "Memory attached",
+    "priorRisk": "Prior risk",
+    "vipHistory": "VIP history",
+    "directCandidate": "Direct candidate"
+  },
+  "runtimeBar": {
+    "directRevenue": "Direct revenue",
+    "otaSavings": "OTA savings",
+    "avgResponse": "Avg response",
+    "activeOps": "Active operations",
+    "waitingApprovals": "Waiting approvals",
+    "liveOperations": "Live operations"
+  },
+  "entityHeader": {
+    "operationalStatus": "Operational status",
+    "financialState": "Financial state",
+    "aiRuntime": "AI runtime",
+    "memoryState": "Memory state",
+    "operationalOutcome": "Operational outcome",
+    "secured": "{amount} secured",
+    "atRisk": "{amount} at risk",
+    "stable": "Stable",
+    "recoveryInFlight": "Recovery in flight",
+    "bookingRetained": "Booking retained",
+    "orchestrating": "Orchestrating",
+    "confidence": "Confidence {pct}%",
+    "monitoring": "Monitoring",
+    "runtimeMonitoring": "Runtime monitoring"
+  },
+  "syncBar": {
+    "graphSync": "Operations updated",
+    "runtimeIdle": "Live operations ready"
+  },
+  "otaPanel": {
+    "eyebrow": "OTA recovery",
+    "title": "Commission savings & direct channel",
+    "leakage": "OTA leakage",
+    "leakageSub": "via OTA channel",
+    "directRate": "Direct conversion rate",
+    "directRateSub": "OTA → direct",
+    "commissionRecovered": "Commission recovered",
+    "commissionSub": "period summary",
+    "loyaltyConversions": "Loyalty conversions",
+    "loyaltySub": "post-recovery enrollments",
+    "activeWorkflows": "{count} active workflows"
+  },
+  "alertCenter": {
+    "title": "Operations feed",
+    "panelTitle": "Operational alerts",
+    "criticalSignals": "{count} critical signals",
+    "runtimeClear": "Operations normal",
+    "syncing": "Syncing…",
+    "noAlerts": "No active alerts"
+  },
+  "reports": {
+    "eyebrow": "Reports",
+    "title": "Operations & revenue reports",
+    "description": "Weekly performance snapshot — direct bookings, AI contribution, and operational outcomes.",
+    "fullOverview": "Full overview →",
+    "performanceSummary": "Performance summary",
+    "tiles": {
+      "directRevenue": "Direct revenue",
+      "otaSavings": "OTA savings",
+      "aiInfluenced": "AI-influenced revenue",
+      "recoveryRate": "Recovery rate"
+    },
+    "rows": {
+      "directRevenueAi": "Direct revenue (AI-influenced)",
+      "revenueRecoveredToday": "Revenue recovered today",
+      "otaCommissionAvoided": "OTA commission avoided",
+      "paymentRecoveryRevenue": "Payment recovery revenue",
+      "upsellRevenue": "Upsell revenue",
+      "revenueAtRisk": "Revenue at risk",
+      "recoverySuccessRate": "Recovery success rate",
+      "aiCloseRate": "AI close rate",
+      "autonomousResolution": "Autonomous resolution",
+      "directConversionRate": "Direct conversion rate"
+    }
+  },
+  "overviewExtras": {
+    "atRisk": "At risk {amount}",
+    "activeGuestOps": "Active guest operations",
+    "openInbox": "Conversations →"
   }
 }

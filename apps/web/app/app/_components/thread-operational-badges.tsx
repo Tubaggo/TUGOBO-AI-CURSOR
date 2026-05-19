@@ -1,24 +1,37 @@
+"use client";
+
+import { useTranslations } from "next-intl";
 import type { ThreadOperationalFlags } from "@/lib/runtime/entities";
 import { cn } from "@/lib/utils";
 
-const BADGES: {
+const BADGE_KEYS: {
   key: keyof ThreadOperationalFlags;
-  label: string;
+  labelKey:
+    | "paymentRisk"
+    | "recoveryActive"
+    | "humanTakeover"
+    | "vipEscalation"
+    | "otaConversion"
+    | "memoryAttached"
+    | "priorRisk"
+    | "vipHistory"
+    | "directCandidate";
   className: string;
 }[] = [
-  { key: "paymentRisk", label: "Payment risk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
-  { key: "recoveryActive", label: "Recovery active", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
-  { key: "humanTakeover", label: "Human takeover", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
-  { key: "vipEscalation", label: "VIP · destek gerekli", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
-  { key: "otaConversion", label: "OTA conversion", className: "border-cyan-500/25 bg-cyan-500/10 text-cyan-300" },
-  { key: "memoryAttached", label: "Memory attached", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
-  { key: "priorRiskDetected", label: "Prior risk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
-  { key: "vipHistory", label: "VIP history", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
-  { key: "directBookingCandidate", label: "Direct candidate", className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" },
+  { key: "paymentRisk", labelKey: "paymentRisk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
+  { key: "recoveryActive", labelKey: "recoveryActive", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
+  { key: "humanTakeover", labelKey: "humanTakeover", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
+  { key: "vipEscalation", labelKey: "vipEscalation", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
+  { key: "otaConversion", labelKey: "otaConversion", className: "border-cyan-500/25 bg-cyan-500/10 text-cyan-300" },
+  { key: "memoryAttached", labelKey: "memoryAttached", className: "border-violet-500/25 bg-violet-500/10 text-violet-300" },
+  { key: "priorRiskDetected", labelKey: "priorRisk", className: "border-amber-500/25 bg-amber-500/10 text-amber-300" },
+  { key: "vipHistory", labelKey: "vipHistory", className: "border-rose-500/25 bg-rose-500/10 text-rose-300" },
+  { key: "directBookingCandidate", labelKey: "directCandidate", className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" },
 ];
 
 export function ThreadOperationalBadges({ flags }: { flags: ThreadOperationalFlags }) {
-  const active = BADGES.filter((b) => flags[b.key]);
+  const t = useTranslations("badges");
+  const active = BADGE_KEYS.filter((b) => flags[b.key]);
   if (active.length === 0) return null;
 
   return (
@@ -31,7 +44,7 @@ export function ThreadOperationalBadges({ flags }: { flags: ThreadOperationalFla
             b.className
           )}
         >
-          {b.label}
+          {t(b.labelKey)}
         </span>
       ))}
     </div>

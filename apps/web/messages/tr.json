@@ -27,8 +27,8 @@
     "confirmed": "Onaylandı",
     "pendingPayment": "Ödeme bekleniyor",
     "quoteSent": "Teklif gönderildi",
-    "checkIn": "Check-in",
-    "checkOut": "Check-out",
+    "checkIn": "Giriş",
+    "checkOut": "Çıkış",
     "overviewLink": "Operasyon özeti",
     "saved": "Kurtarıldı",
     "inProgress": "Devam ediyor",
@@ -107,6 +107,8 @@
       "atRisk": "Risk altında"
     },
     "footer": "Misafir ilerledikçe aşamalar güncellenir",
+    "empty": "Aktif rezervasyon pipeline'ı boş.",
+    "emptyDetail": "Yeni talepler ve onaylar burada görünür.",
     "timelineTitle": "Rezervasyon geçmişi",
     "tabs": {
       "all": "Tümü",
@@ -151,7 +153,8 @@
       "title": "Kurtarma işlemleri",
       "subtitle": "Alternatif ödeme · ekip desteği · misafir takibi"
     },
-    "empty": "Aktif ödeme işlemi yok",
+    "empty": "Bekleyen ödeme operasyonu bulunmuyor.",
+    "emptyDetail": "Ödeme bağlantıları ve kurtarma adımları burada listelenir.",
     "monitoring": "Ödeme izleniyor · {amount} risk altında",
     "linkActive": "Ödeme bağlantısı aktif · misafir bekleniyor"
   },
@@ -190,6 +193,8 @@
     "title": "Misafir profilleri",
     "description": "Geçmiş, tercihler ve rezervasyon özeti — misafir bazında",
     "openConversation": "Görüşmeyi aç →",
+    "empty": "Misafir profilleri operasyon geçmişi oluştukça görünür.",
+    "emptyDetail": "Konuşma ve rezervasyon verisi biriktikçe profiller burada listelenir.",
     "segments": {
       "standard": "Standart",
       "vip": "VIP",
@@ -402,6 +407,93 @@
     }
   },
   "badges": {
-    "vipEscalation": "VIP · destek gerekli"
+    "vipEscalation": "VIP · destek gerekli",
+    "paymentRisk": "Ödeme riski",
+    "recoveryActive": "Kurtarma aktif",
+    "humanTakeover": "Ekip devraldı",
+    "otaConversion": "OTA dönüşümü",
+    "memoryAttached": "Geçmiş bağlı",
+    "priorRisk": "Önceki risk",
+    "vipHistory": "VIP geçmişi",
+    "directCandidate": "Direkt aday"
+  },
+  "runtimeBar": {
+    "directRevenue": "Direkt gelir",
+    "otaSavings": "OTA tasarrufu",
+    "avgResponse": "Ort. yanıt",
+    "activeOps": "Aktif operasyon",
+    "waitingApprovals": "Onay bekleyen",
+    "liveOperations": "Canlı operasyon"
+  },
+  "entityHeader": {
+    "operationalStatus": "Operasyon durumu",
+    "financialState": "Finansal durum",
+    "aiRuntime": "AI çalışma zamanı",
+    "memoryState": "Misafir geçmişi",
+    "operationalOutcome": "Operasyon sonucu",
+    "secured": "{amount} güvence altında",
+    "atRisk": "{amount} risk altında",
+    "stable": "Stabil",
+    "recoveryInFlight": "Kurtarma devam ediyor",
+    "bookingRetained": "Rezervasyon korundu",
+    "orchestrating": "Süreç yönetiliyor",
+    "confidence": "Güven {pct}%",
+    "monitoring": "İzleniyor",
+    "runtimeMonitoring": "Canlı izleme"
+  },
+  "syncBar": {
+    "graphSync": "Operasyon güncellendi",
+    "runtimeIdle": "Canlı operasyon hazır"
+  },
+  "otaPanel": {
+    "eyebrow": "OTA kurtarma",
+    "title": "Komisyon tasarrufu ve direkt kanal",
+    "leakage": "OTA sızıntısı",
+    "leakageSub": "OTA kanalı üzerinden",
+    "directRate": "Direkt dönüşüm oranı",
+    "directRateSub": "OTA → direkt",
+    "commissionRecovered": "Kurtarılan komisyon",
+    "commissionSub": "dönem özeti",
+    "loyaltyConversions": "Sadakat dönüşümleri",
+    "loyaltySub": "kurtarma sonrası kayıt",
+    "activeWorkflows": "{count} aktif süreç"
+  },
+  "alertCenter": {
+    "title": "Operasyon akışı",
+    "panelTitle": "Operasyon uyarıları",
+    "criticalSignals": "{count} kritik sinyal",
+    "runtimeClear": "Operasyon normal",
+    "syncing": "Senkronize ediliyor…",
+    "noAlerts": "Aktif uyarı yok"
+  },
+  "reports": {
+    "eyebrow": "Raporlar",
+    "title": "Operasyon ve gelir raporları",
+    "description": "Haftalık performans özeti — direkt rezervasyonlar, AI katkısı ve operasyon sonuçları.",
+    "fullOverview": "Operasyon özeti →",
+    "performanceSummary": "Performans özeti",
+    "tiles": {
+      "directRevenue": "Direkt gelir",
+      "otaSavings": "OTA tasarrufu",
+      "aiInfluenced": "AI katkılı gelir",
+      "recoveryRate": "Kurtarma oranı"
+    },
+    "rows": {
+      "directRevenueAi": "Direkt gelir (AI katkılı)",
+      "revenueRecoveredToday": "Bugün kurtarılan gelir",
+      "otaCommissionAvoided": "OTA komisyon tasarrufu",
+      "paymentRecoveryRevenue": "Ödeme kurtarma geliri",
+      "upsellRevenue": "Ek satış geliri",
+      "revenueAtRisk": "Riskteki gelir",
+      "recoverySuccessRate": "Kurtarma başarı oranı",
+      "aiCloseRate": "AI kapanış oranı",
+      "autonomousResolution": "AI çözüm oranı",
+      "directConversionRate": "Direkt dönüşüm oranı"
+    }
+  },
+  "overviewExtras": {
+    "atRisk": "Risk {amount}",
+    "activeGuestOps": "Aktif misafir operasyonları",
+    "openInbox": "Konuşmalar →"
   }
 }
