@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 
 const defaultHours: Record<number, { open: boolean; from: string; to: string }> = {
   0: { open: false, from: "09:00", to: "18:00" },
@@ -32,9 +32,9 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
   const [persona, setPersona] = useState(
-    "You are a friendly and professional AI concierge for Grand Hotel Demo. Be warm, helpful, and concise. Always respond in the language the guest uses. Keep replies under 4 sentences unless more detail is needed."
+    "Tugobo AI, otel ekibine destek veren profesyonel bir dijital operasyon asistanıdır. Misafirin dilinde yanıt ver, net ve kısa kal, rezervasyon ile ödeme adımlarını kontrollü ilerlet ve gerektiğinde insan desteğine yönlendir."
   );
-  const [hotelName, setHotelName] = useState("Grand Hotel Demo");
+  const [hotelName, setHotelName] = useState("Pilot Otel");
   const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [hours, setHours] = useState(defaultHours);
 
@@ -48,7 +48,7 @@ export default function SettingsPage() {
           body: JSON.stringify({ hotelName, timezone, persona }),
         });
       } catch {
-        // Swallow — UI feedback already shown
+        // UI bildirimi zaten gösterildi.
       }
     }
     setTimeout(() => setSaved(false), 2500);
@@ -60,223 +60,220 @@ export default function SettingsPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-    <div className="p-7 max-w-[820px]">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          {isSalesPreview ? (
-            <p className="mb-2 text-[11px] leading-relaxed text-white/38">
-              Örnek ayarlar — canlı hesapta kayıtlarınız ve entegrasyonlarınız kullanılır.
-            </p>
-          ) : null}
-          <h1 className="text-xl font-semibold text-white">Settings</h1>
-          <p className="text-sm text-white/40 mt-0.5">Configure your hotel, AI persona, and channels</p>
-        </div>
-        <button
-          onClick={handleSave}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            saved
-              ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
-              : "bg-blue-600 hover:bg-blue-500 text-white"
-          )}
-        >
-          {saved ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              Saved
-            </>
-          ) : (
-            "Save changes"
-          )}
-        </button>
-      </div>
-
-      <div className="space-y-5">
-        {/* Hotel Profile */}
-        <Section icon={Building2} title="Hotel Profile" description="Basic information about your property">
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Hotel name">
-              <input
-                value={hotelName}
-                onChange={(e) => setHotelName(e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Timezone">
-              <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
-                {["Europe/Istanbul", "Europe/London", "Europe/Berlin", "America/New_York", "Asia/Dubai"].map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Default language">
-              <select className={inputCls}>
-                <option>English</option>
-                <option>Turkish</option>
-                <option>German</option>
-                <option>Russian</option>
-              </select>
-            </Field>
-            <Field label="Contact email">
-              <input
-                defaultValue="contact@grandhoteldemo.com"
-                type="email"
-                className={inputCls}
-              />
-            </Field>
-          </div>
-        </Section>
-
-        {/* AI Persona */}
-        <Section icon={Bot} title="AI Persona" description="How the AI presents itself to guests">
-          <div className="space-y-4">
-            <div className="flex items-start gap-2.5 px-3.5 py-3 bg-blue-500/[0.06] border border-blue-500/15 rounded-lg">
-              <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-blue-300/70 leading-relaxed">
-                The AI uses this persona in all guest conversations. It also responds in the guest's language automatically.
+      <div className="max-w-[820px] p-5 sm:p-7">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            {isSalesPreview ? (
+              <p className="mb-2 text-[11px] leading-relaxed text-white/38">
+                Örnek ayarlar - canlı hesapta kendi kayıtlarınız ve entegrasyonlarınız kullanılır.
               </p>
-            </div>
-            <Field label="System persona">
-              <textarea
-                value={persona}
-                onChange={(e) => setPersona(e.target.value)}
-                rows={4}
-                className={cn(inputCls, "resize-none leading-relaxed")}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="AI name shown to guests">
-                <input defaultValue="Mia" className={inputCls} />
+            ) : null}
+            <h1 className="text-xl font-semibold text-white">Ayarlar</h1>
+            <p className="mt-0.5 text-sm text-white/40">
+              Otel bilgilerini, AI destek tonunu ve kanal bağlantılarını yönetin.
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            className={cn(
+              "flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all sm:w-auto",
+              saved
+                ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+                : "bg-blue-600 text-white hover:bg-blue-500"
+            )}
+          >
+            {saved ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Kaydedildi
+              </>
+            ) : (
+              "Değişiklikleri kaydet"
+            )}
+          </button>
+        </div>
+
+        <div className="space-y-5">
+          <Section icon={Building2} title="Otel profili" description="Tesisin temel operasyon bilgileri">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field label="Otel adı">
+                <input
+                  value={hotelName}
+                  onChange={(e) => setHotelName(e.target.value)}
+                  className={inputCls}
+                />
               </Field>
-              <Field label="Confidence threshold for escalation">
-                <select className={inputCls}>
-                  <option>Low (&lt;50%) — escalate rarely</option>
-                  <option>Medium (&lt;70%) — balanced</option>
-                  <option>High (&lt;85%) — escalate often</option>
+              <Field label="Saat dilimi">
+                <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
+                  {["Europe/Istanbul", "Europe/London", "Europe/Berlin", "America/New_York", "Asia/Dubai"].map((tz) => (
+                    <option key={tz} value={tz}>
+                      {tz}
+                    </option>
+                  ))}
                 </select>
               </Field>
-            </div>
-          </div>
-        </Section>
-
-        {/* Business Hours */}
-        <Section icon={Clock3} title="Business Hours" description="AI responds 24/7. These hours control human-agent availability notifications.">
-          <div className="space-y-2">
-            {DAYS.map((day, i) => (
-              <div
-                key={day}
-                className={cn(
-                  "flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors",
-                  hours[i].open
-                    ? "bg-white/[0.03] border-white/[0.06]"
-                    : "border-transparent"
-                )}
-              >
-                {/* Toggle */}
-                <button
-                  onClick={() => toggleDay(i)}
-                  className={cn(
-                    "relative w-9 h-5 rounded-full transition-colors shrink-0",
-                    hours[i].open ? "bg-blue-600" : "bg-white/[0.10]"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm",
-                      hours[i].open ? "translate-x-4" : "translate-x-0.5"
-                    )}
-                  />
-                </button>
-                <span className={cn("text-sm w-10 shrink-0", hours[i].open ? "text-white/80 font-medium" : "text-white/30")}>
-                  {day}
-                </span>
-                {hours[i].open ? (
-                  <div className="flex items-center gap-2 text-sm">
-                    <input
-                      type="time"
-                      value={hours[i].from}
-                      onChange={(e) =>
-                        setHours((h) => ({ ...h, [i]: { ...h[i], from: e.target.value } }))
-                      }
-                      className="bg-white/[0.06] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500/50"
-                    />
-                    <span className="text-white/30 text-xs">to</span>
-                    <input
-                      type="time"
-                      value={hours[i].to}
-                      onChange={(e) =>
-                        setHours((h) => ({ ...h, [i]: { ...h[i], to: e.target.value } }))
-                      }
-                      className="bg-white/[0.06] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-blue-500/50"
-                    />
-                  </div>
-                ) : (
-                  <span className="text-xs text-white/25">Closed</span>
-                )}
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* WhatsApp Channel */}
-        <Section icon={MessageSquare} title="WhatsApp Channel" description="Connected number and webhook status">
-          <div className="space-y-4">
-            {/* Status card */}
-            <div className="flex items-center justify-between px-4 py-3.5 bg-white/[0.03] border border-white/[0.06] rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
-                  <MessageSquare className="w-4.5 h-4.5 text-[#25D366]" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white/85">Twilio WhatsApp Sandbox</p>
-                  <p className="text-xs text-white/35 mt-0.5">+1 415 523 8886</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-                  <WifiOff className="w-3 h-3 text-amber-400" />
-                  <span className="text-[11px] font-medium text-amber-400">Not connected</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Twilio Account SID">
-                <input
-                  type="password"
-                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  className={inputCls}
-                />
+              <Field label="Varsayılan dil">
+                <select className={inputCls}>
+                  <option>Türkçe</option>
+                  <option>English</option>
+                  <option>Deutsch</option>
+                  <option>Русский</option>
+                </select>
               </Field>
-              <Field label="Twilio Auth Token">
-                <input
-                  type="password"
-                  placeholder="••••••••••••••••••••••••••••••••"
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="WhatsApp number" className="col-span-2">
-                <input
-                  placeholder="+14155238886"
-                  className={inputCls}
-                />
+              <Field label="İletişim e-postası">
+                <input defaultValue="iletisim@pilototel.com" type="email" className={inputCls} />
               </Field>
             </div>
+          </Section>
 
-            <div className="flex items-start gap-2.5 px-3.5 py-3 bg-white/[0.04] border border-white/[0.06] rounded-lg">
-              <Wifi className="w-4 h-4 text-white/30 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs text-white/50 font-medium">Webhook URL</p>
-                <p className="text-xs text-white/30 font-mono mt-0.5">
-                  https://your-domain.com/api/webhooks/twilio
+          <Section icon={Bot} title="AI destek tonu" description="AI'ın misafire nasıl görüneceğini belirleyin">
+            <div className="space-y-4">
+              <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/15 bg-blue-500/[0.06] px-3.5 py-3">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+                <p className="text-xs leading-relaxed text-blue-300/70">
+                  Bu tanım tüm misafir görüşmelerinde kullanılır. Sistem, misafirin diline göre otomatik yanıt vermeye devam eder.
                 </p>
               </div>
+              <Field label="Sistem tanımı">
+                <textarea
+                  value={persona}
+                  onChange={(e) => setPersona(e.target.value)}
+                  rows={4}
+                  className={cn(inputCls, "resize-none leading-relaxed")}
+                />
+              </Field>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Misafire görünen AI adı">
+                  <input defaultValue="Tugobo AI" className={inputCls} />
+                </Field>
+                <Field label="İnsan destek eşiği">
+                  <select className={inputCls}>
+                    <option>Düşük (&lt;50%) - nadiren yönlendir</option>
+                    <option>Orta (&lt;70%) - dengeli</option>
+                    <option>Yüksek (&lt;85%) - sık yönlendir</option>
+                  </select>
+                </Field>
+              </div>
             </div>
-          </div>
-        </Section>
+          </Section>
+
+          <Section
+            icon={Clock3}
+            title="Çalışma saatleri"
+            description="AI destek 7/24 çalışır. Bu saatler insan destek bildirimlerini belirler."
+          >
+            <div className="space-y-2">
+              {DAY_LABELS.map((day, i) => (
+                <div
+                  key={day}
+                  className={cn(
+                    "flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3 transition-colors",
+                    hours[i].open ? "border-white/[0.06] bg-white/[0.03]" : "border-transparent"
+                  )}
+                >
+                  <button
+                    onClick={() => toggleDay(i)}
+                    className={cn(
+                      "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+                      hours[i].open ? "bg-blue-600" : "bg-white/[0.10]"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
+                        hours[i].open ? "translate-x-4" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                  <span
+                    className={cn(
+                      "w-10 shrink-0 text-sm",
+                      hours[i].open ? "font-medium text-white/80" : "text-white/30"
+                    )}
+                  >
+                    {day}
+                  </span>
+                  {hours[i].open ? (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <input
+                        type="time"
+                        value={hours[i].from}
+                        onChange={(e) =>
+                          setHours((h) => ({ ...h, [i]: { ...h[i], from: e.target.value } }))
+                        }
+                        className="rounded-lg border border-white/[0.08] bg-white/[0.06] px-3 py-1.5 text-xs text-white focus:border-blue-500/50 focus:outline-none"
+                      />
+                      <span className="text-xs text-white/30">-</span>
+                      <input
+                        type="time"
+                        value={hours[i].to}
+                        onChange={(e) =>
+                          setHours((h) => ({ ...h, [i]: { ...h[i], to: e.target.value } }))
+                        }
+                        className="rounded-lg border border-white/[0.08] bg-white/[0.06] px-3 py-1.5 text-xs text-white focus:border-blue-500/50 focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-xs text-white/25">Kapalı</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Section>
+
+          <Section icon={MessageSquare} title="WhatsApp kanalı" description="Bağlı numara ve webhook durumu">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#25D366]/10">
+                    <MessageSquare className="h-4.5 w-4.5 text-[#25D366]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white/85">Twilio WhatsApp hattı</p>
+                    <p className="mt-0.5 text-xs text-white/35">+1 415 523 8886</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1">
+                    <WifiOff className="h-3 w-3 text-amber-400" />
+                    <span className="text-[11px] font-medium text-amber-400">Bağlı değil</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Twilio Account SID">
+                  <input
+                    type="password"
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Twilio Auth Token">
+                  <input
+                    type="password"
+                    placeholder="••••••••••••••••••••••••••••••••"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="WhatsApp numarası" className="md:col-span-2">
+                  <input placeholder="+14155238886" className={inputCls} />
+                </Field>
+              </div>
+
+              <div className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3.5 py-3">
+                <Wifi className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
+                <div>
+                  <p className="text-xs font-medium text-white/50">Webhook adresi</p>
+                  <p className="mt-0.5 font-mono text-xs text-white/30">
+                    https://your-domain.com/api/webhooks/twilio
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Section>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
@@ -293,14 +290,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-zinc-900 border border-white/[0.06] rounded-xl overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-white/[0.05]">
-        <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
-          <Icon className="w-4 h-4 text-white/50" />
+    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-zinc-900">
+      <div className="flex items-center gap-3 border-b border-white/[0.05] px-6 py-4">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.05]">
+          <Icon className="h-4 w-4 text-white/50" />
         </div>
         <div>
           <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <p className="text-xs text-white/35 mt-0.5">{description}</p>
+          <p className="mt-0.5 text-xs text-white/35">{description}</p>
         </div>
       </div>
       <div className="p-6">{children}</div>
@@ -319,11 +316,11 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-white/50 mb-1.5">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-white/50">{label}</label>
       {children}
     </div>
   );
 }
 
 const inputCls =
-  "w-full px-3.5 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 focus:bg-white/[0.07] transition-all";
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.05] px-3.5 py-2.5 text-sm text-white placeholder:text-white/20 transition-all focus:border-blue-500/50 focus:bg-white/[0.07] focus:outline-none";

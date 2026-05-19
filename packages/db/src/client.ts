@@ -8,10 +8,8 @@ function createClient() {
   const url = process.env.DATABASE_URL;
 
   if (!url) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("[tugobo/db] DATABASE_URL is required in production");
-    }
-    // In development, return null — callers must guard with `if (db)`
+    // Return null until runtime configuration is available.
+    // Callers that require the database must guard with `if (db)` or a local assert.
     return null;
   }
 

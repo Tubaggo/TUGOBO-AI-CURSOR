@@ -137,7 +137,7 @@ export function AppSidebar() {
             <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-gradient-to-br from-amber-400 to-orange-500 text-[9px] font-bold text-white">
               H
             </div>
-            <span className="truncate text-xs font-medium text-white/70">Grand Hotel Demo</span>
+            <span className="truncate text-xs font-medium text-white/70">Pilot Otel</span>
           </div>
           <ChevronRight className="h-3 w-3 shrink-0 text-white/30" />
         </button>

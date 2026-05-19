@@ -170,7 +170,7 @@ const WELCOME_MESSAGES: ChatMessage[] = [
   {
     id: "sys_welcome",
     role: "system",
-    text: "Önizleme ortamı · Canlı kurulumda kanallar, politikalar ve rezervasyon veriniz bu Digital Hotel Operating System’e bağlanır.",
+    text: "Önizleme ortamı · Canlı kurulumda kanallarınız, operasyon kurallarınız ve rezervasyon akışınız Tugobo AI'ya bağlanır.",
     ts: Date.now(),
     systemTone: "banner",
   },
@@ -178,25 +178,25 @@ const WELCOME_MESSAGES: ChatMessage[] = [
     id: "ai_welcome",
     role: "assistant",
     text:
-      "**Hotel Operating Intelligence** katmanı; **WhatsApp**, **Instagram DM** ve **web** üzerindeki misafir iletişimini tek operasyon kuyruğunda toplar.\n\n**AI destekli operasyon** ile politika ve fiyat kurallarınız uygulanır; **direkt rezervasyon altyapısı** ve **operasyonel görünürlük** (canlı panel) aynı çatı altında çalışır — yalnızca bir chatbot değil, otelinizin dijital işletim sistemi.",
+      "**Tugobo AI**, **WhatsApp**, **Instagram DM** ve **web** üzerinden gelen misafir taleplerini tek operasyon kuyruğunda toplar.\n\n**AI destek** ile görüşmeler daha hızlı ilerler, **insan kontrolü** korunur, rezervasyon ve ödeme adımları aynı panelde yönetilir.",
     ts: Date.now(),
   },
 ];
 
 /** Landing: same ids; only `ai_welcome` may differ when pristine on `/`. */
 const LANDING_WELCOME_TEXT: Record<string, string> = {
-  sys_welcome: "Önizleme ortamı · Canlı kurulumda kanallar, politikalar ve rezervasyon veriniz bu Digital Hotel Operating System’e bağlanır.",
+  sys_welcome: "Önizleme ortamı · Canlı kurulumda kanallarınız, operasyon kurallarınız ve rezervasyon akışınız Tugobo AI'ya bağlanır.",
   ai_welcome:
-    "**Hotel Operating Intelligence** katmanı; **WhatsApp**, **Instagram DM** ve **web** üzerindeki misafir iletişimini tek operasyon kuyruğunda toplar.\n\n**AI destekli operasyon** ile politika ve fiyat kurallarınız uygulanır; **direkt rezervasyon altyapısı** ve **operasyonel görünürlük** (canlı panel) aynı çatı altında çalışır — yalnızca bir chatbot değil, otelinizin dijital işletim sistemi.",
+    "**Tugobo AI**, **WhatsApp**, **Instagram DM** ve **web** üzerinden gelen misafir taleplerini tek operasyon kuyruğunda toplar.\n\n**AI destek** ile görüşmeler daha hızlı ilerler, **insan kontrolü** korunur, rezervasyon ve ödeme adımları aynı panelde yönetilir.",
 };
 
 const OPERATIONAL_TEASERS = [
   "Canlı panelde birleşik misafir iletişimi, operasyon sinyalleri ve direkt rezervasyon hattını aynı görünümde izleyebilirsiniz.",
-  "Dashboard üzerinden kanal trafiği, AI operasyon katmanı ve ekip devralmasını Hotel Operating Intelligence perspektifinde değerlendirebilirsiniz.",
+  "Panel üzerinden kanal trafiğini, AI destek akışını ve ekip devralmalarını tek bakışta yönetebilirsiniz.",
 ] as const;
 
 const ESCALATION_AFTER_3 =
-  "Digital Hotel Operating System kurulumunu canlı panel üzerinden adım adım planlayabiliriz.";
+  "Tugobo AI kurulumunu canlı panel üzerinden adım adım planlayabiliriz.";
 
 const ESCALATION_AFTER_5 =
   "Taahhüt istemeyen kısa bir görüşmede operasyon trafiğinizi, direkt rezervasyon hedeflerinizi ve OTA bağımlılığını azaltma senaryolarını netleştirebiliriz.";
@@ -297,9 +297,9 @@ function dashboardSalesLinks(pathname: string): DashboardCtaLink[] {
 function consultLineForEntryFlow(flow: FlowId): string | undefined {
   switch (flow) {
     case "how_it_works":
-      return "Misafir tarafındaki deneyim, otelinizin politikalarına ve kanal kurallarına göre Digital Hotel Operating System içinde şekillenir.";
+      return "Misafir deneyimi, otelinizin politikalarına ve kanal kurallarına göre Tugobo AI içinde şekillenir.";
     case "dashboard":
-      return "Panel; konuşma hacmi, pipeline ve devralma akışını Hotel Operating Intelligence ile tek bakışta toparlar.";
+      return "Panel; görüşme yoğunluğunu, rezervasyon akışını ve devralma süreçlerini tek bakışta toparlar.";
     case "fit":
       return "İşletme profilinize göre kurulum kapsamı, entegrasyonlar ve ekip eğitimi netleştirilebilir.";
     case "demo":
@@ -308,13 +308,13 @@ function consultLineForEntryFlow(flow: FlowId): string | undefined {
 }
 
 const GENERIC_FREE_TEXT_REPLY =
-  "Talebinizi aldım. Tugobo AI, **birleşik misafir iletişimini**, **operasyonel görünürlüğü** ve **direkt rezervasyon altyapısını** tek Digital Hotel Operating System katmanında birleştirir. İsterseniz **platform akışını** veya **operasyon panelini** nasıl kullanacağınızı özetleyebilirim.";
+  "Talebinizi aldım. Tugobo AI, **birleşik misafir iletişimini**, **operasyonel görünürlüğü** ve **direkt rezervasyon akışını** tek merkezde birleştirir. İsterseniz **operasyon akışını** veya **operasyon panelini** nasıl kullanacağınızı özetleyebilirim.";
 
 const DEMO_MAIL_HREF =
   "mailto:hello@tugobo.ai?subject=" +
-  encodeURIComponent("Tugobo AI — Digital Hotel Operating System kurulum görüşmesi") +
+  encodeURIComponent("Tugobo AI - kurulum görüşmesi") +
   "&body=" +
-  encodeURIComponent("Merhaba,\n\nTugobo AI Digital Hotel Operating System için kurulum / operasyon turu talep ediyorum.\n\nTeşekkürler,\n");
+  encodeURIComponent("Merhaba,\n\nTugobo AI için kurulum / operasyon turu talep ediyorum.\n\nTeşekkürler,\n");
 
 /** Same asset as marketing nav / homepage (`nav.tsx`, `page.tsx`). */
 const FULL_LOGO_SRC = "/Logo.png";
@@ -649,7 +649,7 @@ export function ConciergeWebChat() {
             hotelInsights: result.data.insights ?? undefined,
             conversion: wrapConversion({
               consultativeLine:
-                "Yanıt **Hotel Operating Intelligence** katmanı (DeepSeek) ile üretildi; canlı kurulumda politika ve veri bağlantılarınız eklenir.",
+                "Yanıt **Tugobo AI** bilgi katmanı ile üretildi; canlı kurulumda operasyon kuralları ve veri bağlantılarınız eklenir.",
               insights: insightChips.length > 0 ? insightChips : [...TRUST_INSIGHTS].slice(0, 3),
               dashboardLinks: getDashboardLinks(),
               demoMailCta: true,
@@ -950,7 +950,7 @@ export function ConciergeWebChat() {
 
       const visitorLine =
         action === "how_it_works"
-          ? "Digital Hotel Operating System nasıl çalışır?"
+          ? "Tugobo AI nasıl çalışır?"
           : action === "dashboard"
             ? "Operasyon panelini görmek istiyorum."
             : action === "fit"
@@ -1067,7 +1067,7 @@ export function ConciergeWebChat() {
           <span className="relative flex min-w-0 flex-col items-start gap-0.5 leading-tight">
             <span className="text-[13px] font-semibold tracking-tight text-white/90">Tugobo AI</span>
             <span className="max-w-[14rem] truncate text-[11px] text-white/40 sm:max-w-[16rem]">
-              Hotel Operating Intelligence
+              Tugobo AI
             </span>
           </span>
 
@@ -1107,7 +1107,7 @@ export function ConciergeWebChat() {
 
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
                   <span className="truncate text-[13px] font-semibold leading-snug text-white/90">Tugobo AI</span>
-                  <span className="truncate text-[11px] leading-snug text-white/40">Hotel Operating Intelligence</span>
+                  <span className="truncate text-[11px] leading-snug text-white/40">AI destekli operasyon merkezi</span>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
@@ -1436,7 +1436,7 @@ function DemoSoftEscalation() {
         href={DEMO_MAIL_HREF}
         className="text-[12px] leading-snug text-blue-200/72 transition-colors duration-200 hover:text-blue-100/90 underline-offset-4 hover:underline"
       >
-        Uygun olduğunuz bir zaman için Digital Hotel Operating System kurulum görüşmesi planlamak isterseniz buradan yazabilirsiniz.
+        Uygun olduğunuz bir zaman için Tugobo AI kurulum görüşmesi planlamak isterseniz buradan yazabilirsiniz.
       </a>
     </div>
   );

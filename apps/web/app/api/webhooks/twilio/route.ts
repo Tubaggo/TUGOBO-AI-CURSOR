@@ -6,14 +6,11 @@ import { logger } from "@tugobo/shared";
 // Twilio sends application/x-www-form-urlencoded
 export const runtime = "nodejs";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const params = Object.fromEntries(new URLSearchParams(rawBody));
 
-    // ── 1. Validate Twilio signature ───────────────────────────────────────
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
 
@@ -23,8 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     const signature = req.headers.get("x-twilio-signature") ?? "";
-    const url =
-      process.env.NEXT_PUBLIC_APP_URL + "/api/webhooks/twilio";
+    const url = process.env.NEXT_PUBLIC_APP_URL + "/api/webhooks/twilio";
 
     const isValid = twilio.validateRequest(authToken, signature, url, params);
     if (!isValid && process.env.NODE_ENV === "production") {
@@ -32,12 +28,9 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
-    // ── 2. Extract message fields ──────────────────────────────────────────
     const messageSid = params["MessageSid"];
-    const fromRaw = params["From"] ?? "";
     const body = params["Body"] ?? "";
 
-    // Delivery receipts have no Body
     if (!messageSid || !body) {
       return new NextResponse("", { status: 200 });
     }
@@ -46,7 +39,13 @@ export async function POST(req: NextRequest) {
       sid: messageSid,
     });
 
-    // ── 3. Generate AI reply ───────────────────────────────────────────────
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      logger.error("OpenAI API key not configured");
+      return new NextResponse("Server misconfiguration", { status: 500 });
+    }
+
+    const openai = new OpenAI({ apiKey });
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -66,7 +65,6 @@ export async function POST(req: NextRequest) {
       completion.choices[0]?.message?.content?.trim() ??
       "Thank you for your message. A member of our team will be in touch shortly.";
 
-    // ── 4. Send reply via Twilio TwiML ─────────────────────────────────────
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message><Body>${escapeXml(reply)}</Body></Message>

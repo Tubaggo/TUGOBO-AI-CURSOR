@@ -1,56 +1,53 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ConciergeWebChat } from "./(marketing)/_components/concierge-web-chat";
 import { DemoAccessModalProvider } from "./(marketing)/_components/demo-access-modal";
 import { DemoModalProvider } from "./(marketing)/_components/demo-modal";
 import { PanelPreviewModalProvider } from "./(marketing)/_components/landing-panel-preview-modal";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: {
-    default: "Tugobo AI — Digital Hotel Operating System & Hotel Operating Intelligence",
+    default: "Tugobo AI | AI destekli dijital otel operasyon merkezi",
     template: "%s | Tugobo AI",
   },
   description:
-    "Digital Hotel Operating System: unified guest communication, AI-powered operations layer, direct booking infrastructure, and real-time operational visibility for hotels in Turkey and beyond.",
+    "Tugobo AI; otellerin WhatsApp, web ve sosyal medya üzerinden gelen misafir taleplerini AI desteğiyle daha hızlı, kontrollü ve satış odaklı yönetmesini sağlayan dijital otel operasyon merkezidir.",
   keywords: [
-    "digital hotel operating system",
-    "hotel operating intelligence",
-    "AI-powered operations layer",
-    "direct booking infrastructure",
-    "unified guest communication",
+    "AI destekli dijital otel operasyon merkezi",
+    "otel operasyon merkezi",
+    "otel görüşme yönetimi",
+    "WhatsApp rezervasyon yönetimi",
+    "direkt rezervasyon",
     "Tugobo AI",
-    "WhatsApp otel operasyonu",
-    "OTA komisyon azalt",
-    "butik otel yazılım",
+    "misafir iletişimi",
+    "ödeme bekleniyor",
+    "operasyon özeti",
   ],
   authors: [{ name: "Tugobo AI" }],
   creator: "Tugobo AI",
-  metadataBase: new URL("https://tugobo.ai"),
+  metadataBase: new URL("https://tugobo.com"),
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://tugobo.ai",
+    url: "https://tugobo.com",
     siteName: "Tugobo AI",
-    title: "Tugobo AI — Digital Hotel Operating System",
+    title: "Tugobo AI | AI destekli dijital otel operasyon merkezi",
     description:
-      "Hotel Operating Intelligence: unified channels, operational visibility, and direct booking infrastructure—not a bolt-on chatbot.",
+      "Misafir taleplerini tek operasyon akışında toplayın; AI destek, insan kontrolü ve satış odaklı rezervasyon yönetimini aynı panelde yönetin.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Tugobo AI — Digital Hotel Operating System",
+        alt: "Tugobo AI - dijital otel operasyon merkezi",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Tugobo AI — Hotel Operating Intelligence",
+    title: "Tugobo AI | Dijital otel operasyon merkezi",
     description:
-      "Run guest communication, pipeline, and direct bookings from one AI-powered operations layer with full dashboard visibility.",
+      "WhatsApp, web ve sosyal medya taleplerini AI desteğiyle tek operasyon merkezinde yönetin.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -69,8 +66,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark bg-zinc-950">
-      <body className={`${inter.className} bg-zinc-950`}>
+    <html lang="tr" suppressHydrationWarning className="dark bg-zinc-950">
+      <body className="bg-zinc-950 text-white antialiased">
         <DemoModalProvider>
           <DemoAccessModalProvider>
             <PanelPreviewModalProvider>
