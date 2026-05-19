@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
     }
 
     const signature = req.headers.get("x-twilio-signature") ?? "";
-    const url = process.env.NEXT_PUBLIC_APP_URL + "/api/webhooks/twilio";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+    const url = appUrl
+      ? new URL("/api/webhooks/twilio", appUrl).toString()
+      : new URL("/api/webhooks/twilio", req.nextUrl.origin).toString();
 
     const isValid = twilio.validateRequest(authToken, signature, url, params);
     if (!isValid && process.env.NODE_ENV === "production") {

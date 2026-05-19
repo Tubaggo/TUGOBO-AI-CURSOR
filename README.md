@@ -82,6 +82,10 @@ pnpm.cmd lint
 pnpm.cmd build
 ```
 
+## Production deployment
+
+Deployment steps, required environment variables, domain setup, and Supabase notes are documented in `DEPLOYMENT.md`.
+
 ## Deployment notes
 
 - `tugobo.com`: landing

@@ -10,13 +10,8 @@ const nextConfig: NextConfig = {
     "@tugobo/channels",
     "@tugobo/core",
   ],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   serverExternalPackages: ["postgres", "twilio"],
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  poweredByHeader: false,
 };
 
 export default withNextIntl(nextConfig);
