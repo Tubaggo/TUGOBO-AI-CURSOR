@@ -18,6 +18,7 @@ import type { LiveConversation, LiveMessage } from "@/lib/conversation/models";
 import type { TakeoverAction } from "@/lib/conversation/models";
 import { generateHotelAssistantResponse } from "@/lib/ai/aiClient";
 import type { AiRespondRequest } from "@/lib/ai/types";
+import { sendManychatOutboundMessage } from "@/lib/server/integrations/manychat-outbound";
 
 type ConversationRow = {
   conversation: typeof conversations.$inferSelect;
@@ -38,6 +39,22 @@ function providerFromChannel(channel: PanelChannelType) {
 
 function manychatSessionId(channel: Extract<PanelChannelType, "instagram" | "whatsapp">, externalUserId: string) {
   return `manychat:${channel}:${externalUserId}`;
+}
+
+function manychatExternalUserIdFromSessionId(
+  channel: Extract<PanelChannelType, "instagram" | "whatsapp">,
+  externalSessionId: string | null
+): string | null {
+  const prefix = manychatSessionId(channel, "");
+  if (!externalSessionId?.startsWith(prefix)) return null;
+
+  const externalUserId = externalSessionId.slice(prefix.length).trim();
+  return externalUserId.length > 0 ? externalUserId : null;
+}
+
+function asProviderMetadata(input: unknown): Record<string, unknown> | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
+  return input as Record<string, unknown>;
 }
 
 function secretsMatch(expected: string, provided: string): boolean {
@@ -546,13 +563,25 @@ export async function sendOperatorMessage(
   const database = assertDb();
   const now = new Date();
 
-  const [conv] = await database
-    .select()
+  const [row] = await database
+    .select({
+      conversation: conversations,
+      connectedChannel: channels,
+    })
     .from(conversations)
+    .leftJoin(channels, eq(conversations.connectedChannelId, channels.id))
     .where(eq(conversations.id, conversationId))
     .limit(1);
 
-  if (!conv) throw new Error("conversation_not_found");
+  if (!row?.conversation) throw new Error("conversation_not_found");
+
+  const conv = row.conversation;
+  const connectedChannel = row.connectedChannel;
+  const manychatChannel =
+    conv.channel === "instagram" || conv.channel === "whatsapp" ? conv.channel : null;
+  const isManychatOutbound =
+    connectedChannel?.provider === "manychat" &&
+    manychatChannel !== null;
 
   const [msg] = await database
     .insert(messages)
@@ -560,8 +589,8 @@ export async function sendOperatorMessage(
       conversationId,
       senderType: "staff",
       content: body,
-      provider: providerFromChannel(conv.channel),
-      deliveryStatus: "sent",
+      provider: isManychatOutbound ? "manychat" : providerFromChannel(conv.channel),
+      deliveryStatus: isManychatOutbound ? "pending" : "sent",
       humanOverride: true,
     })
     .returning();
@@ -573,7 +602,50 @@ export async function sendOperatorMessage(
     .set({ lastMessageAt: now, unreadCount: 0 })
     .where(eq(conversations.id, conversationId));
 
-  return dbMessageToLive(msg);
+  if (!isManychatOutbound) {
+    return dbMessageToLive(msg);
+  }
+
+  const externalUserId = manychatExternalUserIdFromSessionId(
+    manychatChannel,
+    conv.externalSessionId
+  );
+
+  if (!externalUserId) {
+    logger.warn("Manychat outbound skipped because external user id is missing", {
+      hotelId: conv.hotelId,
+      conversationId,
+      messageId: msg.id,
+    });
+
+    const [failedMessage] = await database
+      .update(messages)
+      .set({ deliveryStatus: "failed" })
+      .where(eq(messages.id, msg.id))
+      .returning();
+
+    return dbMessageToLive(failedMessage ?? msg);
+  }
+
+  const delivery = await sendManychatOutboundMessage({
+    hotelId: conv.hotelId,
+    conversationId,
+    externalUserId,
+    channel: manychatChannel,
+    message: body,
+    providerMetadata: asProviderMetadata(connectedChannel?.metadata),
+  });
+
+  const [updatedMessage] = await database
+    .update(messages)
+    .set({
+      deliveryStatus: delivery.deliveryStatus === "failed" ? "failed" : "sent",
+      externalMessageId: delivery.externalMessageId,
+    })
+    .where(eq(messages.id, msg.id))
+    .returning();
+
+  return dbMessageToLive(updatedMessage ?? msg);
 }
 
 export async function runAiReplyForConversation(

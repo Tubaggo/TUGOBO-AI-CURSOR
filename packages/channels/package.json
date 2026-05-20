@@ -4,6 +4,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./manychat": "./src/manychat.ts",
+    "./outbound": "./src/outbound.ts",
     "./twilio": "./src/whatsapp-twilio.ts",
     "./meta": "./src/whatsapp-meta.ts",
     "./types": "./src/types.ts"
