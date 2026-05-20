@@ -1,4 +1,5 @@
 import type {
+  ConnectedChannelProvider,
   ConversationPaymentState,
   ConversationReservationState,
   EscalationState,
@@ -43,6 +44,7 @@ export type LiveMessage = {
   aiGenerated: boolean;
   humanOverride: boolean;
   channel?: PanelChannelType;
+  provider?: ConnectedChannelProvider;
 };
 
 export type TakeoverAction = "takeover" | "release_to_ai";

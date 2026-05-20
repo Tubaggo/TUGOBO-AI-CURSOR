@@ -1,4 +1,4 @@
-import type { PanelChannelType } from "@tugobo/shared";
+import type { ConnectedChannelProvider, PanelChannelType } from "@tugobo/shared";
 import type { MessageSender } from "./types";
 
 /**
@@ -6,7 +6,8 @@ import type { MessageSender } from "./types";
  * Provider adapters normalize into this before persistence.
  */
 export type UnifiedChannelMessage = {
-  externalId: string;
+  externalMessageId: string;
+  provider: ConnectedChannelProvider;
   channel: PanelChannelType;
   hotelId: string;
   conversationId?: string;
@@ -15,7 +16,7 @@ export type UnifiedChannelMessage = {
   guestPhone?: string;
   language?: string;
   role: MessageSender;
-  body: string;
+  content: string;
   timestamp: string;
   deliveryStatus: "pending" | "sent" | "delivered" | "read" | "failed";
   aiGenerated?: boolean;
@@ -25,7 +26,7 @@ export type UnifiedChannelMessage = {
 
 export type UnifiedOutboundMessage = {
   conversationId: string;
-  body: string;
+  content: string;
   role: "ai" | "staff";
   humanOverride?: boolean;
 };

@@ -11,6 +11,7 @@ export type ConversationChannel = "whatsapp" | "instagram" | "web";
 
 export interface Conversation {
   id: string;
+  hotelId?: string;
   contact: { name: string; phone: string; initials: string; avatarColor: string };
   lastMessage: string;
   time: string;
@@ -21,6 +22,13 @@ export interface Conversation {
   messageCount: number;
   /** Inbox source — UI only in dashboard preview */
   channel?: ConversationChannel;
+  provider?:
+    | "manychat"
+    | "whatsapp_cloud"
+    | "instagram"
+    | "web_chat"
+    | "whatsapp_twilio"
+    | "whatsapp_meta";
 }
 
 export interface Reservation {

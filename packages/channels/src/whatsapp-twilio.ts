@@ -68,11 +68,12 @@ export class WhatsAppTwilioAdapter implements ChannelAdapter {
     }
 
     return {
-      externalId: messageSid,
-      channelType: "whatsapp_twilio",
+      externalMessageId: messageSid,
+      provider: "whatsapp_twilio",
+      channelType: "whatsapp",
       fromPhone: from,
       toPhone: to,
-      body,
+      content: body,
       mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
       timestamp: new Date(),
       hotelId: this.config.hotelId,

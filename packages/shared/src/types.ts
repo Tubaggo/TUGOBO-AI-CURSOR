@@ -1,6 +1,30 @@
 // ─── Domain enums ────────────────────────────────────────────────────────────
 
-export type ChannelType = "whatsapp_twilio" | "whatsapp_meta";
+export type HotelWorkspaceStatus = "active" | "inactive" | "trial" | "archived";
+
+export type HotelWorkspacePlan = "starter" | "growth" | "enterprise";
+
+export type ConnectedChannelProvider =
+  | "manychat"
+  | "whatsapp_cloud"
+  | "instagram"
+  | "web_chat"
+  | "whatsapp_twilio"
+  | "whatsapp_meta";
+
+export type ConnectedChannelType =
+  | "whatsapp"
+  | "instagram"
+  | "web_chat"
+  | "manual";
+
+export type ConnectedChannelStatus =
+  | "draft"
+  | "connected"
+  | "disconnected"
+  | "error";
+
+export type ChannelType = ConnectedChannelProvider;
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -28,11 +52,12 @@ export type UserRole = "owner" | "staff";
 // ─── Shared message contract (channel-agnostic) ───────────────────────────────
 
 export interface InboundMessage {
-  externalId: string;
-  channelType: ChannelType;
+  externalMessageId: string;
+  provider: ConnectedChannelProvider;
+  channelType: ConnectedChannelType;
   fromPhone: string;
   toPhone: string;
-  body: string;
+  content: string;
   mediaUrls?: string[];
   timestamp: Date;
   hotelId: string;
@@ -51,6 +76,9 @@ export interface OutboundMessage {
 export interface HotelContext {
   hotelId: string;
   hotelName: string;
+  hotelSlug?: string;
+  hotelStatus?: HotelWorkspaceStatus;
+  hotelPlan?: HotelWorkspacePlan;
   locale: string;
   timezone: string;
   businessHours: BusinessHours;

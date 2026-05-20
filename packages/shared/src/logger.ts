@@ -11,7 +11,10 @@ function formatContext(context?: Record<string, unknown>): string {
   // PII redaction: strip phone numbers and message bodies from logs
   const safe = { ...context };
   if ("phone" in safe) safe.phone = "[REDACTED]";
+  if ("fromPhone" in safe) safe.fromPhone = "[REDACTED]";
+  if ("toPhone" in safe) safe.toPhone = "[REDACTED]";
   if ("body" in safe) safe.body = "[REDACTED]";
+  if ("content" in safe) safe.content = "[REDACTED]";
   if ("message" in safe) safe.message = "[REDACTED]";
   return " " + JSON.stringify(safe);
 }

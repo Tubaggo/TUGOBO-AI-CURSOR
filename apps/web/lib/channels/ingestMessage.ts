@@ -47,8 +47,16 @@ export function createConversationFromIngest(
 
   return {
     id: conversationId,
+    hotelId: input.hotelId,
     guestName,
     channel: input.channel,
+    provider:
+      input.provider ??
+      (input.channel === "web_chat"
+        ? "web_chat"
+        : input.channel === "instagram"
+          ? "instagram"
+          : "whatsapp_cloud"),
     stage: "new_inquiry",
     statusLabel: STAGE_STATUS_LABELS.new_inquiry,
     lastMessage: input.message,

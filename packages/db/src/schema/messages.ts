@@ -8,8 +8,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { conversations } from "./conversations";
 import type {
+  ConnectedChannelProvider,
   MessageDeliveryStatus,
-  MessageDirection,
   MessageRole,
 } from "@tugobo/shared";
 
@@ -19,14 +19,14 @@ export const messages = pgTable("messages", {
     .notNull()
     .references(() => conversations.id, { onDelete: "cascade" }),
   /** External provider message ID (Twilio SID, Meta message ID) */
-  externalId: text("external_id"),
-  direction: text("direction").$type<MessageDirection>().notNull(),
-  role: text("role").$type<MessageRole>().notNull().default("guest"),
+  externalMessageId: text("external_message_id"),
+  senderType: text("sender_type").$type<MessageRole>().notNull().default("guest"),
+  provider: text("provider").$type<ConnectedChannelProvider>(),
   deliveryStatus: text("delivery_status")
     .$type<MessageDeliveryStatus>()
     .notNull()
     .default("sent"),
-  body: text("body").notNull(),
+  content: text("content").notNull(),
   mediaUrl: text("media_url"),
   aiGenerated: boolean("ai_generated").notNull().default(false),
   humanOverride: boolean("human_override").notNull().default(false),

@@ -47,8 +47,10 @@ export function liveConversationToOperation(
 
   return {
     id: live.id,
+    hotelId: live.hotelId,
     guestName: live.guestName,
     channel: live.channel,
+    provider: messages[0]?.provider ?? (live.channel === "web_chat" ? "web_chat" : live.channel === "instagram" ? "instagram" : "whatsapp_cloud"),
     stage: live.stage,
     statusLabel: live.statusLabel || STAGE_STATUS_LABELS[live.stage],
     lastMessage: live.lastMessage,

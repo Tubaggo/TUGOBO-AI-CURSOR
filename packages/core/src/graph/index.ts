@@ -33,6 +33,35 @@ export const processInboundMessage = inngest.createFunction(
 );
 
 /**
+ * Inngest workflow: mark an inbound conversation as ready for supervised AI suggestioning.
+ * This intentionally does not send a guest reply yet; the operator remains in control.
+ */
+export const prepareConversationAiSuggestion = inngest.createFunction(
+  {
+    id: "prepare-conversation-ai-suggestion",
+    name: "Prepare Conversation AI Suggestion",
+  },
+  { event: "conversation/ai-suggestion.requested" },
+  async ({ event, step }) => {
+    const data = event.data as {
+      hotelId: string;
+      conversationId: string;
+      messageId: string;
+      provider: string;
+      channel: string;
+      source: string;
+      supervised: boolean;
+      requestedAt: string;
+    };
+
+    return step.run("prepare-supervised-ai-suggestion", async () => ({
+      ...data,
+      status: "prepared_for_human_supervision",
+    }));
+  }
+);
+
+/**
  * Inngest workflow: send internal notification email when a demo lead is captured.
  * Triggered by the /api/demo route after a successful DB insert.
  * Phone / PII are never included in the email — only the lead ID and hotel metadata.

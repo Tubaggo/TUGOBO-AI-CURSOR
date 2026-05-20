@@ -36,8 +36,16 @@ export type OperationMessage = {
 
 export type OperationConversation = {
   id: string;
+  hotelId?: string;
   guestName: string;
   channel: ChannelType;
+  provider?:
+    | "manychat"
+    | "whatsapp_cloud"
+    | "instagram"
+    | "web_chat"
+    | "whatsapp_twilio"
+    | "whatsapp_meta";
   stage: ConversationStage;
   statusLabel: string;
   lastMessage: string;
@@ -60,7 +68,15 @@ export type ChannelFilter =
   | "human_support";
 
 export type IngestChannelMessageInput = {
+  hotelId?: string;
   channel: ChannelType;
+  provider?:
+    | "manychat"
+    | "whatsapp_cloud"
+    | "instagram"
+    | "web_chat"
+    | "whatsapp_twilio"
+    | "whatsapp_meta";
   guestName: string;
   message: string;
   externalId?: string;

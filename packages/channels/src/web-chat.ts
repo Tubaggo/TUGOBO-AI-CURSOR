@@ -25,11 +25,12 @@ export class WebChatAdapter implements ChannelAdapter {
     if (!body || !sessionId) return null;
 
     return {
-      externalId: `web-${sessionId}-${Date.now()}`,
-      channelType: "whatsapp_twilio",
+      externalMessageId: `web-${sessionId}-${Date.now()}`,
+      provider: "web_chat",
+      channelType: "web_chat",
       fromPhone: `session:${sessionId}`,
       toPhone: `web@${this.config.hotelId.slice(0, 8)}`,
-      body,
+      content: body,
       timestamp: new Date(),
       hotelId: this.config.hotelId,
       channelId: this.config.channelId,

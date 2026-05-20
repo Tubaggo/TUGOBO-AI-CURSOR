@@ -16,6 +16,9 @@ export const selectReservations = (s: OperationalStoreState) => s.reservations;
 export const selectGuests = (s: OperationalStoreState) => s.guests;
 export const selectThreads = (s: OperationalStoreState) => s.threads;
 export const selectConversations = selectThreads;
+export const selectConversationById =
+  (conversationId: string) => (s: OperationalStoreState) =>
+    s.threads.find((thread) => thread.id === conversationId);
 export const selectAuditLog = (s: OperationalStoreState) => s.auditEvents;
 export const selectAuditEvents = selectAuditLog;
 export const selectAiActions = (s: OperationalStoreState) => s.aiActions;

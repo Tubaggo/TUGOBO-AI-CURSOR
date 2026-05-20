@@ -6,11 +6,18 @@ import {
   jsonb,
   boolean,
 } from "drizzle-orm/pg-core";
-import type { BusinessHours } from "@tugobo/shared";
+import type {
+  BusinessHours,
+  HotelWorkspacePlan,
+  HotelWorkspaceStatus,
+} from "@tugobo/shared";
 
 export const hotels = pgTable("hotels", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  status: text("status").$type<HotelWorkspaceStatus>().notNull().default("active"),
+  plan: text("plan").$type<HotelWorkspacePlan>().notNull().default("starter"),
   locale: text("locale").notNull().default("en"),
   timezone: text("timezone").notNull().default("UTC"),
   businessHours: jsonb("business_hours").$type<BusinessHours>(),

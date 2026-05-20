@@ -30,10 +30,10 @@ function reservationStateToStage(state: DbConversation["reservationState"]): Con
   }
 }
 
-function roleFromDb(role: DbMessage["role"]): MessageSender {
-  if (role === "staff") return "staff";
-  if (role === "ai") return "ai";
-  if (role === "system") return "system";
+function roleFromDb(senderType: DbMessage["senderType"]): MessageSender {
+  if (senderType === "staff") return "staff";
+  if (senderType === "ai") return "ai";
+  if (senderType === "system") return "system";
   return "guest";
 }
 
@@ -41,19 +41,20 @@ export function dbMessageToLive(msg: DbMessage): LiveMessage {
   return {
     id: msg.id,
     conversationId: msg.conversationId,
-    role: roleFromDb(msg.role),
-    content: msg.body,
+    role: roleFromDb(msg.senderType),
+    content: msg.content,
     timestamp: msg.createdAt.toISOString(),
     deliveryStatus: msg.deliveryStatus,
     aiGenerated: msg.aiGenerated,
     humanOverride: msg.humanOverride,
+    provider: msg.provider ?? undefined,
   };
 }
 
 export function dbConversationToLive(
   conv: DbConversation,
   contact: Contact,
-  lastBody?: string
+  lastContent?: string
 ): LiveConversation {
   const stage = reservationStateToStage(conv.reservationState);
   const status = dbStatusToPanel(conv.status, conv.aiPaused);
@@ -64,18 +65,18 @@ export function dbConversationToLive(
     guestName: contact.name ?? "Misafir",
     guestPhone: contact.phone,
     language: contact.language ?? undefined,
-    channel: conv.panelChannel as PanelChannelType,
+    channel: conv.channel as PanelChannelType,
     status,
     stage,
     statusLabel: STAGE_STATUS_LABELS[stage],
-    assignedOperatorId: conv.assigneeId ?? undefined,
+    assignedOperatorId: conv.assignedOperator ?? undefined,
     aiActive: status === "ai_active",
     aiPaused: conv.aiPaused,
     escalationState: conv.escalationState,
     reservationState: conv.reservationState,
     paymentState: conv.paymentState,
     unreadCount: conv.unreadCount,
-    lastMessage: lastBody ?? "",
+    lastMessage: lastContent ?? "",
     lastActivityAt: conv.lastMessageAt.toISOString(),
     externalSessionId: conv.externalSessionId ?? undefined,
     requiresHuman:

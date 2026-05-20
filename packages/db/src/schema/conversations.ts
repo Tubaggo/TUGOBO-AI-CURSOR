@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { hotels } from "./hotels";
 import { contacts } from "./contacts";
-import { channels } from "./channels";
+import { connectedChannels } from "./channels";
 import type {
   ConversationStatus,
   ConversationPaymentState,
@@ -25,17 +25,15 @@ export const conversations = pgTable("conversations", {
   contactId: uuid("contact_id")
     .notNull()
     .references(() => contacts.id),
-  channelId: uuid("channel_id")
-    .notNull()
-    .references(() => channels.id),
+  connectedChannelId: uuid("connected_channel_id").references(() => connectedChannels.id),
   status: text("status")
     .$type<ConversationStatus>()
     .notNull()
     .default("ai_active"),
-  assigneeId: uuid("assignee_id"),
+  assignedOperator: uuid("assigned_operator"),
   aiPaused: boolean("ai_paused").notNull().default(false),
   /** Panel-facing channel (web_chat, whatsapp, instagram) */
-  panelChannel: text("panel_channel").$type<PanelChannelType>().notNull().default("web_chat"),
+  channel: text("channel").$type<PanelChannelType>().notNull().default("web_chat"),
   externalSessionId: text("external_session_id"),
   unreadCount: integer("unread_count").notNull().default(0),
   escalationState: text("escalation_state")

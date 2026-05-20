@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import {
   and,
   channels,
@@ -6,11 +7,12 @@ import {
   db,
   desc,
   eq,
+  hotels,
   messages,
   operationalEvents,
   type DB,
 } from "@tugobo/db";
-import type { PanelChannelType } from "@tugobo/shared";
+import { logger, type ConnectedChannelProvider, type PanelChannelType } from "@tugobo/shared";
 import { dbConversationToLive, dbMessageToLive } from "@/lib/channels/db-bridge";
 import type { LiveConversation, LiveMessage } from "@/lib/conversation/models";
 import type { TakeoverAction } from "@/lib/conversation/models";
@@ -20,7 +22,7 @@ import type { AiRespondRequest } from "@/lib/ai/types";
 type ConversationRow = {
   conversation: typeof conversations.$inferSelect;
   contact: typeof contacts.$inferSelect;
-  lastBody?: string;
+  lastContent?: string;
 };
 
 function assertDb(): DB {
@@ -28,12 +30,33 @@ function assertDb(): DB {
   return db;
 }
 
+function providerFromChannel(channel: PanelChannelType) {
+  if (channel === "web_chat") return "web_chat" as const;
+  if (channel === "instagram") return "instagram" as const;
+  return "whatsapp_cloud" as const;
+}
+
+function manychatSessionId(channel: Extract<PanelChannelType, "instagram" | "whatsapp">, externalUserId: string) {
+  return `manychat:${channel}:${externalUserId}`;
+}
+
+function secretsMatch(expected: string, provided: string): boolean {
+  const expectedBuffer = Buffer.from(expected);
+  const providedBuffer = Buffer.from(provided);
+
+  if (expectedBuffer.length !== providedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
 async function ensurePanelChannel(
   database: DB,
   hotelId: string,
   panelChannel: PanelChannelType
 ): Promise<string> {
-  const phonePlaceholder =
+  const externalAddress =
     panelChannel === "web_chat"
       ? `web@${hotelId.slice(0, 8)}`
       : panelChannel === "instagram"
@@ -43,22 +66,22 @@ async function ensurePanelChannel(
   const existing = await database
     .select({ id: channels.id })
     .from(channels)
-    .where(and(eq(channels.hotelId, hotelId), eq(channels.phoneNumber, phonePlaceholder)))
+    .where(and(eq(channels.hotelId, hotelId), eq(channels.externalAddress, externalAddress)))
     .limit(1);
 
   if (existing[0]?.id) return existing[0].id;
 
-  const providerType =
-    panelChannel === "web_chat" ? "whatsapp_twilio" : "whatsapp_twilio";
+  const provider = providerFromChannel(panelChannel);
 
   const [row] = await database
     .insert(channels)
     .values({
       hotelId,
-      type: providerType,
-      phoneNumber: phonePlaceholder,
-      config: { panelChannel },
-      isActive: true,
+      provider,
+      channelType: panelChannel,
+      status: "connected",
+      metadata: { panelChannel },
+      externalAddress,
     })
     .returning({ id: channels.id });
 
@@ -103,6 +126,106 @@ async function findOrCreateContact(
   return created;
 }
 
+async function hotelExists(database: DB, hotelId: string): Promise<boolean> {
+  const [hotel] = await database
+    .select({ id: hotels.id })
+    .from(hotels)
+    .where(eq(hotels.id, hotelId))
+    .limit(1);
+
+  return Boolean(hotel?.id);
+}
+
+async function findManychatChannel(
+  database: DB,
+  hotelId: string,
+  channel: Extract<PanelChannelType, "instagram" | "whatsapp">
+) {
+  const [connectedChannel] = await database
+    .select()
+    .from(channels)
+    .where(
+      and(
+        eq(channels.hotelId, hotelId),
+        eq(channels.provider, "manychat"),
+        eq(channels.channelType, channel),
+        eq(channels.status, "connected")
+      )
+    )
+    .limit(1);
+
+  return connectedChannel ?? null;
+}
+
+async function findConversationByExternalSessionId(
+  database: DB,
+  hotelId: string,
+  externalSessionId: string
+) {
+  const [row] = await database
+    .select({
+      conversation: conversations,
+      contact: contacts,
+    })
+    .from(conversations)
+    .innerJoin(contacts, eq(conversations.contactId, contacts.id))
+    .where(
+      and(
+        eq(conversations.hotelId, hotelId),
+        eq(conversations.externalSessionId, externalSessionId)
+      )
+    )
+    .limit(1);
+
+  return row ?? null;
+}
+
+async function updateContactProfile(
+  database: DB,
+  contactId: string,
+  input: {
+    guestName: string;
+    guestPhone?: string;
+    language?: string;
+  }
+) {
+  const [existing] = await database
+    .select()
+    .from(contacts)
+    .where(eq(contacts.id, contactId))
+    .limit(1);
+
+  if (!existing) throw new Error("contact_not_found");
+
+  const nextName = input.guestName.trim() || existing.name || "Misafir";
+  const nextPhone =
+    input.guestPhone?.trim() ||
+    existing.phone;
+  const nextLanguage = input.language?.toLowerCase() ?? existing.language ?? "tr";
+
+  if (
+    existing.name === nextName &&
+    existing.phone === nextPhone &&
+    (existing.language ?? "tr") === nextLanguage
+  ) {
+    return existing;
+  }
+
+  const [updated] = await database
+    .update(contacts)
+    .set({
+      name: nextName,
+      phone: nextPhone,
+      language: nextLanguage,
+      updatedAt: new Date(),
+    })
+    .where(eq(contacts.id, contactId))
+    .returning();
+
+  if (!updated) throw new Error("contact_update_failed");
+  return updated;
+}
+
 export async function listLiveConversations(hotelId: string): Promise<LiveConversation[]> {
   const database = assertDb();
 
@@ -120,15 +243,13 @@ export async function listLiveConversations(hotelId: string): Promise<LiveConver
   const result: LiveConversation[] = [];
   for (const row of rows) {
     const [lastMsg] = await database
-      .select({ body: messages.body })
+      .select({ content: messages.content })
       .from(messages)
       .where(eq(messages.conversationId, row.conversation.id))
       .orderBy(desc(messages.createdAt))
       .limit(1);
 
-    result.push(
-      dbConversationToLive(row.conversation, row.contact, lastMsg?.body)
-    );
+    result.push(dbConversationToLive(row.conversation, row.contact, lastMsg?.content));
   }
   return result;
 }
@@ -156,6 +277,18 @@ export type IngestMessageParams = {
   conversationId?: string;
   guestPhone?: string;
   language?: string;
+};
+
+export type IngestManychatMessageParams = {
+  hotelId: string;
+  channel: Extract<PanelChannelType, "instagram" | "whatsapp">;
+  provider: Extract<ConnectedChannelProvider, "manychat">;
+  externalUserId: string;
+  guestName: string;
+  username?: string;
+  guestPhone?: string;
+  message: string;
+  timestamp: Date;
 };
 
 export async function ingestGuestMessage(
@@ -196,12 +329,12 @@ export async function ingestGuestMessage(
   if (!conversationId) {
     const channelId = await ensurePanelChannel(database, params.hotelId, params.channel);
     const [conv] = await database
-      .insert(conversations)
+        .insert(conversations)
       .values({
         hotelId: params.hotelId,
         contactId: contact.id,
-        channelId,
-        panelChannel: params.channel,
+        connectedChannelId: channelId,
+        channel: params.channel,
         externalSessionId: params.externalSessionId,
         status: "ai_active",
         reservationState: "inquiry",
@@ -217,9 +350,9 @@ export async function ingestGuestMessage(
     .insert(messages)
     .values({
       conversationId,
-      direction: "inbound",
-      role: "guest",
-      body: params.message,
+      senderType: "guest",
+      content: params.message,
+      provider: providerFromChannel(params.channel),
       deliveryStatus: "delivered",
     })
     .returning();
@@ -244,6 +377,157 @@ export async function ingestGuestMessage(
   });
 
   return { conversationId, messageId: msg.id };
+}
+
+export async function ingestManychatMessage(
+  params: IngestManychatMessageParams
+): Promise<{
+  conversationId: string;
+  messageId: string;
+  aiSuggestionPrepared: boolean;
+}> {
+  const database = assertDb();
+  const exists = await hotelExists(database, params.hotelId);
+
+  if (!exists) throw new Error("hotel_not_found");
+
+  const connectedChannel = await findManychatChannel(database, params.hotelId, params.channel);
+  if (!connectedChannel) throw new Error("channel_not_connected");
+
+  const externalSessionId = manychatSessionId(params.channel, params.externalUserId.trim());
+  const fallbackPhone = `manychat:${params.channel}:${params.externalUserId.trim()}`;
+  const normalizedName =
+    params.guestName.trim() ||
+    params.username?.trim() ||
+    "Misafir";
+
+  const existingConversation = await findConversationByExternalSessionId(
+    database,
+    params.hotelId,
+    externalSessionId
+  );
+
+  let contact =
+    existingConversation?.contact ??
+    (await findOrCreateContact(
+      database,
+      params.hotelId,
+      normalizedName,
+      params.guestPhone?.trim() || fallbackPhone,
+      undefined
+    ));
+
+  if (existingConversation?.contact.id || params.guestPhone?.trim()) {
+    contact = await updateContactProfile(database, contact.id, {
+      guestName: normalizedName,
+      guestPhone: params.guestPhone?.trim(),
+    });
+  }
+
+  let conversationId = existingConversation?.conversation.id;
+  if (!conversationId) {
+    const [conversation] = await database
+      .insert(conversations)
+      .values({
+        hotelId: params.hotelId,
+        contactId: contact.id,
+        connectedChannelId: connectedChannel.id,
+        channel: params.channel,
+        externalSessionId,
+        status: "ai_active",
+        reservationState: "inquiry",
+        lastMessageAt: params.timestamp,
+      })
+      .returning();
+
+    if (!conversation) throw new Error("conversation_create_failed");
+    conversationId = conversation.id;
+  }
+
+  const [message] = await database
+    .insert(messages)
+    .values({
+      conversationId,
+      senderType: "guest",
+      content: params.message,
+      provider: params.provider,
+      deliveryStatus: "delivered",
+      createdAt: params.timestamp,
+    })
+    .returning();
+
+  if (!message) throw new Error("message_create_failed");
+
+  const currentUnread = await unreadCountFor(database, conversationId);
+
+  await database
+    .update(conversations)
+    .set({
+      connectedChannelId: connectedChannel.id,
+      channel: params.channel,
+      lastMessageAt: params.timestamp,
+      unreadCount: currentUnread + 1,
+      reservationState: "inquiry",
+      status: "ai_active",
+    })
+    .where(eq(conversations.id, conversationId));
+
+  await database.insert(operationalEvents).values([
+    {
+      hotelId: params.hotelId,
+      conversationId,
+      kind: "message_received",
+      label: "Talep geldi",
+      payload: {
+        source: "manychat",
+        provider: params.provider,
+        channel: params.channel,
+      },
+    },
+    {
+      hotelId: params.hotelId,
+      conversationId,
+      kind: "ai_suggestion_prepared",
+      label: "AI öneri hazırlığı kuyruğa alındı",
+      payload: {
+        source: "manychat",
+        supervised: true,
+      },
+    },
+  ]);
+
+  logger.info("Manychat inbound message ingested", {
+    hotelId: params.hotelId,
+    conversationId,
+    messageId: message.id,
+    provider: params.provider,
+    channel: params.channel,
+    externalUserId: params.externalUserId,
+  });
+
+  return {
+    conversationId,
+    messageId: message.id,
+    aiSuggestionPrepared: true,
+  };
+}
+
+export async function validateManychatSecret(input: {
+  hotelId: string;
+  channel: Extract<PanelChannelType, "instagram" | "whatsapp">;
+  secret: string;
+}): Promise<void> {
+  const database = assertDb();
+  const exists = await hotelExists(database, input.hotelId);
+
+  if (!exists) throw new Error("hotel_not_found");
+
+  const connectedChannel = await findManychatChannel(database, input.hotelId, input.channel);
+  if (!connectedChannel) throw new Error("channel_not_connected");
+
+  if (!connectedChannel.secret || !secretsMatch(connectedChannel.secret, input.secret.trim())) {
+    throw new Error("invalid_secret");
+  }
 }
 
 async function unreadCountFor(database: DB, conversationId: string): Promise<number> {
@@ -274,9 +558,9 @@ export async function sendOperatorMessage(
     .insert(messages)
     .values({
       conversationId,
-      direction: "outbound",
-      role: "staff",
-      body,
+      senderType: "staff",
+      content: body,
+      provider: providerFromChannel(conv.channel),
       deliveryStatus: "sent",
       humanOverride: true,
     })
@@ -313,7 +597,7 @@ export async function runAiReplyForConversation(
   }
 
   const recent = await database
-    .select({ role: messages.role, body: messages.body })
+    .select({ senderType: messages.senderType, content: messages.content })
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
     .orderBy(desc(messages.createdAt))
@@ -328,8 +612,8 @@ export async function runAiReplyForConversation(
       language: row.contact.language ?? undefined,
     },
     recentMessages: recent.reverse().map((m) => ({
-      role: m.role === "staff" ? "staff" : m.role === "ai" ? "ai" : "guest",
-      content: m.body,
+      role: m.senderType === "staff" ? "staff" : m.senderType === "ai" ? "ai" : "guest",
+      content: m.content,
     })),
   };
 
@@ -367,9 +651,9 @@ export async function runAiReplyForConversation(
     .insert(messages)
     .values({
       conversationId,
-      direction: "outbound",
-      role: "ai",
-      body: replyText,
+      senderType: "ai",
+      content: replyText,
+      provider: providerFromChannel(row.conversation.channel),
       deliveryStatus: "sent",
       aiGenerated: true,
       aiMeta: result.ok
@@ -416,7 +700,7 @@ export async function applyTakeover(
       ? {
           status: "human_takeover" as const,
           aiPaused: true,
-          assigneeId: operatorId ?? null,
+          assignedOperator: operatorId ?? null,
           operatorJoinedAt: now,
           escalationState: "active" as const,
         }
@@ -454,13 +738,13 @@ export async function applyTakeover(
   });
 
   const [lastMsg] = await database
-    .select({ body: messages.body })
+    .select({ content: messages.content })
     .from(messages)
     .where(eq(messages.conversationId, conversationId))
     .orderBy(desc(messages.createdAt))
     .limit(1);
 
-  return dbConversationToLive(conv, contact, lastMsg?.body);
+  return dbConversationToLive(conv, contact, lastMsg?.content);
 }
 
 export async function markConversationRead(conversationId: string): Promise<void> {

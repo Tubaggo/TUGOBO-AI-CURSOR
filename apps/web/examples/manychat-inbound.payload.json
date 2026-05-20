@@ -1,0 +1,8 @@
+{
+  "hotel_id": "demo-hotel",
+  "secret": "test-secret",
+  "provider": "manychat",
+  "channel": "instagram",
+  "external_user_id": "ig_123",
+  "message": "Merhaba Tugobo AI"
+}
