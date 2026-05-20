@@ -13,6 +13,7 @@ import {
   parseManychatInboundPayload,
   type NormalizedManychatInboundMessage,
 } from "@/lib/server/integrations/manychat";
+import { recordManychatDevRuntimeEvent } from "@/lib/server/integrations/manychat-dev-events";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,17 @@ async function handleLocalDevFallback(normalized: NormalizedManychatInboundMessa
       });
     }
   }
+
+  recordManychatDevRuntimeEvent({
+    hotelId: normalized.hotelId,
+    provider: normalized.provider,
+    channel: normalized.channel,
+    externalUserId: normalized.externalUserId,
+    externalId: `manychat:${normalized.channel}:${normalized.externalUserId}`,
+    guestName: normalized.guestName,
+    guestPhone: normalized.guestPhone,
+    message: normalized.message,
+  });
 
   return NextResponse.json({
     success: true,

@@ -88,7 +88,7 @@ export function operationToPanelConversation(op: OperationConversation): Convers
     language: op.language ?? "TR",
     status: stageToConversationStatus(op),
     leadStatus: stageToLeadStatus(op.stage),
-    unread: 0,
+    unread: op.unreadCount ?? 0,
     messageCount: op.messages.length,
     channel: channelTypeToPanel(op.channel),
   };

@@ -54,6 +54,7 @@ export type OperationConversation = {
   priority: OperationPriority;
   requiresHuman: boolean;
   aiStatus?: AiStatus;
+  unreadCount?: number;
   messages: OperationMessage[];
   externalId?: string;
   guestPhone?: string;
@@ -83,6 +84,8 @@ export type IngestChannelMessageInput = {
   conversationId?: string;
   guestPhone?: string;
   language?: string;
+  unreadCount?: number;
+  skipLocalAi?: boolean;
 };
 
 export type SimulatedAiResult = {

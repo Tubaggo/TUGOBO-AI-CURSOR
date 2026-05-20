@@ -346,6 +346,7 @@ export default function ConversationsPage() {
   const live = useLivePanelOverlay(selected);
   const conversationAi = useConversationAi(selected);
   const opPanel = useOperationConversationsPanel();
+  const syncSelectedConversation = useOperationConversationStore((s) => s.selectConversation);
   const liveApi = useLiveConversationApi();
   const liveSync = useLiveConversationSync(isLivePanel ? selected : null);
   const [opsTick, setOpsTick] = useState(0);
@@ -388,6 +389,7 @@ export default function ConversationsPage() {
 
   function selectConversation(id: string) {
     setSelected(id);
+    syncSelectedConversation(id);
     opPanel.clearPulse(id);
     setMobilePane("chat");
     setTabletSummaryOpen(false);
@@ -396,7 +398,8 @@ export default function ConversationsPage() {
   // Keep ref in sync for stale-closure safety in timeouts
   useEffect(() => {
     selectedRef.current = selected;
-  }, [selected]);
+    syncSelectedConversation(selected);
+  }, [selected, syncSelectedConversation]);
 
   // ── Derived values for selected conversation ───────────────────────────────
 
@@ -583,6 +586,7 @@ export default function ConversationsPage() {
         const newest = state.conversations[0];
         if (!newest) return;
         setSelected(newest.id);
+        useOperationConversationStore.getState().selectConversation(newest.id);
         showToast(
           op("toastNewInquiry", "tr", { name: newest.guestName }),
           newest.lastMessage.slice(0, 72),

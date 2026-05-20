@@ -58,6 +58,14 @@ function appendMessage(
   };
 }
 
+function unreadCountAfterGuestMessage(
+  conv: OperationConversation,
+  conversationId: string,
+  selectedConversationId: string | null
+) {
+  return selectedConversationId === conversationId ? 0 : (conv.unreadCount ?? 0) + 1;
+}
+
 export const useOperationConversationStore = create<OperationConversationState>((set, get) => ({
   conversations: [],
   selectedConversationId: null,
@@ -121,6 +129,7 @@ export const useOperationConversationStore = create<OperationConversationState>(
               ...updated,
               lastMessage: input.message,
               channel: input.channel,
+              unreadCount: unreadCountAfterGuestMessage(c, conversationId!, s.selectedConversationId),
             };
           }),
         };
@@ -137,7 +146,8 @@ export const useOperationConversationStore = create<OperationConversationState>(
     });
 
     const skipLocalAi =
-      isLiveOpsClientEnabled() && input.channel === "web_chat";
+      input.skipLocalAi ||
+      (isLiveOpsClientEnabled() && input.channel === "web_chat");
 
     if (!skipLocalAi && !isLiveConversationId(conversationId!)) {
       window.setTimeout(() => {

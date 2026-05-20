@@ -59,6 +59,7 @@ export function liveConversationToOperation(
     priority: priorityForStage(live.stage),
     requiresHuman: live.requiresHuman,
     aiStatus,
+    unreadCount: live.unreadCount,
     messages: messages.map(liveMessageToOperation),
     externalId: live.externalSessionId,
     guestPhone: live.guestPhone,

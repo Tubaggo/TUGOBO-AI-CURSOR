@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveConversation, LiveMessage } from "@/lib/conversation/models";
 import {
+  isLiveConversationId,
   liveConversationToOperation,
   liveMessageToOperation,
 } from "@/lib/conversation/live-sync";
@@ -31,6 +32,8 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const selectedRef = useRef(selectedId);
+  const devCursorRef = useRef<string | null>(null);
+  const seenDevEventIdsRef = useRef<Set<string>>(new Set());
   selectedRef.current = selectedId;
 
   const mergeLiveList = useCallback((items: LiveConversation[]) => {
@@ -38,7 +41,21 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
     const liveIds = new Set(items.map((c) => c.id));
     const preserved = store.conversations.filter((c) => !liveIds.has(c.id));
     const merged = [
-      ...items.map((live) => liveConversationToOperation(live)),
+      ...items.map((live) => {
+        const existing = store.conversations.find((conv) => conv.id === live.id);
+        return liveConversationToOperation(live, existing?.messages.map((message) => ({
+          id: message.id,
+          conversationId: message.conversationId,
+          role: message.sender,
+          content: message.content,
+          timestamp: message.timestamp,
+          deliveryStatus: "delivered",
+          aiGenerated: Boolean(message.meta?.aiGenerated),
+          humanOverride: Boolean(message.meta?.takeoverSuggested),
+          channel: message.channel,
+          provider: existing?.provider,
+        })));
+      }),
       ...preserved,
     ];
     useOperationConversationStore.setState({ conversations: merged });
@@ -105,9 +122,84 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
     }
   }, [appendLiveMessage, hotelId, mergeLiveList]);
 
+  const syncDevFallbackEvents = useCallback(async () => {
+    if (process.env.NODE_ENV === "production") return;
+
+    try {
+      const params = devCursorRef.current
+        ? `?since=${encodeURIComponent(devCursorRef.current)}`
+        : "";
+      const data = await fetchJson<{
+        ok: boolean;
+        events?: Array<{
+          id: string;
+          hotelId: string;
+          provider: "manychat";
+          channel: "instagram" | "whatsapp";
+          externalUserId: string;
+          externalId: string;
+          guestName: string;
+          guestPhone?: string;
+          message: string;
+          createdAt: string;
+        }>;
+        lastEventAt?: string | null;
+      }>(`/api/integrations/manychat/dev-events${params}`);
+
+      if (!data.ok || !data.events?.length) {
+        if (data.lastEventAt) {
+          devCursorRef.current = data.lastEventAt;
+        }
+        return;
+      }
+
+      for (const event of data.events) {
+        if (seenDevEventIdsRef.current.has(event.id)) continue;
+        seenDevEventIdsRef.current.add(event.id);
+
+        const state = useOperationConversationStore.getState();
+        const existing = state.conversations.find(
+          (conversation) =>
+            conversation.externalId === event.externalId ||
+            conversation.id === `demo-manychat-${event.channel}-${event.externalUserId}`
+        );
+
+        state.addIncomingMessage({
+          hotelId: event.hotelId,
+          channel: event.channel,
+          provider: event.provider,
+          guestName: event.guestName,
+          guestPhone: event.guestPhone,
+          message: event.message,
+          externalId: event.externalId,
+          conversationId: existing?.id,
+          unreadCount: existing ? (existing.unreadCount ?? 0) + 1 : 1,
+          skipLocalAi: true,
+        });
+      }
+
+      devCursorRef.current = data.lastEventAt ?? data.events[data.events.length - 1]?.createdAt ?? null;
+    } catch {
+      // Keep fallback sync silent; live runtime should not break on dev polling misses.
+    }
+  }, []);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (hotelId) {
+        void refresh();
+      }
+      void syncDevFallbackEvents();
+    }, 4000);
+
+    void syncDevFallbackEvents();
+
+    return () => window.clearInterval(interval);
+  }, [hotelId, refresh, syncDevFallbackEvents]);
 
   useEffect(() => {
     if (!enabled || !hotelId) return;
@@ -137,6 +229,19 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
 
     return unsub;
   }, [appendLiveMessage, enabled, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || !isLiveConversationId(selectedId)) return;
+
+    void fetch(`/api/conversations/${selectedId}/messages`, { method: "PATCH" });
+    useOperationConversationStore.setState((state) => ({
+      conversations: state.conversations.map((conversation) =>
+        conversation.id === selectedId
+          ? { ...conversation, unreadCount: 0 }
+          : conversation
+      ),
+    }));
+  }, [selectedId]);
 
   return { enabled, loading, error, refresh };
 }

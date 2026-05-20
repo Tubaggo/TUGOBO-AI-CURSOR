@@ -64,6 +64,7 @@ export function createConversationFromIngest(
     priority: "medium",
     requiresHuman: false,
     aiStatus: "idle",
+    unreadCount: input.unreadCount ?? 1,
     messages: [],
     externalId: input.externalId,
     guestPhone: input.guestPhone,
