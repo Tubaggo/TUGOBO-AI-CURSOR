@@ -11,6 +11,24 @@ import { recordManychatDevRuntimeEvent } from "@/lib/server/integrations/manycha
 
 export const runtime = "nodejs";
 
+function outboundResponse(result: Awaited<ReturnType<typeof sendManychatOutboundMessage>>) {
+  const configMissing = result.metadata?.error === "manychat_bridge_config_missing";
+
+  return {
+    success: result.deliveryStatus !== "failed",
+    provider: result.provider,
+    deliveryStatus: result.deliveryStatus,
+    mockMode: result.mockMode,
+    externalMessageId: result.externalMessageId,
+    ...(configMissing
+      ? {
+          error: "manychat_bridge_config_missing",
+          message: "Manychat bridge outbound config is missing for this hotel and channel.",
+        }
+      : {}),
+  };
+}
+
 export async function POST(req: Request) {
   let body: unknown;
 
@@ -53,13 +71,7 @@ export async function POST(req: Request) {
       message: normalized.message,
     });
 
-    return NextResponse.json({
-      success: result.deliveryStatus !== "failed",
-      provider: result.provider,
-      deliveryStatus: result.deliveryStatus,
-      mockMode: result.mockMode,
-      externalMessageId: result.externalMessageId,
-    });
+    return NextResponse.json(outboundResponse(result));
   }
 
   if (!isValidManychatInternalToken(normalized.internalAuthToken)) {
@@ -97,6 +109,17 @@ export async function POST(req: Request) {
         );
       }
 
+      if (code === "manychat_bridge_config_missing") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "manychat_bridge_config_missing",
+            message: "Manychat bridge inbound config is missing for this hotel and channel.",
+          },
+          { status: 503 }
+        );
+      }
+
       return NextResponse.json(
         { success: false, error: "forbidden", message: "Shared secret validation failed." },
         { status: 403 }
@@ -105,16 +128,12 @@ export async function POST(req: Request) {
   }
 
   const result = await sendManychatOutboundMessage(normalized);
-  const status = result.deliveryStatus === "failed" ? 502 : 200;
+  const status =
+    result.metadata?.error === "manychat_bridge_config_missing"
+      ? 503
+      : result.deliveryStatus === "failed"
+        ? 502
+        : 200;
 
-  return NextResponse.json(
-    {
-      success: result.deliveryStatus !== "failed",
-      provider: result.provider,
-      deliveryStatus: result.deliveryStatus,
-      mockMode: result.mockMode,
-      externalMessageId: result.externalMessageId,
-    },
-    { status }
-  );
+  return NextResponse.json(outboundResponse(result), { status });
 }

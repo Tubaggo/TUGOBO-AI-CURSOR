@@ -203,6 +203,17 @@ export async function POST(req: Request) {
       );
     }
 
+    if (code === "manychat_bridge_config_missing") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "manychat_bridge_config_missing",
+          message: "Manychat bridge inbound config is missing for this hotel and channel.",
+        },
+        { status: 503 }
+      );
+    }
+
     if (code === "database_not_configured") {
       return NextResponse.json(
         { success: false, error: "service_unavailable", message: "Database is not configured." },

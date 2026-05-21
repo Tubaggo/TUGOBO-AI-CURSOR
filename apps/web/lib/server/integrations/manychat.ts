@@ -1,7 +1,6 @@
 import { z } from "zod";
-
-export const MANYCHAT_LOCAL_TEST_HOTEL_ID = "demo-hotel";
-export const MANYCHAT_LOCAL_TEST_SECRET = "test-secret";
+import { MANYCHAT_LOCAL_TEST_HOTEL_ID } from "./manychat-config";
+export { MANYCHAT_LOCAL_TEST_HOTEL_ID, MANYCHAT_LOCAL_TEST_SECRET } from "./manychat-config";
 
 const manychatInboundSchema = z.object({
   hotel_id: z.string().trim().min(1).max(120),

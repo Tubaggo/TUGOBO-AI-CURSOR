@@ -2,7 +2,7 @@
 
 This endpoint sends operator-approved replies back through the outbound provider bridge.
 
-Local development is safe by default. If real Manychat outbound bridge credentials are not configured, the service returns `mock_sent` instead of crashing.
+Local development is safe by default. `demo-hotel` returns `mock_sent` unless real bridge config is present and mock mode is off.
 
 ## Endpoint
 
@@ -41,12 +41,25 @@ Invoke-RestMethod `
 - `success = true`
 - `provider = "manychat"`
 - `deliveryStatus = "sent"` or `"mock_sent"`
-- `mockMode = true` when real outbound credentials are missing
+- `mockMode = true` for local mock delivery
 
-## Optional Real Bridge Env
+## Real Bridge Expectations
 
 ```bash
-MANYCHAT_OUTBOUND_API_URL=https://your-bridge.example.com/manychat/outbound
-MANYCHAT_OUTBOUND_API_TOKEN=your-server-token
+MANYCHAT_BRIDGE_OUTBOUND_URL=https://your-bridge.example.com/manychat/outbound
+MANYCHAT_BRIDGE_TOKEN=your-server-token
+MANYCHAT_BRIDGE_SECRET=your-shared-inbound-secret
 MANYCHAT_OUTBOUND_INTERNAL_TOKEN=your-internal-route-token
 ```
+
+The outbound bridge receives a server-to-server `POST` with:
+
+- `Authorization: Bearer <MANYCHAT_BRIDGE_TOKEN or connected_channels.outbound_token>`
+- `hotel_id`
+- `conversation_id`
+- `external_user_id`
+- `channel`
+- `message`
+- `metadata`
+
+Missing live outbound config returns clean JSON with `error = "manychat_bridge_config_missing"`.

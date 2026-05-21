@@ -2,6 +2,10 @@ import { ManychatOutboundAdapter, type OutboundDeliveryResult } from "@tugobo/ch
 import { logger } from "@tugobo/shared";
 import { z } from "zod";
 import { MANYCHAT_LOCAL_TEST_HOTEL_ID, MANYCHAT_LOCAL_TEST_SECRET } from "./manychat";
+import {
+  resolveManychatBridgeConfig,
+  sanitizeManychatBridgeMetadata,
+} from "./manychat-config";
 
 export const MANYCHAT_OUTBOUND_PROVIDER = "manychat" as const;
 
@@ -41,25 +45,6 @@ type ParseFailure = {
 };
 
 export type ManychatOutboundParseResult = ParseSuccess | ParseFailure;
-
-type ManychatOutboundMetadata = {
-  outboundApiUrl?: unknown;
-  outboundApiToken?: unknown;
-  apiUrl?: unknown;
-  apiToken?: unknown;
-};
-
-function stringValue(input: unknown): string | undefined {
-  return typeof input === "string" && input.trim().length > 0 ? input.trim() : undefined;
-}
-
-function metadataConfig(metadata: Record<string, unknown> | undefined) {
-  const values = (metadata ?? {}) as ManychatOutboundMetadata;
-  return {
-    apiUrl: stringValue(values.outboundApiUrl) ?? stringValue(values.apiUrl),
-    apiToken: stringValue(values.outboundApiToken) ?? stringValue(values.apiToken),
-  };
-}
 
 export function parseManychatOutboundPayload(body: unknown): ManychatOutboundParseResult {
   const parsed = manychatOutboundSchema.safeParse(body);
@@ -105,19 +90,29 @@ export function isValidManychatInternalToken(token: string | undefined): boolean
 export async function sendManychatOutboundMessage(
   payload: NormalizedManychatOutboundMessage
 ): Promise<OutboundDeliveryResult> {
-  const envApiUrl = process.env.MANYCHAT_OUTBOUND_API_URL?.trim();
-  const envApiToken =
-    process.env.MANYCHAT_OUTBOUND_API_TOKEN?.trim() ||
-    process.env.MANYCHAT_API_TOKEN?.trim();
-  const configuredMetadata = metadataConfig(payload.providerMetadata);
+  const config = await resolveManychatBridgeConfig({
+    hotelId: payload.hotelId,
+    channel: payload.channel,
+    externalUserId: payload.externalUserId,
+  });
   const mockMode =
     process.env.MANYCHAT_OUTBOUND_MOCK_MODE === "true" ||
-    (!envApiUrl && !configuredMetadata.apiUrl) ||
-    (!envApiToken && !configuredMetadata.apiToken);
+    config?.mode === "mock";
+
+  if (!config || (!mockMode && (!config.outboundUrl || !config.outboundToken))) {
+    return {
+      provider: MANYCHAT_OUTBOUND_PROVIDER,
+      deliveryStatus: "failed",
+      mockMode: false,
+      metadata: {
+        error: "manychat_bridge_config_missing",
+      },
+    };
+  }
 
   const adapter = new ManychatOutboundAdapter({
-    apiUrl: envApiUrl ?? configuredMetadata.apiUrl,
-    apiToken: envApiToken ?? configuredMetadata.apiToken,
+    apiUrl: config.outboundUrl,
+    apiToken: config.outboundToken,
     mockMode,
   });
 
@@ -128,7 +123,11 @@ export async function sendManychatOutboundMessage(
       externalUserId: payload.externalUserId,
       channel: payload.channel,
       message: payload.message,
-      metadata: payload.providerMetadata,
+      metadata: {
+        ...sanitizeManychatBridgeMetadata(payload.providerMetadata),
+        ...config.metadata,
+        bridgeMode: config.mode,
+      },
     });
   } catch (err) {
     logger.warn("Manychat outbound delivery failed", {

@@ -1,4 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
 import {
   and,
   channels,
@@ -19,6 +18,10 @@ import type { TakeoverAction } from "@/lib/conversation/models";
 import { generateHotelAssistantResponse } from "@/lib/ai/aiClient";
 import type { AiRespondRequest } from "@/lib/ai/types";
 import { sendManychatOutboundMessage } from "@/lib/server/integrations/manychat-outbound";
+import {
+  manychatSecretsMatch,
+  resolveManychatBridgeConfig,
+} from "@/lib/server/integrations/manychat-config";
 
 type ConversationRow = {
   conversation: typeof conversations.$inferSelect;
@@ -55,17 +58,6 @@ function manychatExternalUserIdFromSessionId(
 function asProviderMetadata(input: unknown): Record<string, unknown> | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
   return input as Record<string, unknown>;
-}
-
-function secretsMatch(expected: string, provided: string): boolean {
-  const expectedBuffer = Buffer.from(expected);
-  const providedBuffer = Buffer.from(provided);
-
-  if (expectedBuffer.length !== providedBuffer.length) {
-    return false;
-  }
-
-  return timingSafeEqual(expectedBuffer, providedBuffer);
 }
 
 async function ensurePanelChannel(
@@ -159,7 +151,7 @@ async function findManychatChannel(
   channel: Extract<PanelChannelType, "instagram" | "whatsapp">
 ) {
   const [connectedChannel] = await database
-    .select()
+    .select({ id: channels.id })
     .from(channels)
     .where(
       and(
@@ -540,9 +532,18 @@ export async function validateManychatSecret(input: {
   if (!exists) throw new Error("hotel_not_found");
 
   const connectedChannel = await findManychatChannel(database, input.hotelId, input.channel);
-  if (!connectedChannel) throw new Error("channel_not_connected");
+  const config = await resolveManychatBridgeConfig({
+    hotelId: input.hotelId,
+    channel: input.channel,
+  });
 
-  if (!connectedChannel.secret || !secretsMatch(connectedChannel.secret, input.secret.trim())) {
+  if (!connectedChannel && !config) throw new Error("channel_not_connected");
+
+  if (!config?.inboundSecret) {
+    throw new Error("manychat_bridge_config_missing");
+  }
+
+  if (!manychatSecretsMatch(config.inboundSecret, input.secret.trim())) {
     throw new Error("invalid_secret");
   }
 }
@@ -566,7 +567,10 @@ export async function sendOperatorMessage(
   const [row] = await database
     .select({
       conversation: conversations,
-      connectedChannel: channels,
+      connectedChannel: {
+        provider: channels.provider,
+        metadata: channels.metadata,
+      },
     })
     .from(conversations)
     .leftJoin(channels, eq(conversations.connectedChannelId, channels.id))
