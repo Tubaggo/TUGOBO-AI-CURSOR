@@ -26,6 +26,19 @@ type OperationConversationState = {
   channelFilter: ChannelFilter;
   pulsingConversationIds: Record<string, true>;
   addIncomingMessage: (input: IngestChannelMessageInput) => string;
+  addOperatorMessage: (
+    conversationId: string,
+    content: string,
+    id?: string,
+    timestamp?: string,
+    deliveryStatus?: NonNullable<OperationMessage["meta"]>["deliveryStatus"]
+  ) => OperationMessage | null;
+  updateMessageDelivery: (
+    conversationId: string,
+    messageId: string,
+    delivery: NonNullable<OperationMessage["meta"]>["deliveryStatus"],
+    externalMessageId?: string
+  ) => void;
   addAIResponse: (conversationId: string, guestMessage: string) => void;
   selectConversation: (id: string | null) => void;
   updateConversationStage: (id: string, stage: ConversationStage) => void;
@@ -50,6 +63,16 @@ function appendMessage(
   conv: OperationConversation,
   message: OperationMessage
 ): OperationConversation {
+  if (conv.messages.some((existing) => existing.id === message.id)) {
+    return {
+      ...conv,
+      messages: conv.messages.map((existing) =>
+        existing.id === message.id ? message : existing
+      ),
+      lastActivityAt: message.timestamp,
+    };
+  }
+
   return {
     ...conv,
     messages: [...conv.messages, message],
@@ -157,6 +180,54 @@ export const useOperationConversationStore = create<OperationConversationState>(
 
     return conversationId!;
   },
+
+  addOperatorMessage: (conversationId, content, id, timestamp, deliveryStatus = "pending") => {
+    const conv = get().getConversation(conversationId);
+    if (!conv) return null;
+
+    const message: OperationMessage = {
+      id: id ?? `staff-${conversationId}-${Date.now()}`,
+      conversationId,
+      sender: "staff",
+      content,
+      timestamp: timestamp ?? nowIso(),
+      channel: conv.channel,
+      meta: {
+        deliveryStatus,
+      },
+    };
+
+    set((s) => ({
+      conversations: s.conversations.map((c) =>
+        c.id === conversationId ? appendMessage(c, message) : c
+      ),
+    }));
+
+    return message;
+  },
+
+  updateMessageDelivery: (conversationId, messageId, deliveryStatus, externalMessageId) =>
+    set((state) => ({
+      conversations: state.conversations.map((conversation) => {
+        if (conversation.id !== conversationId) return conversation;
+
+        return {
+          ...conversation,
+          messages: conversation.messages.map((message) =>
+            message.id === messageId
+              ? {
+                  ...message,
+                  meta: {
+                    ...message.meta,
+                    deliveryStatus,
+                    externalMessageId,
+                  },
+                }
+              : message
+          ),
+        };
+      }),
+    })),
 
   addAIResponse: (conversationId, guestMessage) => {
     get().simulateAIResponseForConversation(conversationId, guestMessage);

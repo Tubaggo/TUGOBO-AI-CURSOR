@@ -30,6 +30,7 @@ export function liveMessageToOperation(msg: LiveMessage): OperationMessage {
     meta: {
       aiGenerated: msg.aiGenerated,
       takeoverSuggested: msg.humanOverride,
+      deliveryStatus: msg.deliveryStatus,
     },
   };
 }

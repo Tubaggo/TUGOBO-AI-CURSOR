@@ -133,12 +133,14 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
         ok: boolean;
         events?: Array<{
           id: string;
+          messageId?: string;
           hotelId: string;
           provider: "manychat";
           channel: "instagram" | "whatsapp";
+          senderType?: "guest" | "staff";
           externalUserId: string;
           externalId: string;
-          guestName: string;
+          guestName?: string;
           guestPhone?: string;
           message: string;
           createdAt: string;
@@ -164,11 +166,24 @@ export function useLiveConversationSync(selectedId: string | null): LiveOpsState
             conversation.id === `demo-manychat-${event.channel}-${event.externalUserId}`
         );
 
+        if (event.senderType === "staff") {
+          if (existing) {
+            state.addOperatorMessage(
+              existing.id,
+              event.message,
+              event.messageId ?? event.id,
+              event.createdAt,
+              "mock_sent"
+            );
+          }
+          continue;
+        }
+
         state.addIncomingMessage({
           hotelId: event.hotelId,
           channel: event.channel,
           provider: event.provider,
-          guestName: event.guestName,
+          guestName: event.guestName ?? "Misafir",
           guestPhone: event.guestPhone,
           message: event.message,
           externalId: event.externalId,

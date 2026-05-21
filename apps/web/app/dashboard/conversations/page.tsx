@@ -69,7 +69,7 @@ import { useConversationAi } from "@/lib/ai/use-guest-ai-response";
 import { useConversationAiStore } from "@/lib/stores/conversation-ai-store";
 import { simulateAIResponse } from "@/lib/channels/simulate-ai-response";
 import { stageLabel } from "@/lib/channels/channelLabels";
-import type { ChannelType } from "@/lib/channels/types";
+import type { ChannelType, OperationConversation, OperationMessage } from "@/lib/channels/types";
 import { useOperationConversationStore } from "@/lib/stores/operation-conversation-store";
 import { useOperationConversationsPanel } from "@/lib/panel/use-operation-conversations";
 import { ChannelBadge, ChannelGlyph, channelDisplayLabel } from "../_components/channel-badge";
@@ -456,8 +456,75 @@ export default function ConversationsPage() {
   }
 
   function messagesForConv(convId: string): ChatMsg[] {
-    const base = CHAT_THREADS[convId]?.messages ?? demoChatThreads[convId]?.messages ?? [];
+    const base =
+      CHAT_THREADS[convId]?.messages ??
+      demoChatThreads[convId]?.messages ??
+      opPanel.threadsById[convId]?.messages ??
+      [];
     return [...base, ...(localMessages[convId] ?? [])];
+  }
+
+  function manychatExternalUserIdFromExternalId(operation: OperationConversation): string | null {
+    if (operation.channel !== "instagram" && operation.channel !== "whatsapp") return null;
+    const prefix = `manychat:${operation.channel}:`;
+    if (!operation.externalId?.startsWith(prefix)) return null;
+
+    const externalUserId = operation.externalId.slice(prefix.length).trim();
+    return externalUserId.length > 0 ? externalUserId : null;
+  }
+
+  function updateOptimisticDelivery(
+    conversationId: string,
+    messageId: string,
+    deliveryStatus: NonNullable<OperationMessage["meta"]>["deliveryStatus"],
+    externalMessageId?: string
+  ) {
+    useOperationConversationStore
+      .getState()
+      .updateMessageDelivery(conversationId, messageId, deliveryStatus, externalMessageId);
+  }
+
+  async function postManychatOperationReply(
+    operation: OperationConversation,
+    content: string,
+    optimisticMessageId: string
+  ) {
+    const externalUserId = manychatExternalUserIdFromExternalId(operation);
+    if (!externalUserId || (operation.channel !== "instagram" && operation.channel !== "whatsapp")) {
+      updateOptimisticDelivery(operation.id, optimisticMessageId, "failed");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/integrations/manychat/outbound", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hotel_id: operation.hotelId ?? "demo-hotel",
+          conversation_id: operation.id,
+          external_user_id: externalUserId,
+          channel: operation.channel,
+          message: content,
+          client_message_id: optimisticMessageId,
+          secret: process.env.NODE_ENV !== "production" ? "test-secret" : undefined,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        deliveryStatus?: "sent" | "mock_sent" | "failed";
+        externalMessageId?: string;
+      } | null;
+
+      updateOptimisticDelivery(
+        operation.id,
+        optimisticMessageId,
+        data?.success ? (data.deliveryStatus ?? "sent") : "failed",
+        data?.externalMessageId
+      );
+    } catch {
+      updateOptimisticDelivery(operation.id, optimisticMessageId, "failed");
+    }
   }
 
   function triggerGuestAiResponse(convId: string, guestMessage: string) {
@@ -870,8 +937,33 @@ export default function ConversationsPage() {
     const trimmed = replyText.trim();
     if (!trimmed) return;
 
-    if (liveApi.enabled && isLiveConversationId(selected)) {
-      void liveApi.postOperatorMessage(selected, trimmed);
+    const operation = opPanel.getOperationSummary(selected);
+    if (operation) {
+      const optimisticMessage = useOperationConversationStore
+        .getState()
+        .addOperatorMessage(selected, trimmed);
+      setReplyText("");
+
+      if (!optimisticMessage) return;
+
+      if (liveApi.enabled && isLiveConversationId(selected)) {
+        void liveApi.postOperatorMessage(selected, trimmed).then((result) => {
+          updateOptimisticDelivery(
+            selected,
+            optimisticMessage.id,
+            result.ok ? (result.message?.deliveryStatus ?? "sent") : "failed"
+          );
+        });
+        return;
+      }
+
+      if (operation.provider === "manychat") {
+        void postManychatOperationReply(operation, trimmed, optimisticMessage.id);
+        return;
+      }
+
+      updateOptimisticDelivery(selected, optimisticMessage.id, "sent");
+      return;
     }
 
     const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });

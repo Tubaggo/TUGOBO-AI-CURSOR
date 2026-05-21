@@ -13,6 +13,7 @@ const manychatOutboundSchema = z.object({
   message: z.string().trim().min(1).max(4000),
   secret: z.string().trim().min(1).max(255).optional(),
   internal_auth_token: z.string().trim().min(1).max(255).optional(),
+  client_message_id: z.string().trim().min(1).max(200).optional(),
   provider_metadata: z.record(z.unknown()).optional(),
 });
 
@@ -24,6 +25,7 @@ export type NormalizedManychatOutboundMessage = {
   message: string;
   secret?: string;
   internalAuthToken?: string;
+  clientMessageId?: string;
   providerMetadata?: Record<string, unknown>;
 };
 
@@ -79,6 +81,7 @@ export function parseManychatOutboundPayload(body: unknown): ManychatOutboundPar
       message: parsed.data.message,
       secret: parsed.data.secret,
       internalAuthToken: parsed.data.internal_auth_token,
+      clientMessageId: parsed.data.client_message_id,
       providerMetadata: parsed.data.provider_metadata,
     },
   };

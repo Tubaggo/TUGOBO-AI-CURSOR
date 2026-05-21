@@ -7,6 +7,7 @@ import {
   sendManychatOutboundMessage,
 } from "@/lib/server/integrations/manychat-outbound";
 import { validateManychatSecret } from "@/lib/server/conversations/service";
+import { recordManychatDevRuntimeEvent } from "@/lib/server/integrations/manychat-dev-events";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,17 @@ export async function POST(req: Request) {
     }
 
     const result = await sendManychatOutboundMessage(normalized);
+    recordManychatDevRuntimeEvent({
+      messageId: normalized.clientMessageId,
+      hotelId: normalized.hotelId,
+      provider: "manychat",
+      channel: normalized.channel,
+      senderType: "staff",
+      externalUserId: normalized.externalUserId,
+      externalId: `manychat:${normalized.channel}:${normalized.externalUserId}`,
+      message: normalized.message,
+    });
+
     return NextResponse.json({
       success: result.deliveryStatus !== "failed",
       provider: result.provider,

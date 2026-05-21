@@ -1,11 +1,13 @@
 type ManychatDevRuntimeEvent = {
   id: string;
+  messageId?: string;
   hotelId: string;
   provider: "manychat";
   channel: "instagram" | "whatsapp";
+  senderType: "guest" | "staff";
   externalUserId: string;
   externalId: string;
-  guestName: string;
+  guestName?: string;
   guestPhone?: string;
   message: string;
   createdAt: string;
@@ -26,7 +28,9 @@ function runtimeEventsStore(): ManychatDevRuntimeEvent[] {
 }
 
 export function recordManychatDevRuntimeEvent(
-  event: Omit<ManychatDevRuntimeEvent, "id" | "createdAt">
+  event: Omit<ManychatDevRuntimeEvent, "id" | "createdAt" | "senderType"> & {
+    senderType?: ManychatDevRuntimeEvent["senderType"];
+  }
 ) {
   const store = runtimeEventsStore();
   const createdAt = new Date().toISOString();
@@ -34,6 +38,7 @@ export function recordManychatDevRuntimeEvent(
   store.push({
     ...event,
     id: `manychat-dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    senderType: event.senderType ?? "guest",
     createdAt,
   });
 

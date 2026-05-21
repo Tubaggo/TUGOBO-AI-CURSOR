@@ -22,6 +22,8 @@ export type OperationMessageMeta = {
   paymentLinkSent?: boolean;
   roomSuggestion?: string;
   operationalEvent?: string;
+  deliveryStatus?: "pending" | "sent" | "mock_sent" | "delivered" | "read" | "failed";
+  externalMessageId?: string;
 };
 
 export type OperationMessage = {
