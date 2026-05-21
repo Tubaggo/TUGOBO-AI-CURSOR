@@ -4,5 +4,6 @@
   "provider": "manychat",
   "channel": "instagram",
   "external_user_id": "ig_123",
+  "guest_name": "Test Guest",
   "message": "Merhaba Tugobo AI"
 }

@@ -7,6 +7,7 @@ export type HotelWorkspacePlan = "starter" | "growth" | "enterprise";
 export type ConnectedChannelProvider =
   | "manychat"
   | "whatsapp_cloud"
+  | "instagram_dm"
   | "instagram"
   | "web_chat"
   | "whatsapp_twilio"
@@ -19,6 +20,9 @@ export type ConnectedChannelType =
   | "manual";
 
 export type ConnectedChannelStatus =
+  | "active"
+  | "pending"
+  | "disabled"
   | "draft"
   | "connected"
   | "disconnected"

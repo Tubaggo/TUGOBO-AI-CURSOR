@@ -25,6 +25,7 @@ export interface Conversation {
   provider?:
     | "manychat"
     | "whatsapp_cloud"
+    | "instagram_dm"
     | "instagram"
     | "web_chat"
     | "whatsapp_twilio"

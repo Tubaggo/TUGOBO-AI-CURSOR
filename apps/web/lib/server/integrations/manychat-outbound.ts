@@ -2,10 +2,8 @@ import { ManychatOutboundAdapter, type OutboundDeliveryResult } from "@tugobo/ch
 import { logger } from "@tugobo/shared";
 import { z } from "zod";
 import { MANYCHAT_LOCAL_TEST_HOTEL_ID, MANYCHAT_LOCAL_TEST_SECRET } from "./manychat";
-import {
-  resolveManychatBridgeConfig,
-  sanitizeManychatBridgeMetadata,
-} from "./manychat-config";
+import { resolveOutboundConfig } from "@/lib/server/channels/service";
+import { sanitizeManychatBridgeMetadata } from "./manychat-config";
 
 export const MANYCHAT_OUTBOUND_PROVIDER = "manychat" as const;
 
@@ -90,9 +88,9 @@ export function isValidManychatInternalToken(token: string | undefined): boolean
 export async function sendManychatOutboundMessage(
   payload: NormalizedManychatOutboundMessage
 ): Promise<OutboundDeliveryResult> {
-  const config = await resolveManychatBridgeConfig({
+  const config = await resolveOutboundConfig({
     hotelId: payload.hotelId,
-    channel: payload.channel,
+    channelType: payload.channel,
     externalUserId: payload.externalUserId,
   });
   const mockMode =

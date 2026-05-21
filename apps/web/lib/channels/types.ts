@@ -44,6 +44,7 @@ export type OperationConversation = {
   provider?:
     | "manychat"
     | "whatsapp_cloud"
+    | "instagram_dm"
     | "instagram"
     | "web_chat"
     | "whatsapp_twilio"
@@ -76,6 +77,7 @@ export type IngestChannelMessageInput = {
   provider?:
     | "manychat"
     | "whatsapp_cloud"
+    | "instagram_dm"
     | "instagram"
     | "web_chat"
     | "whatsapp_twilio"

@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { and, channels, db, eq, type DB } from "@tugobo/db";
+import { and, channels, db, eq, inArray, type DB } from "@tugobo/db";
 
 export type ManychatBridgeChannel = "instagram" | "whatsapp";
 export type ManychatBridgeConfigMode = "live" | "env" | "mock";
@@ -146,7 +146,7 @@ async function findConnectedChannelConfig(
         eq(channels.hotelId, input.hotelId),
         eq(channels.provider, "manychat"),
         eq(channels.channelType, input.channel),
-        eq(channels.status, "connected")
+        inArray(channels.status, ["active", "connected"])
       )
     )
     .limit(1);

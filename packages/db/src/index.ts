@@ -1,3 +1,3 @@
 export * from "./client";
 export * from "./schema";
-export { and, desc, eq } from "drizzle-orm";
+export { and, desc, eq, inArray } from "drizzle-orm";

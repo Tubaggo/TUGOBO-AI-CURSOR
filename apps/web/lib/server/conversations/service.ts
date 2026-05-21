@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   hotels,
+  inArray,
   messages,
   operationalEvents,
   type DB,
@@ -18,10 +19,7 @@ import type { TakeoverAction } from "@/lib/conversation/models";
 import { generateHotelAssistantResponse } from "@/lib/ai/aiClient";
 import type { AiRespondRequest } from "@/lib/ai/types";
 import { sendManychatOutboundMessage } from "@/lib/server/integrations/manychat-outbound";
-import {
-  manychatSecretsMatch,
-  resolveManychatBridgeConfig,
-} from "@/lib/server/integrations/manychat-config";
+import { validateChannelSecret } from "@/lib/server/channels/service";
 
 type ConversationRow = {
   conversation: typeof conversations.$inferSelect;
@@ -36,7 +34,7 @@ function assertDb(): DB {
 
 function providerFromChannel(channel: PanelChannelType) {
   if (channel === "web_chat") return "web_chat" as const;
-  if (channel === "instagram") return "instagram" as const;
+  if (channel === "instagram") return "instagram_dm" as const;
   return "whatsapp_cloud" as const;
 }
 
@@ -88,7 +86,7 @@ async function ensurePanelChannel(
       hotelId,
       provider,
       channelType: panelChannel,
-      status: "connected",
+      status: "active",
       metadata: { panelChannel },
       externalAddress,
     })
@@ -158,7 +156,7 @@ async function findManychatChannel(
         eq(channels.hotelId, hotelId),
         eq(channels.provider, "manychat"),
         eq(channels.channelType, channel),
-        eq(channels.status, "connected")
+        inArray(channels.status, ["active", "connected"])
       )
     )
     .limit(1);
@@ -532,19 +530,20 @@ export async function validateManychatSecret(input: {
   if (!exists) throw new Error("hotel_not_found");
 
   const connectedChannel = await findManychatChannel(database, input.hotelId, input.channel);
-  const config = await resolveManychatBridgeConfig({
-    hotelId: input.hotelId,
-    channel: input.channel,
-  });
+  if (!connectedChannel) throw new Error("channel_not_connected");
 
-  if (!connectedChannel && !config) throw new Error("channel_not_connected");
+  try {
+    await validateChannelSecret({
+      hotelId: input.hotelId,
+      channelType: input.channel,
+      secret: input.secret,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "channel_secret_missing") {
+      throw new Error("manychat_bridge_config_missing");
+    }
 
-  if (!config?.inboundSecret) {
-    throw new Error("manychat_bridge_config_missing");
-  }
-
-  if (!manychatSecretsMatch(config.inboundSecret, input.secret.trim())) {
-    throw new Error("invalid_secret");
+    throw err;
   }
 }
 

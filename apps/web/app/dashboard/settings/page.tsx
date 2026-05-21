@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
+  AlertCircle,
   Bot,
-  Clock3,
-  MessageSquare,
+  Building2,
   Check,
-  Wifi,
-  WifiOff,
+  Clock3,
+  Globe2,
   Info,
+  Instagram,
+  MessageSquare,
+  Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DAY_LABELS = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const defaultHours: Record<number, { open: boolean; from: string; to: string }> = {
   0: { open: false, from: "09:00", to: "18:00" },
@@ -26,17 +28,83 @@ const defaultHours: Record<number, { open: boolean; from: string; to: string }> 
   6: { open: true, from: "10:00", to: "20:00" },
 };
 
+type ChannelConnectionStatus = "active" | "pending" | "disabled" | "error";
+type ChannelConnection = {
+  channelType: "web_chat" | "instagram" | "whatsapp";
+  displayName: "Web Chat" | "Instagram" | "WhatsApp";
+  status: ChannelConnectionStatus;
+  lastConnectedAt: string | null;
+  lastError: string | null;
+  webhookState: "ready" | "not_configured";
+};
+
+const fallbackChannels: ChannelConnection[] = [
+  {
+    channelType: "web_chat",
+    displayName: "Web Chat",
+    status: "pending",
+    lastConnectedAt: null,
+    lastError: null,
+    webhookState: "ready",
+  },
+  {
+    channelType: "instagram",
+    displayName: "Instagram",
+    status: "pending",
+    lastConnectedAt: null,
+    lastError: null,
+    webhookState: "not_configured",
+  },
+  {
+    channelType: "whatsapp",
+    displayName: "WhatsApp",
+    status: "pending",
+    lastConnectedAt: null,
+    lastError: null,
+    webhookState: "not_configured",
+  },
+];
+
 export default function SettingsPage() {
   const pathname = usePathname();
   const isSalesPreview = pathname.startsWith("/demo/otel-paneli");
 
   const [saved, setSaved] = useState(false);
+  const [channelConnections, setChannelConnections] = useState<ChannelConnection[]>(fallbackChannels);
   const [persona, setPersona] = useState(
-    "Tugobo AI, otel ekibine destek veren profesyonel bir dijital operasyon asistanıdır. Misafirin dilinde yanıt ver, net ve kısa kal, rezervasyon ile ödeme adımlarını kontrollü ilerlet ve gerektiğinde insan desteğine yönlendir."
+    "Tugobo AI supports hotel operations with clear, concise guest replies. Match the guest language, keep booking and payment steps controlled, and route to human support when needed."
   );
   const [hotelName, setHotelName] = useState("Pilot Otel");
   const [timezone, setTimezone] = useState("Europe/Istanbul");
   const [hours, setHours] = useState(defaultHours);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadChannelConnections() {
+      if (isSalesPreview) return;
+
+      try {
+        const res = await fetch("/api/settings/channels");
+        const data = (await res.json().catch(() => null)) as {
+          ok?: boolean;
+          channels?: ChannelConnection[];
+        } | null;
+
+        if (!cancelled && data?.ok && Array.isArray(data.channels)) {
+          setChannelConnections(data.channels);
+        }
+      } catch {
+        // Keep the local safe fallback visible.
+      }
+    }
+
+    void loadChannelConnections();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSalesPreview]);
 
   async function handleSave() {
     setSaved(true);
@@ -48,7 +116,7 @@ export default function SettingsPage() {
           body: JSON.stringify({ hotelName, timezone, persona }),
         });
       } catch {
-        // UI bildirimi zaten gösterildi.
+        // The saved affordance is intentionally optimistic for this local admin surface.
       }
     }
     setTimeout(() => setSaved(false), 2500);
@@ -65,12 +133,12 @@ export default function SettingsPage() {
           <div>
             {isSalesPreview ? (
               <p className="mb-2 text-[11px] leading-relaxed text-white/38">
-                Örnek ayarlar - canlı hesapta kendi kayıtlarınız ve entegrasyonlarınız kullanılır.
+                Preview settings use sample workspace data.
               </p>
             ) : null}
-            <h1 className="text-xl font-semibold text-white">Ayarlar</h1>
+            <h1 className="text-xl font-semibold text-white">Settings</h1>
             <p className="mt-0.5 text-sm text-white/40">
-              Otel bilgilerini, AI destek tonunu ve kanal bağlantılarını yönetin.
+              Manage hotel profile, AI support tone, and channel connections.
             </p>
           </div>
           <button
@@ -85,25 +153,25 @@ export default function SettingsPage() {
             {saved ? (
               <>
                 <Check className="h-3.5 w-3.5" />
-                Kaydedildi
+                Saved
               </>
             ) : (
-              "Değişiklikleri kaydet"
+              "Save changes"
             )}
           </button>
         </div>
 
         <div className="space-y-5">
-          <Section icon={Building2} title="Otel profili" description="Tesisin temel operasyon bilgileri">
+          <Section icon={Building2} title="Hotel profile" description="Core workspace details">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Otel adı">
+              <Field label="Hotel name">
                 <input
                   value={hotelName}
                   onChange={(e) => setHotelName(e.target.value)}
                   className={inputCls}
                 />
               </Field>
-              <Field label="Saat dilimi">
+              <Field label="Timezone">
                 <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
                   {["Europe/Istanbul", "Europe/London", "Europe/Berlin", "America/New_York", "Asia/Dubai"].map((tz) => (
                     <option key={tz} value={tz}>
@@ -112,29 +180,29 @@ export default function SettingsPage() {
                   ))}
                 </select>
               </Field>
-              <Field label="Varsayılan dil">
+              <Field label="Default language">
                 <select className={inputCls}>
-                  <option>Türkçe</option>
+                  <option>Turkish</option>
                   <option>English</option>
-                  <option>Deutsch</option>
-                  <option>Русский</option>
+                  <option>German</option>
+                  <option>Russian</option>
                 </select>
               </Field>
-              <Field label="İletişim e-postası">
+              <Field label="Contact email">
                 <input defaultValue="iletisim@pilototel.com" type="email" className={inputCls} />
               </Field>
             </div>
           </Section>
 
-          <Section icon={Bot} title="AI destek tonu" description="AI'ın misafire nasıl görüneceğini belirleyin">
+          <Section icon={Bot} title="AI support tone" description="How AI should assist guest conversations">
             <div className="space-y-4">
               <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/15 bg-blue-500/[0.06] px-3.5 py-3">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
                 <p className="text-xs leading-relaxed text-blue-300/70">
-                  Bu tanım tüm misafir görüşmelerinde kullanılır. Sistem, misafirin diline göre otomatik yanıt vermeye devam eder.
+                  This description is used in guest conversations. Replies still adapt to the guest language.
                 </p>
               </div>
-              <Field label="Sistem tanımı">
+              <Field label="System description">
                 <textarea
                   value={persona}
                   onChange={(e) => setPersona(e.target.value)}
@@ -143,14 +211,14 @@ export default function SettingsPage() {
                 />
               </Field>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Misafire görünen AI adı">
+                <Field label="Guest-facing AI name">
                   <input defaultValue="Tugobo AI" className={inputCls} />
                 </Field>
-                <Field label="İnsan destek eşiği">
+                <Field label="Human support threshold">
                   <select className={inputCls}>
-                    <option>Düşük (&lt;50%) - nadiren yönlendir</option>
-                    <option>Orta (&lt;70%) - dengeli</option>
-                    <option>Yüksek (&lt;85%) - sık yönlendir</option>
+                    <option>Low (&lt;50%)</option>
+                    <option>Balanced (&lt;70%)</option>
+                    <option>High (&lt;85%)</option>
                   </select>
                 </Field>
               </div>
@@ -159,8 +227,8 @@ export default function SettingsPage() {
 
           <Section
             icon={Clock3}
-            title="Çalışma saatleri"
-            description="AI destek 7/24 çalışır. Bu saatler insan destek bildirimlerini belirler."
+            title="Working hours"
+            description="AI remains available; these hours guide human support notifications."
           >
             <div className="space-y-2">
               {DAY_LABELS.map((day, i) => (
@@ -177,6 +245,7 @@ export default function SettingsPage() {
                       "relative h-5 w-9 shrink-0 rounded-full transition-colors",
                       hours[i].open ? "bg-blue-600" : "bg-white/[0.10]"
                     )}
+                    type="button"
                   >
                     <span
                       className={cn(
@@ -214,68 +283,113 @@ export default function SettingsPage() {
                       />
                     </div>
                   ) : (
-                    <span className="text-xs text-white/25">Kapalı</span>
+                    <span className="text-xs text-white/25">Closed</span>
                   )}
                 </div>
               ))}
             </div>
           </Section>
 
-          <Section icon={MessageSquare} title="WhatsApp kanalı" description="Bağlı numara ve webhook durumu">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3.5">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#25D366]/10">
-                    <MessageSquare className="h-4.5 w-4.5 text-[#25D366]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white/85">Twilio WhatsApp hattı</p>
-                    <p className="mt-0.5 text-xs text-white/35">+1 415 523 8886</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1">
-                    <WifiOff className="h-3 w-3 text-amber-400" />
-                    <span className="text-[11px] font-medium text-amber-400">Bağlı değil</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Twilio Account SID">
-                  <input
-                    type="password"
-                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Twilio Auth Token">
-                  <input
-                    type="password"
-                    placeholder="••••••••••••••••••••••••••••••••"
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="WhatsApp numarası" className="md:col-span-2">
-                  <input placeholder="+14155238886" className={inputCls} />
-                </Field>
-              </div>
-
-              <div className="flex items-start gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.04] px-3.5 py-3">
-                <Wifi className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
-                <div>
-                  <p className="text-xs font-medium text-white/50">Webhook adresi</p>
-                  <p className="mt-0.5 font-mono text-xs text-white/30">
-                    https://your-domain.com/api/webhooks/twilio
-                  </p>
-                </div>
-              </div>
+          <Section icon={MessageSquare} title="Channel connections" description="Workspace channel status">
+            <div className="divide-y divide-white/[0.06]">
+              {channelConnections.map((channel) => (
+                <ChannelConnectionRow key={channel.channelType} channel={channel} />
+              ))}
             </div>
           </Section>
         </div>
       </div>
     </div>
   );
+}
+
+function ChannelConnectionRow({ channel }: { channel: ChannelConnection }) {
+  const Icon =
+    channel.channelType === "web_chat"
+      ? Globe2
+      : channel.channelType === "instagram"
+        ? Instagram
+        : MessageSquare;
+  const status = statusView(channel.status);
+
+  return (
+    <div className="grid gap-3 py-4 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.05]">
+          <Icon className="h-4.5 w-4.5 text-white/55" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-white/85">{channel.displayName}</p>
+          <p className="mt-0.5 text-xs text-white/35">
+            {channel.lastConnectedAt
+              ? `Last connected ${formatConnectionDate(channel.lastConnectedAt)}`
+              : channel.webhookState === "ready"
+                ? "Connection ready"
+                : "Connection pending"}
+          </p>
+          {channel.lastError ? (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-red-300/80">
+              <AlertCircle className="h-3 w-3 shrink-0" />
+              <span className="truncate">{channel.lastError}</span>
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div
+        className={cn(
+          "inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
+          status.className
+        )}
+      >
+        <status.icon className="h-3 w-3" />
+        {status.label}
+      </div>
+    </div>
+  );
+}
+
+function statusView(status: ChannelConnectionStatus) {
+  if (status === "active") {
+    return {
+      label: "Active",
+      icon: Wifi,
+      className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
+    };
+  }
+
+  if (status === "error") {
+    return {
+      label: "Error",
+      icon: AlertCircle,
+      className: "border-red-500/25 bg-red-500/10 text-red-300",
+    };
+  }
+
+  if (status === "disabled") {
+    return {
+      label: "Disabled",
+      icon: AlertCircle,
+      className: "border-white/[0.10] bg-white/[0.04] text-white/40",
+    };
+  }
+
+  return {
+    label: "Pending",
+    icon: Clock3,
+    className: "border-amber-500/25 bg-amber-500/10 text-amber-300",
+  };
+}
+
+function formatConnectionDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function Section({
